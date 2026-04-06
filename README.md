@@ -34,23 +34,23 @@
 
 ### 🔐 Login
 
-![Login](app/static/img/Login.png)
+![Login](app/static/img/login.png)
 
 ### 📊 Dashboard
 
-![Dashboard](app/static/img/Dashboard.png)
+![Dashboard](app/static/img/dashboard.png)
 
 ### 🎫 Access Control
 
-![Access](app/static/img/Access control.png)
+![Access](app/static/img/access-control.png)
 
 ### 📱 QR Scanner
 
-![Scanner](app/static/img/Scanner.png)
+![Scanner](app/static/img/scanner.png)
 
 ### 📜 Attendance History
 
-![History](app/static/img/Attendance History.png)
+![History](app/static/img/Attendance%20History.png)
 
 ### ⚙️ Configuration
 
@@ -76,7 +76,7 @@
 
 ## 📁 Project Structure
 
-```text
+```
 unitrack/
 │
 ├── app/
@@ -123,13 +123,13 @@ python run.py
 
 Local:
 
-```text
+```
 http://127.0.0.1:5000
 ```
 
 Network:
 
-```text
+```
 http://<your-ip>:5000
 ```
 
@@ -156,11 +156,14 @@ http://<your-ip>:5000
 This project is licensed under the MIT License.
 
 ---
+
 ## ⭐ Support
 
 If you like this project, give it a ⭐ on GitHub!
 
+
 ---
+
 👤 Author
 
 
