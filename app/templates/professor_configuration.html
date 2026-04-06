@@ -1,0 +1,419 @@
+{% extends "professor_base.html" %}
+
+{% block title %}{{ t('configuration') }}{% endblock %}
+
+{% block content %}
+
+<div class="card" style="background:#f4f7ff;">
+    <h2 class="section-title">{{ t('configuration') }}</h2>
+    <p class="section-subtitle">
+        {{ t('Update your professor information, security, preferences, and profile image.') }}
+    </p>
+</div>
+
+{% if profile_message %}
+<div class="card" style="background:#ecfdf5; border:1px solid #bbf7d0;">
+    <p style="margin:0; color:#166534; font-weight:700;">
+        {{ profile_message }}
+    </p>
+</div>
+{% endif %}
+
+{% if profile_error %}
+<div class="card" style="background:#fef2f2; border:1px solid #fecaca;">
+    <p style="margin:0; color:#991b1b; font-weight:700;">
+        {{ profile_error }}
+    </p>
+</div>
+{% endif %}
+
+<div class="card" style="background:#ffffff; border:1px solid #dbe4f0;">
+
+    <style>
+    .staff-config-grid{
+        display:grid;
+        grid-template-columns:320px 1fr;
+        gap:22px;
+        align-items:start;
+    }
+
+    .staff-config-panel{
+        background:#f4f7ff;
+        border:1px solid #dbe4f0;
+        border-radius:20px;
+        padding:22px;
+        box-shadow:var(--shadow-card);
+    }
+
+    .staff-config-title{
+        margin:0 0 18px 0;
+        color:#081a43;
+        font-size:20px;
+        font-weight:900;
+    }
+
+    .staff-form-grid-2{
+        display:grid;
+        grid-template-columns:1fr 1fr;
+        gap:16px 14px;
+    }
+
+    .staff-form-grid-1{
+        display:grid;
+        grid-template-columns:1fr;
+        gap:16px;
+    }
+
+    .staff-field{
+        display:flex;
+        flex-direction:column;
+        gap:8px;
+    }
+
+    .staff-label{
+        font-size:13px;
+        font-weight:800;
+        color:#1e293b;
+    }
+
+    .staff-input,
+    .staff-select{
+        width:100%;
+        min-height:48px;
+        padding:12px 14px;
+        border-radius:14px;
+        border:1px solid #cbd5e1;
+        background:#ffffff;
+        color:#081a43;
+        font-size:15px;
+        outline:none;
+    }
+
+    .staff-input[readonly]{
+        background:#eef2f7;
+        color:#475569;
+    }
+
+    .photo-wrap{
+        display:flex;
+        justify-content:center;
+        margin-bottom:18px;
+    }
+
+    .photo-preview{
+        width:190px;
+        height:190px;
+        border-radius:50%;
+        object-fit:cover;
+        border:4px solid #ffffff;
+        box-shadow:0 12px 26px rgba(15,23,42,0.14);
+        background:#ffffff;
+    }
+
+    .photo-upload-button{
+        margin-top:12px;
+        width:100%;
+        min-height:48px;
+        border:none;
+        border-radius:14px;
+        background:linear-gradient(90deg,#7c3aed,#a855f7,#38bdf8);
+        color:#ffffff;
+        font-size:14px;
+        font-weight:800;
+        cursor:pointer;
+        box-shadow:0 10px 24px rgba(124,58,237,0.20);
+    }
+
+    .save-row{
+        display:flex;
+        justify-content:flex-start;
+        margin-top:18px;
+    }
+
+    .save-button{
+        min-width:220px;
+        min-height:48px;
+        padding:0 22px;
+        border:none;
+        border-radius:14px;
+        background:linear-gradient(90deg,#7c3aed,#a855f7,#38bdf8);
+        color:#ffffff;
+        font-size:14px;
+        font-weight:800;
+        cursor:pointer;
+        box-shadow:0 10px 24px rgba(124,58,237,0.20);
+    }
+
+    .custom-file-input{
+        display:none;
+    }
+
+    .custom-file-wrap{
+        display:flex;
+        align-items:center;
+        gap:10px;
+        width:100%;
+        min-height:48px;
+        padding:10px 12px;
+        border-radius:14px;
+        border:1px solid #cbd5e1;
+        background:#ffffff;
+        color:#081a43;
+        font-size:15px;
+        box-sizing:border-box;
+    }
+
+    .custom-file-button{
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        min-height:36px;
+        padding:0 14px;
+        border-radius:10px;
+        border:1px solid #cbd5e1;
+        background:#f8fafc;
+        color:#081a43;
+        font-size:14px;
+        font-weight:700;
+        cursor:pointer;
+        white-space:nowrap;
+    }
+
+    .custom-file-name{
+        color:#475569;
+        font-size:14px;
+        overflow:hidden;
+        text-overflow:ellipsis;
+        white-space:nowrap;
+    }
+
+    @media (max-width: 980px){
+        .staff-config-grid{
+            grid-template-columns:1fr;
+        }
+    }
+
+    @media (max-width: 640px){
+        .staff-form-grid-2{
+            grid-template-columns:1fr;
+        }
+
+        .staff-config-panel{
+            padding:16px;
+            border-radius:16px;
+        }
+
+        .photo-preview{
+            width:160px;
+            height:160px;
+        }
+
+        .save-button{
+            width:100%;
+            min-width:0;
+        }
+
+        .custom-file-wrap{
+            flex-direction:column;
+            align-items:flex-start;
+        }
+    }
+    </style>
+
+    <div class="staff-config-grid">
+
+        <div class="staff-config-panel">
+            <h3 class="staff-config-title">{{ t('Profile Photo') }}</h3>
+
+            <div class="photo-wrap">
+                {% if current_user.photo_path %}
+                    <img
+                        id="avatarPreview"
+                        src="{{ url_for('static', filename=current_user.photo_path) }}"
+                        class="photo-preview"
+                        alt="{{ t('Professor Photo') }}"
+                    >
+                {% else %}
+                    <img
+                        id="avatarPreview"
+                        src="{{ url_for('static', filename='img/unitrack_logo.png') }}"
+                        class="photo-preview"
+                        alt="{{ t('Professor Photo') }}"
+                    >
+                {% endif %}
+            </div>
+
+            <form method="POST"
+                  action="{{ url_for('professor_views.configuration_update_photo') }}"
+                  enctype="multipart/form-data">
+
+                <input
+                    type="file"
+                    id="avatarInput"
+                    name="photo"
+                    accept="image/*"
+                    class="custom-file-input"
+                >
+
+                <div class="custom-file-wrap">
+                    <label for="avatarInput" class="custom-file-button">
+                        {{ t('Upload Photo') }}
+                    </label>
+                    <span id="selectedFileName" class="custom-file-name">
+                        {% if current_language == 'es' %}Ningún archivo seleccionado{% else %}No file selected{% endif %}
+                    </span>
+                </div>
+
+                <button type="submit" class="photo-upload-button">
+                    {{ t('Upload Photo') }}
+                </button>
+            </form>
+        </div>
+
+        <div style="display:grid; gap:22px;">
+
+            <form method="POST" action="{{ url_for('professor_views.configuration_update') }}">
+
+                <div class="staff-config-panel">
+                    <h3 class="staff-config-title">{{ t('Contact Information') }}</h3>
+
+                    <div class="staff-form-grid-1" style="margin-bottom:16px;">
+                        <div class="staff-field">
+                            <label class="staff-label">{{ t('user_id') }}</label>
+                            <input
+                                type="text"
+                                value="{{ current_user.id }}"
+                                class="staff-input"
+                                readonly
+                            >
+                        </div>
+                    </div>
+
+                    <div class="staff-form-grid-2">
+                        <div class="staff-field">
+                            <label class="staff-label">{{ t('First Name') }}</label>
+                            <input
+                                type="text"
+                                name="first_name"
+                                value="{{ form_data.first_name if form_data and form_data.first_name is not none else (current_user.first_name or '') }}"
+                                class="staff-input"
+                            >
+                        </div>
+
+                        <div class="staff-field">
+                            <label class="staff-label">{{ t('Last Name') }}</label>
+                            <input
+                                type="text"
+                                name="last_name"
+                                value="{{ form_data.last_name if form_data and form_data.last_name is not none else (current_user.last_name or '') }}"
+                                class="staff-input"
+                            >
+                        </div>
+
+                        <div class="staff-field">
+                            <label class="staff-label">{{ t('username') }}</label>
+                            <input
+                                type="text"
+                                value="{{ current_user.username }}"
+                                class="staff-input"
+                                readonly
+                            >
+                        </div>
+
+                        <div class="staff-field">
+                            <label class="staff-label">{{ t('email') }}</label>
+                            <input
+                                type="email"
+                                name="email"
+                                value="{{ form_data.email if form_data and form_data.email is not none else (current_user.email or '') }}"
+                                class="staff-input"
+                            >
+                        </div>
+
+                        <div class="staff-field">
+                            <label class="staff-label">{{ t('phone') }}</label>
+                            <input
+                                type="text"
+                                name="phone"
+                                value="{{ form_data.phone if form_data and form_data.phone is not none else (current_user.phone or '') }}"
+                                class="staff-input"
+                            >
+                        </div>
+                    </div>
+                </div>
+
+                <div class="staff-config-panel" style="margin-top:22px;">
+                    <h3 class="staff-config-title">{{ t('Security') }}</h3>
+
+                    <div class="staff-form-grid-1">
+                        <div class="staff-field">
+                            <label class="staff-label">{{ t('Current Password') }}</label>
+                            <input
+                                type="password"
+                                name="current_password"
+                                class="staff-input"
+                            >
+                        </div>
+
+                        <div class="staff-field">
+                            <label class="staff-label">{{ t('New Password') }}</label>
+                            <input
+                                type="password"
+                                name="new_password"
+                                class="staff-input"
+                            >
+                        </div>
+
+                        <div class="staff-field">
+                            <label class="staff-label">{{ t('Confirm Password') }}</label>
+                            <input
+                                type="password"
+                                name="confirm_password"
+                                class="staff-input"
+                            >
+                        </div>
+                    </div>
+
+                    <div class="save-row">
+                        <button type="submit" class="save-button">
+                            {{ t('Save Changes') }}
+                        </button>
+                    </div>
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+</div>
+
+<script>
+const avatarInput = document.getElementById("avatarInput");
+const avatarPreview = document.getElementById("avatarPreview");
+const selectedFileName = document.getElementById("selectedFileName");
+
+if (avatarInput && avatarPreview) {
+    avatarInput.addEventListener("change", function(event) {
+        const file = event.target.files && event.target.files[0];
+        if (!file) {
+            if (selectedFileName) {
+                selectedFileName.textContent = "{% if current_language == 'es' %}Ningún archivo seleccionado{% else %}No file selected{% endif %}";
+            }
+            return;
+        }
+
+        if (selectedFileName) {
+            selectedFileName.textContent = file.name;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            avatarPreview.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+</script>
+
+{% endblock %}

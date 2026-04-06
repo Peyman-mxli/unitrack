@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UniTrack Register</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+html, body{
+    min-height:100%;
+}
+
+body{
+    font-family:Arial, Helvetica, sans-serif;
+    min-height:100vh;
+    background:white;
+    color:#1f2937;
+    display:flex;
+    flex-direction:column;
+}
+
+/* HEADER */
+
+.top-strip{
+    width:100%;
+    min-height:90px;
+    background:linear-gradient(90deg,#7a0019,#5f0014);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:14px 35px;
+    flex-wrap:wrap;
+    gap:12px;
+}
+
+.header-left{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    color:white;
+    min-width:0;
+    flex-wrap:wrap;
+}
+
+.header-corner-logo{
+    height:54px;
+    width:auto;
+    object-fit:contain;
+    display:block;
+}
+
+.header-upbc{
+    font-size:28px;
+    font-weight:900;
+    letter-spacing:2px;
+}
+
+.header-university{
+    font-size:14px;
+    font-weight:600;
+    opacity:0.9;
+    line-height:1.35;
+}
+
+.header-right{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    flex-wrap:wrap;
+    margin-left:auto;
+    min-width:0;
+}
+
+.language-select{
+    height:42px;
+    padding:0 12px;
+    border:none;
+    border-radius:10px;
+    background:white;
+    color:#5f0014;
+    font-size:14px;
+    font-weight:700;
+    cursor:pointer;
+}
+
+.header-logos{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+}
+
+.header-logo-box{
+    height:50px;
+    min-width:80px;
+    background:white;
+    padding:6px 8px;
+    border-radius:10px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.header-logos img{
+    max-height:36px;
+}
+
+.header-upbc-photo{
+    height:50px;
+    background:white;
+    padding:4px 8px;
+    border-radius:10px;
+    display:block;
+    object-fit:contain;
+}
+
+/* PAGE CENTER */
+
+.page-wrap{
+    flex:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:56px 20px;
+    background:
+        radial-gradient(circle at top left, rgba(255,255,255,0.34), transparent 22%),
+        radial-gradient(circle at bottom right, rgba(255,255,255,0.22), transparent 24%),
+        linear-gradient(180deg, #8b5cf6 0%, #6d42d8 36%, #5a31c6 68%, #4b279f 100%);
+    position:relative;
+    overflow:hidden;
+}
+
+.page-wrap::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:
+        radial-gradient(circle at 15% 18%, rgba(255,255,255,0.12), transparent 18%),
+        radial-gradient(circle at 88% 12%, rgba(255,255,255,0.10), transparent 20%),
+        radial-gradient(circle at 82% 80%, rgba(255,255,255,0.08), transparent 18%);
+    pointer-events:none;
+}
+
+.page-wrap::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:
+        linear-gradient(120deg, transparent 0%, transparent 24%, rgba(255,255,255,0.11) 25%, transparent 26%, transparent 100%),
+        linear-gradient(160deg, transparent 0%, transparent 70%, rgba(255,255,255,0.08) 71%, transparent 72%, transparent 100%);
+    pointer-events:none;
+}
+
+/* CARD */
+
+.register-card{
+    position:relative;
+    z-index:1;
+    width:100%;
+    max-width:520px;
+    background:#ffffff;
+    border-radius:18px;
+    padding:28px 30px 22px 30px;
+    box-shadow:0 20px 48px rgba(32,18,88,0.28);
+    color:#1f2937;
+}
+
+.card-title{
+    font-size:22px;
+    font-weight:700;
+    margin-bottom:18px;
+    text-align:center;
+    color:#231942;
+}
+
+/* ALERTS */
+
+.error,
+.success{
+    margin-bottom:14px;
+    padding:10px 12px;
+    border-radius:8px;
+    font-size:13px;
+    line-height:1.4;
+}
+
+.error{
+    background:#fee2e2;
+    color:#991b1b;
+}
+
+.success{
+    background:#dcfce7;
+    color:#166534;
+}
+
+/* FORM */
+
+.form-grid{
+    display:grid;
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+    gap:14px;
+}
+
+.form-group{
+    margin-bottom:0;
+    min-width:0;
+}
+
+.form-group.full-width{
+    grid-column:1 / -1;
+}
+
+.form-label{
+    display:block;
+    margin-bottom:6px;
+    font-size:12px;
+    font-weight:600;
+    color:#374151;
+}
+
+.form-input,
+.form-select,
+.form-file{
+    width:100%;
+    height:42px;
+    padding:0 14px;
+    border-radius:8px;
+    border:1px solid #d8dbe4;
+    background:#f3f4f6;
+    color:#111827;
+    font-size:13px;
+    outline:none;
+    transition:border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-file:focus{
+    border-color:#8b5cf6;
+    background:#ffffff;
+    box-shadow:0 0 0 3px rgba(139,92,246,0.14);
+}
+
+.form-input::placeholder{
+    color:#8b90a1;
+}
+
+.form-select{
+    appearance:none;
+    -webkit-appearance:none;
+    -moz-appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' viewBox='0 0 16 16'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.8' d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;
+    background-position:right 12px center;
+    padding-right:40px;
+}
+
+.form-file{
+    padding:8px 10px;
+    display:flex;
+    align-items:center;
+    cursor:pointer;
+}
+
+.file-help{
+    margin-top:6px;
+    font-size:11px;
+    color:#6b7280;
+    line-height:1.45;
+    word-break:break-word;
+}
+
+.option-row{
+    grid-column:1 / -1;
+    display:flex;
+    justify-content:flex-start;
+    align-items:center;
+    gap:8px;
+    margin-top:-2px;
+    font-size:12px;
+    color:#4b5563;
+    flex-wrap:wrap;
+}
+
+.option-row input{
+    width:14px;
+    height:14px;
+    flex:0 0 auto;
+}
+
+.option-row label{
+    cursor:pointer;
+}
+
+/* BUTTONS */
+
+.register-button{
+    width:100%;
+    height:42px;
+    border:none;
+    border-radius:8px;
+    font-size:13px;
+    font-weight:700;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    margin-top:18px;
+    background:linear-gradient(90deg,#8b5cf6,#7c3aed);
+    color:#ffffff;
+    box-shadow:0 8px 18px rgba(124,58,237,0.22);
+    transition:transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.register-button:hover{
+    transform:translateY(-1px);
+    box-shadow:0 10px 22px rgba(124,58,237,0.28);
+}
+
+.signin-link-wrap{
+    margin-top:14px;
+    text-align:center;
+    font-size:12px;
+    color:#6b7280;
+    line-height:1.5;
+}
+
+.signin-link{
+    color:#7c3aed;
+    text-decoration:none;
+    font-weight:600;
+}
+
+.signin-link:hover{
+    text-decoration:underline;
+}
+
+.helper-note{
+    margin-top:10px;
+    text-align:center;
+    font-size:11px;
+    color:#7b8190;
+    line-height:1.45;
+}
+
+/* FOOTER */
+
+.page-footer{
+    background:linear-gradient(90deg,#7a0019,#5f0014);
+    color:white;
+    padding:20px;
+    margin-top:auto;
+}
+
+.footer-content{
+    display:flex;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:12px;
+}
+
+.footer-info{
+    font-size:14px;
+    line-height:1.7;
+}
+
+.footer-bottom{
+    margin-top:10px;
+    background:black;
+    padding:10px;
+    font-size:13px;
+    line-height:1.5;
+}
+
+/* MOBILE */
+
+@media(max-width:900px){
+    .top-strip{
+        flex-direction:column;
+        align-items:flex-start;
+        padding:14px 20px;
+    }
+
+    .header-left,
+    .header-right{
+        width:100%;
+    }
+
+    .header-right{
+        flex-direction:column;
+        align-items:flex-start;
+        width:100%;
+        margin-left:0;
+    }
+
+    .language-select{
+        width:100%;
+    }
+
+    .footer-content{
+        flex-direction:column;
+    }
+
+    .page-wrap{
+        padding:36px 16px;
+    }
+
+    .register-card{
+        max-width:520px;
+        padding:24px 22px 18px 22px;
+    }
+}
+
+@media(max-width:640px){
+    .form-grid{
+        grid-template-columns:1fr;
+        gap:12px;
+    }
+
+    .form-group,
+    .form-group.full-width,
+    .option-row{
+        grid-column:1;
+    }
+
+    .page-wrap{
+        align-items:flex-start;
+        padding:24px 12px;
+    }
+
+    .register-card{
+        width:100%;
+        max-width:100%;
+    }
+}
+
+@media(max-width:480px){
+    .top-strip{
+        padding:12px 14px;
+        gap:10px;
+    }
+
+    .header-left{
+        gap:8px;
+        align-items:flex-start;
+    }
+
+    .header-corner-logo{
+        height:40px;
+    }
+
+    .header-upbc{
+        font-size:20px;
+        letter-spacing:1px;
+    }
+
+    .header-university{
+        font-size:11px;
+    }
+
+    .header-logo-box{
+        height:42px;
+        min-width:68px;
+        padding:5px 7px;
+        border-radius:8px;
+    }
+
+    .header-logos{
+        gap:8px;
+    }
+
+    .header-logos img{
+        max-height:28px;
+    }
+
+    .header-upbc-photo{
+        height:42px;
+        padding:4px 6px;
+        border-radius:8px;
+    }
+
+    .page-wrap{
+        padding:18px 10px;
+    }
+
+    .register-card{
+        max-width:100%;
+        padding:16px 14px 16px 14px;
+        border-radius:14px;
+    }
+
+    .card-title{
+        font-size:20px;
+        margin-bottom:16px;
+    }
+
+    .form-label{
+        font-size:11px;
+    }
+
+    .form-input,
+    .form-select,
+    .form-file{
+        height:40px;
+        font-size:12px;
+        padding-left:12px;
+        padding-right:12px;
+    }
+
+    .form-select{
+        padding-right:36px;
+    }
+
+    .register-button{
+        height:40px;
+        font-size:12px;
+        margin-top:16px;
+    }
+
+    .signin-link-wrap,
+    .option-row{
+        font-size:11px;
+    }
+
+    .helper-note,
+    .file-help{
+        font-size:10px;
+    }
+
+    .footer-info{
+        font-size:12px;
+        line-height:1.6;
+    }
+
+    .footer-bottom{
+        font-size:11px;
+        padding:9px;
+    }
+}
+</style>
+</head>
+<body>
+
+<div class="top-strip">
+
+    <div class="header-left">
+        <img src="{{ url_for('static', filename='img/unitrack_logo.png') }}" class="header-corner-logo" alt="UniTrack Logo">
+        <div class="header-upbc">UPBC</div>
+        <div class="header-university">
+            Universidad Politécnica de Baja California
+        </div>
+    </div>
+
+    <div class="header-right">
+
+        <form method="GET" action="/auth/register-page">
+            <select class="language-select" name="language" onchange="this.form.submit()">
+                <option value="en">English</option>
+                <option value="es">Español</option>
+            </select>
+        </form>
+
+        <div class="header-logos">
+            <div class="header-logo-box">
+                <img src="{{ url_for('static', filename='img/sep.png') }}" alt="SEP">
+            </div>
+            <div class="header-logo-box">
+                <img src="{{ url_for('static', filename='img/baja_california.png') }}" alt="Baja California">
+            </div>
+            <div class="header-logo-box">
+                <img src="{{ url_for('static', filename='img/utyp.png') }}" alt="UTyP">
+            </div>
+        </div>
+
+        <img src="{{ url_for('static', filename='img/upbc_official.png') }}" class="header-upbc-photo" alt="UPBC Official Logo">
+
+    </div>
+</div>
+
+<div class="page-wrap">
+
+    <div class="register-card">
+
+        <div class="card-title">Register</div>
+
+        {% if error %}
+            <div class="error">{{ error }}</div>
+        {% endif %}
+
+        {% if success_message %}
+            <div class="success">{{ success_message }}</div>
+        {% endif %}
+
+        <form method="POST" action="/auth/register-page" enctype="multipart/form-data">
+
+            <div class="form-grid">
+
+                <div class="form-group">
+                    <label class="form-label" for="first_name">First Name</label>
+                    <input
+                        id="first_name"
+                        type="text"
+                        name="first_name"
+                        class="form-input"
+                        placeholder="First name"
+                        value="{{ first_name or '' }}"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="last_name">Last Name</label>
+                    <input
+                        id="last_name"
+                        type="text"
+                        name="last_name"
+                        class="form-input"
+                        placeholder="Last name"
+                        value="{{ last_name or '' }}"
+                        required
+                    >
+                </div>
+
+                <div class="form-group full-width">
+                    <label class="form-label" for="username">Username</label>
+                    <input
+                        id="username"
+                        type="text"
+                        name="username"
+                        class="form-input"
+                        placeholder="Username"
+                        value="{{ username or '' }}"
+                        required
+                    >
+                </div>
+
+                <div class="form-group full-width">
+                    <label class="form-label" for="email">Email</label>
+                    <input
+                        id="email"
+                        type="email"
+                        name="email"
+                        class="form-input"
+                        placeholder="Email"
+                        value="{{ email or '' }}"
+                        required
+                    >
+                </div>
+
+                <div class="form-group full-width">
+                    <label class="form-label" for="phone">Phone</label>
+                    <input
+                        id="phone"
+                        type="text"
+                        name="phone"
+                        class="form-input"
+                        placeholder="Phone"
+                        value="{{ phone or '' }}"
+                        required
+                    >
+                </div>
+
+                <div class="form-group full-width">
+                    <label class="form-label" for="role">Role</label>
+                    <select id="role" name="role" class="form-select" required>
+                        <option value="">Select your role</option>
+                        <option value="estudiante" {% if role == 'estudiante' %}selected{% endif %}>Student</option>
+                        <option value="docente" {% if role == 'docente' %}selected{% endif %}>Teacher</option>
+                        <option value="personal" {% if role == 'personal' %}selected{% endif %}>Staff</option>
+                        <option value="administrativo" {% if role == 'administrativo' %}selected{% endif %}>Admin</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="validation_code">Validation Code</label>
+                    <input
+                        id="validation_code"
+                        type="text"
+                        name="validation_code"
+                        class="form-input"
+                        placeholder="Validation code"
+                        value="{{ validation_code or '' }}"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="password">Create Password</label>
+                    <input
+                        id="password"
+                        type="password"
+                        name="password"
+                        class="form-input"
+                        placeholder="Create password"
+                        required
+                    >
+                </div>
+
+                <div class="form-group full-width">
+                    <label class="form-label" for="confirm_password">Confirm Password</label>
+                    <input
+                        id="confirm_password"
+                        type="password"
+                        name="confirm_password"
+                        class="form-input"
+                        placeholder="Confirm password"
+                        required
+                    >
+                </div>
+
+                <div class="option-row">
+                    <input type="checkbox" id="show_password" onclick="togglePasswords()">
+                    <label for="show_password">Show password</label>
+                </div>
+
+                <div class="form-group full-width">
+                    <label class="form-label" for="photo">Profile Photo</label>
+                    <input
+                        id="photo"
+                        type="file"
+                        name="photo"
+                        class="form-file"
+                        accept=".jpg,.jpeg,.png,.webp"
+                    >
+                    <div class="file-help">
+                        Upload a clear profile image. Supported formats: JPG, JPEG, PNG, WEBP.
+                    </div>
+                </div>
+
+            </div>
+
+            <button type="submit" class="register-button">
+                Create Account
+            </button>
+
+        </form>
+
+        <div class="signin-link-wrap">
+            Already have an account?
+            <a href="/auth/login-page" class="signin-link">Sign in</a>
+        </div>
+
+        <div class="helper-note">
+            Every registration requires a valid university-issued validation code.
+        </div>
+
+    </div>
+
+</div>
+
+<footer class="page-footer">
+
+    <div class="footer-content">
+
+        <div class="footer-info">
+            <strong>Universidad Politécnica de Baja California</strong>
+            <div>Calle de la Claridad S/N</div>
+            <div>Colonia Plutarco Elías Calles, Mexicali, Baja California, México CP. 21376</div>
+            <div>Tel. Conmutador: (52) 686-104-2727</div>
+        </div>
+
+    </div>
+
+    <div class="footer-bottom">
+        © Todos los derechos reservados de la Universidad Politécnica de Baja California
+    </div>
+
+</footer>
+
+<script>
+function togglePasswords(){
+    const passwordInput = document.getElementById("password");
+    const confirmPasswordInput = document.getElementById("confirm_password");
+    const isChecked = document.getElementById("show_password").checked;
+
+    if(passwordInput){
+        passwordInput.type = isChecked ? "text" : "password";
+    }
+
+    if(confirmPasswordInput){
+        confirmPasswordInput.type = isChecked ? "text" : "password";
+    }
+}
+</script>
+
+</body>
+</html>

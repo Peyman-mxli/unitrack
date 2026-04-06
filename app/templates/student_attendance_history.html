@@ -1,0 +1,200 @@
+{% extends "student_base.html" %}
+
+{% block title %}{{ "Historial de Asistencia" if (current_user.language == "es" or session.get("language") == "es") else "Attendance History" }}{% endblock %}
+
+{% block content %}
+
+{% set is_spanish = (current_user.language == "es" or session.get("language") == "es") %}
+
+<div class="card">
+    <h2 class="section-title">{{ "Historial de Asistencia" if is_spanish else "Attendance History" }}</h2>
+    <p class="section-subtitle">
+        {{ "Consulta tus registros de asistencia por clase y fecha." if is_spanish else "View your attendance records by class and date." }}
+    </p>
+</div>
+
+<form method="GET" action="{{ url_for('student_views.attendance_history_page') }}">
+
+<div class="filter-card">
+
+    <div class="filter-grid">
+
+        <div>
+            <label class="filter-label">{{ "Fecha" if is_spanish else "Date" }}</label>
+            <input
+                type="text"
+                name="date"
+                value="{{ selected_date or '' }}"
+                placeholder="{{ 'MM/DD/AAAA' if is_spanish else 'MM/DD/YYYY' }}"
+                class="filter-input"
+            >
+        </div>
+
+        <div>
+            <label class="filter-label">{{ "Clase" if is_spanish else "Class" }}</label>
+            <select name="class_name" class="filter-select">
+                <option value="">{{ "Seleccionar clase" if is_spanish else "Select class" }}</option>
+
+                {% for c in class_options %}
+                <option value="{{ c }}"
+                    {% if selected_class_name == c %}selected{% endif %}
+                >
+                    {{ c }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div>
+            <button type="submit" class="filter-button">
+                {{ "Buscar" if is_spanish else "Search" }}
+            </button>
+        </div>
+
+    </div>
+
+    <div style="margin-top:14px; display:flex; justify-content:flex-end;">
+        <a
+            href="{{ url_for('student_views.attendance_history_page') }}"
+            style="
+                display:inline-block;
+                padding:10px 16px;
+                border-radius:12px;
+                text-decoration:none;
+                font-weight:800;
+                background:rgba(255,255,255,0.14);
+                color:white;
+                border:1px solid rgba(255,255,255,0.18);
+            "
+        >
+            {{ "Limpiar Filtros" if is_spanish else "Clear Filters" }}
+        </a>
+    </div>
+
+</div>
+
+</form>
+
+<div class="stats-grid">
+
+    <div class="stat-card">
+        <div class="stat-label">{{ "Asistencia (%)" if is_spanish else "Attendance (%)" }}</div>
+
+        <div class="stat-value">
+
+            {% if attendance_percentage_color == "green" %}
+                <span class="status-badge status-green">
+                    {{ attendance_percentage }} %
+                </span>
+
+            {% elif attendance_percentage_color == "yellow" %}
+                <span class="status-badge status-yellow">
+                    {{ attendance_percentage }} %
+                </span>
+
+            {% else %}
+                <span class="status-badge status-red">
+                    {{ attendance_percentage }} %
+                </span>
+            {% endif %}
+
+        </div>
+
+        <div class="stat-note">
+            {{ "Porcentaje basado en los filtros seleccionados" if is_spanish else "Percentage based on selected filters" }}
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-label">{{ "Presente" if is_spanish else "Present" }}</div>
+        <div class="stat-value">{{ present_count or 0 }}</div>
+        <div class="stat-note">
+            {{ "Clases asistidas correctamente" if is_spanish else "Classes attended successfully" }}
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-label">{{ "Tarde" if is_spanish else "Late" }}</div>
+        <div class="stat-value">{{ late_count or 0 }}</div>
+        <div class="stat-note">
+            {{ "Registros de asistencia tardía" if is_spanish else "Late attendance records" }}
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-label">{{ "Ausente" if is_spanish else "Absent" }}</div>
+        <div class="stat-value">{{ absent_count or 0 }}</div>
+        <div class="stat-note">
+            {{ "Total de clases perdidas" if is_spanish else "Total missed classes" }}
+        </div>
+    </div>
+
+</div>
+
+<div class="table-card">
+
+<table class="history-table">
+
+<thead>
+<tr>
+<th>#</th>
+<th>{{ "Fecha" if is_spanish else "Date" }}</th>
+<th>{{ "Hora" if is_spanish else "Time" }}</th>
+<th>{{ "Clase" if is_spanish else "Class" }}</th>
+<th>{{ "Profesor" if is_spanish else "Teacher" }}</th>
+<th>{{ "Estado" if is_spanish else "Status" }}</th>
+</tr>
+</thead>
+
+<tbody>
+
+{% if attendance_records and attendance_records|length > 0 %}
+
+{% for r in attendance_records %}
+<tr>
+
+<td>{{ r.row }}</td>
+<td>{{ r.date or "--" }}</td>
+<td>{{ r.time or "--" }}</td>
+<td>{{ r.class_display_name if r.class_display_name else (r.class_name or "--") }}</td>
+<td>{{ r.teacher_name or "--" }}</td>
+
+<td>
+
+{% if r.status == "Present" %}
+<span class="status-badge status-green">{{ "Presente" if is_spanish else "Present" }}</span>
+
+{% elif r.status == "Late" %}
+<span class="status-badge status-yellow">{{ "Tarde" if is_spanish else "Late" }}</span>
+
+{% elif r.status == "Absent" %}
+<span class="status-badge status-red">{{ "Ausente" if is_spanish else "Absent" }}</span>
+
+{% else %}
+<span class="status-badge status-red">
+{{ r.status or ("Sin estado" if is_spanish else "No status") }}
+</span>
+{% endif %}
+
+</td>
+
+</tr>
+{% endfor %}
+
+{% else %}
+
+<tr>
+<td colspan="6" style="text-align:center; padding:30px;">
+{{ "No se encontraron registros para los filtros seleccionados." if is_spanish else "No records found for selected filters." }}
+</td>
+</tr>
+
+{% endif %}
+
+</tbody>
+
+</table>
+
+</div>
+
+{% endblock %}

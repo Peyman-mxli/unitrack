@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="{{ current_language|default('en') }}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ text.page_title }}</title>
+
+<style>
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+}
+
+html, body{
+min-height:100%;
+}
+
+body{
+font-family:Arial, Helvetica, sans-serif;
+background:#ffffff;
+color:#1f2937;
+display:flex;
+flex-direction:column;
+min-height:100vh;
+overflow-x:hidden;
+}
+
+/* HEADER */
+
+.top-strip{
+width:100%;
+min-height:132px;
+background:
+linear-gradient(90deg, rgba(122,0,25,0.98) 0%, rgba(151,0,31,0.98) 35%, rgba(122,0,25,0.98) 100%);
+display:flex;
+align-items:center;
+justify-content:space-between;
+padding:14px 34px 18px 34px;
+gap:18px;
+flex-wrap:wrap;
+border-bottom:1px solid rgba(255,255,255,0.10);
+box-shadow:0 10px 28px rgba(69,0,18,0.22);
+position:relative;
+z-index:5;
+}
+
+.top-strip::before{
+content:"";
+position:absolute;
+left:0;
+right:0;
+top:0;
+height:8px;
+background:rgba(255,255,255,0.96);
+}
+
+.header-left{
+display:flex;
+align-items:center;
+gap:12px;
+color:#ffffff;
+padding-top:4px;
+min-width:0;
+}
+
+.header-corner-logo{
+height:46px;
+width:auto;
+object-fit:contain;
+display:block;
+filter:drop-shadow(0 3px 8px rgba(0,0,0,0.15));
+flex:0 0 auto;
+}
+
+.header-divider{
+width:1px;
+height:28px;
+background:rgba(255,255,255,0.46);
+flex:0 0 auto;
+}
+
+.header-brand-line{
+display:flex;
+align-items:center;
+gap:12px;
+flex-wrap:wrap;
+line-height:1;
+min-width:0;
+}
+
+.header-upbc{
+font-size:50px;
+font-weight:900;
+letter-spacing:1.2px;
+color:#ffffff;
+text-transform:uppercase;
+line-height:0.95;
+}
+
+.header-university{
+font-size:18px;
+font-weight:700;
+color:#ffffff;
+opacity:0.98;
+white-space:nowrap;
+margin-top:2px;
+line-height:1.2;
+}
+
+.header-right{
+display:flex;
+align-items:center;
+gap:14px;
+flex-wrap:wrap;
+margin-left:auto;
+padding-top:8px;
+min-width:0;
+}
+
+.header-right form{
+display:block;
+}
+
+.language-select{
+height:54px;
+min-width:138px;
+padding:0 18px;
+border:none;
+border-radius:14px;
+background:#ffffff;
+color:#5f0014;
+font-size:15px;
+font-weight:800;
+cursor:pointer;
+outline:none;
+box-shadow:0 8px 18px rgba(55,0,10,0.16);
+max-width:100%;
+}
+
+.header-logos{
+display:flex;
+align-items:center;
+gap:12px;
+flex-wrap:wrap;
+min-width:0;
+}
+
+.header-logo-box{
+height:56px;
+min-width:122px;
+background:rgba(255,255,255,0.96);
+padding:8px 12px;
+border-radius:14px;
+display:flex;
+align-items:center;
+justify-content:center;
+box-shadow:0 8px 18px rgba(55,0,10,0.14);
+}
+
+.header-logos img{
+max-height:38px;
+max-width:100%;
+object-fit:contain;
+display:block;
+}
+
+.header-upbc-photo{
+height:56px;
+background:rgba(255,255,255,0.96);
+padding:6px 12px;
+border-radius:14px;
+display:block;
+object-fit:contain;
+box-shadow:0 8px 18px rgba(55,0,10,0.14);
+max-width:100%;
+}
+
+/* PAGE CENTER */
+
+.page-wrap{
+flex:1;
+display:flex;
+align-items:center;
+justify-content:flex-end;
+padding:72px 8vw 72px 8vw;
+position:relative;
+overflow:hidden;
+background:
+radial-gradient(circle at 18% 24%, rgba(255,255,255,0.36) 0%, rgba(255,255,255,0.12) 18%, transparent 38%),
+radial-gradient(circle at 82% 18%, rgba(255,255,255,0.20) 0%, transparent 28%),
+radial-gradient(circle at 88% 84%, rgba(255,255,255,0.14) 0%, transparent 24%),
+linear-gradient(135deg, #b284ff 0%, #8e58ef 30%, #7b3fe3 56%, #682fce 76%, #5a27b5 100%);
+}
+
+.hero-watermark{
+position:absolute;
+left:5%;
+top:50%;
+transform:translateY(-50%);
+width:min(46vw, 640px);
+height:min(82vh, 820px);
+background:url("{{ url_for('static', filename='img/UPBCmark.png') }}") no-repeat center center;
+background-size:contain;
+opacity:0.8;
+pointer-events:none;
+z-index:1;
+}
+
+.page-wrap::before{
+content:"";
+position:absolute;
+inset:0;
+pointer-events:none;
+}
+
+.page-wrap::after{
+content:"";
+position:absolute;
+inset:0;
+pointer-events:none;
+background:
+radial-gradient(circle at 13% 83%, rgba(255,220,180,0.45) 0 2px, transparent 3px),
+radial-gradient(circle at 10% 88%, rgba(255,240,215,0.38) 0 3px, transparent 4px),
+radial-gradient(circle at 6% 78%, rgba(255,230,210,0.36) 0 2px, transparent 4px),
+radial-gradient(circle at 16% 92%, rgba(255,220,170,0.30) 0 2px, transparent 4px),
+linear-gradient(118deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.05) 24%, transparent 40%),
+linear-gradient(150deg, transparent 0%, transparent 58%, rgba(255,255,255,0.12) 74%, transparent 75%);
+opacity:0.95;
+z-index:0;
+}
+
+/* CARD */
+
+.login-card{
+position:relative;
+z-index:2;
+width:100%;
+max-width:430px;
+background:rgba(255,255,255,0.84);
+backdrop-filter:blur(6px);
+-webkit-backdrop-filter:blur(6px);
+border:1px solid rgba(255,255,255,0.52);
+border-radius:24px;
+padding:30px 30px 24px 30px;
+box-shadow:
+0 24px 58px rgba(55,19,128,0.22),
+0 10px 24px rgba(44,10,108,0.10);
+color:#1f2937;
+}
+
+.card-title{
+font-size:34px;
+font-weight:800;
+margin-bottom:8px;
+text-align:center;
+color:#4b4f78;
+letter-spacing:0.2px;
+}
+
+.card-subtitle{
+font-size:12px;
+text-align:center;
+color:#7a7f97;
+margin-bottom:22px;
+line-height:1.45;
+}
+
+/* ALERTS */
+
+.alert-error{
+margin-bottom:14px;
+padding:12px 14px;
+border-radius:12px;
+background:#fee2e2;
+color:#991b1b;
+font-size:13px;
+line-height:1.45;
+}
+
+.alert-success{
+margin-bottom:14px;
+padding:12px 14px;
+border-radius:12px;
+background:#dcfce7;
+color:#166534;
+font-size:13px;
+line-height:1.45;
+}
+
+/* FORM */
+
+.form-group{
+margin-bottom:15px;
+}
+
+.form-label{
+display:block;
+margin-bottom:7px;
+font-size:13px;
+font-weight:700;
+color:#4d4f71;
+}
+
+.form-input{
+width:100%;
+height:46px;
+padding:0 15px;
+border-radius:11px;
+border:1px solid #e7e8f1;
+background:#ffffff;
+color:#111827;
+font-size:14px;
+outline:none;
+transition:border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+box-shadow:inset 0 1px 2px rgba(15,23,42,0.02);
+}
+
+.form-input:focus{
+border-color:#8b5cf6;
+background:#ffffff;
+box-shadow:0 0 0 4px rgba(139,92,246,0.12);
+transform:translateY(-1px);
+}
+
+.form-input::placeholder{
+color:#a3a8bb;
+}
+
+.secondary-link{
+display:block;
+text-align:right;
+margin-top:2px;
+margin-bottom:12px;
+font-size:12px;
+font-weight:700;
+color:#7c3aed;
+text-decoration:none;
+line-height:1.4;
+}
+
+.secondary-link:hover{
+text-decoration:underline;
+}
+
+.option-row{
+display:flex;
+justify-content:flex-start;
+align-items:flex-start;
+gap:8px;
+margin-bottom:12px;
+font-size:12px;
+font-weight:600;
+color:#5b6178;
+line-height:1.4;
+}
+
+.option-row input{
+width:14px;
+height:14px;
+accent-color:#7c3aed;
+margin-top:2px;
+flex:0 0 auto;
+}
+
+.option-row label{
+cursor:pointer;
+}
+
+.login-button,
+.register-button{
+width:100%;
+height:46px;
+border:none;
+border-radius:11px;
+font-size:14px;
+font-weight:800;
+text-decoration:none;
+display:flex;
+align-items:center;
+justify-content:center;
+text-align:center;
+cursor:pointer;
+transition:transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+.login-button{
+background:linear-gradient(90deg,#8b5cf6,#7c3aed);
+color:#ffffff;
+box-shadow:0 10px 24px rgba(124,58,237,0.22);
+margin-top:2px;
+}
+
+.register-button{
+margin-top:12px;
+background:#ffffff;
+color:#6b7280;
+border:1px solid #e5e7eb;
+}
+
+.login-button:hover,
+.register-button:hover{
+transform:translateY(-1px);
+}
+
+.login-button:hover{
+box-shadow:0 12px 28px rgba(124,58,237,0.28);
+}
+
+.register-button:hover{
+background:#f8fafc;
+color:#374151;
+}
+
+/* FOOTER */
+
+.page-footer{
+background:linear-gradient(90deg,#7a0019,#5f0014);
+color:#ffffff;
+padding:20px;
+margin-top:auto;
+}
+
+.footer-content{
+display:flex;
+justify-content:space-between;
+flex-wrap:wrap;
+gap:12px;
+}
+
+.footer-info{
+font-size:14px;
+line-height:1.7;
+}
+
+.footer-bottom{
+margin-top:10px;
+background:#000000;
+padding:10px;
+font-size:13px;
+line-height:1.5;
+}
+
+/* MOBILE */
+
+@media(max-width:1180px){
+.page-wrap{
+justify-content:center;
+padding:56px 20px;
+}
+
+.hero-watermark{
+left:50%;
+top:22%;
+transform:translate(-50%, -50%);
+width:min(58vw, 420px);
+height:min(36vh, 320px);
+opacity:0.5;
+}
+}
+
+@media(max-width:980px){
+.top-strip{
+flex-direction:column;
+align-items:flex-start;
+padding:14px 20px 16px 20px;
+}
+
+.header-left,
+.header-right{
+width:100%;
+}
+
+.header-right{
+margin-left:0;
+padding-top:0;
+}
+
+.header-right form{
+width:100%;
+}
+
+.language-select{
+width:100%;
+}
+
+.header-upbc{
+font-size:40px;
+}
+
+.header-university{
+font-size:16px;
+white-space:normal;
+}
+}
+
+@media(max-width:640px){
+.top-strip{
+min-height:auto;
+padding:12px 14px 14px 14px;
+gap:12px;
+}
+
+.header-left{
+align-items:flex-start;
+gap:10px;
+width:100%;
+}
+
+.header-corner-logo{
+height:38px;
+}
+
+.header-divider{
+display:none;
+}
+
+.header-brand-line{
+gap:6px;
+flex-direction:column;
+align-items:flex-start;
+}
+
+.header-upbc{
+font-size:26px;
+}
+
+.header-university{
+font-size:12px;
+white-space:normal;
+max-width:100%;
+}
+
+.header-right{
+width:100%;
+display:grid;
+grid-template-columns:1fr;
+gap:10px;
+}
+
+.header-right form{
+width:100%;
+}
+
+.language-select{
+width:100%;
+height:48px;
+min-width:0;
+font-size:14px;
+border-radius:12px;
+}
+
+.header-logos{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:10px;
+width:100%;
+}
+
+.header-logo-box{
+height:48px;
+min-width:0;
+width:100%;
+border-radius:12px;
+padding:8px 10px;
+}
+
+.header-logos img{
+max-height:28px;
+}
+
+.header-upbc-photo{
+height:48px;
+width:100%;
+max-width:none;
+border-radius:12px;
+padding:6px 10px;
+}
+
+.page-wrap{
+padding:28px 12px;
+justify-content:center;
+}
+
+.hero-watermark{
+left:50%;
+top:18%;
+transform:translate(-50%, -50%);
+width:min(72vw, 300px);
+height:min(30vh, 240px);
+opacity:0.38;
+}
+
+.login-card{
+max-width:100%;
+padding:20px 16px 16px 16px;
+border-radius:18px;
+}
+
+.card-title{
+font-size:26px;
+}
+
+.card-subtitle{
+font-size:11px;
+margin-bottom:18px;
+}
+
+.form-group{
+margin-bottom:14px;
+}
+
+.form-label{
+font-size:12px;
+}
+
+.form-input{
+height:46px;
+font-size:14px;
+padding:0 14px;
+}
+
+.secondary-link{
+font-size:12px;
+margin-bottom:10px;
+}
+
+.option-row{
+font-size:12px;
+margin-bottom:10px;
+}
+
+.login-button,
+.register-button{
+height:46px;
+font-size:14px;
+border-radius:12px;
+}
+
+.page-footer{
+padding:16px 14px;
+}
+
+.footer-content{
+flex-direction:column;
+gap:10px;
+}
+
+.footer-info{
+font-size:13px;
+line-height:1.6;
+}
+
+.footer-bottom{
+margin-top:8px;
+font-size:12px;
+padding:10px;
+}
+}
+
+@media(max-width:420px){
+.top-strip{
+padding:12px 10px 14px 10px;
+}
+
+.header-corner-logo{
+height:34px;
+}
+
+.header-upbc{
+font-size:22px;
+}
+
+.header-university{
+font-size:11px;
+}
+
+.header-logos{
+grid-template-columns:1fr;
+}
+
+.header-logo-box,
+.header-upbc-photo{
+height:46px;
+}
+
+.page-wrap{
+padding:22px 10px;
+}
+
+.hero-watermark{
+width:min(78vw, 250px);
+height:min(26vh, 200px);
+top:16%;
+opacity:0.3;
+}
+
+.login-card{
+padding:18px 14px 14px 14px;
+border-radius:16px;
+}
+
+.card-title{
+font-size:24px;
+}
+
+.card-subtitle{
+font-size:11px;
+}
+
+.form-input{
+height:44px;
+font-size:13px;
+}
+
+.login-button,
+.register-button{
+height:44px;
+font-size:13px;
+}
+
+.page-footer{
+padding:14px 10px;
+}
+
+.footer-info{
+font-size:12px;
+}
+
+.footer-bottom{
+font-size:11px;
+}
+}
+</style>
+</head>
+
+<body>
+
+<div class="top-strip">
+
+<div class="header-left">
+<img src="{{ url_for('static', filename='img/unitrack_logo.png') }}" class="header-corner-logo" alt="{{ text.footer_unitrack_alt }}">
+<div class="header-divider"></div>
+<div class="header-brand-line">
+<div class="header-upbc">{{ text.header_upbc_short }}</div>
+<div class="header-university">{{ text.header_university }}</div>
+</div>
+</div>
+
+<div class="header-right">
+
+<form method="GET" action="/auth/login-page">
+<select class="language-select" name="language" onchange="this.form.submit()">
+<option value="en" {% if current_language == 'en' %}selected{% endif %}>English</option>
+<option value="es" {% if current_language != 'en' %}selected{% endif %}>Español</option>
+</select>
+</form>
+
+<div class="header-logos">
+<div class="header-logo-box">
+<img src="{{ url_for('static', filename='img/sep.png') }}" alt="{{ text.header_logo_sep_alt }}">
+</div>
+<div class="header-logo-box">
+<img src="{{ url_for('static', filename='img/baja_california.png') }}" alt="{{ text.header_logo_baja_alt }}">
+</div>
+<div class="header-logo-box">
+<img src="{{ url_for('static', filename='img/utyp.png') }}" alt="{{ text.header_logo_utyp_alt }}">
+</div>
+</div>
+
+<img src="{{ url_for('static', filename='img/upbc_official.png') }}" class="header-upbc-photo" alt="{{ text.footer_upbc_alt }}">
+
+</div>
+</div>
+
+<div class="page-wrap">
+
+<div class="hero-watermark"></div>
+
+<div class="login-card">
+
+<div class="card-title">Unitrack</div>
+<div class="card-subtitle">{{ text.page_title }}</div>
+
+{% if error %}
+<div class="alert-error">{{ error }}</div>
+{% endif %}
+
+{% if success_message %}
+<div class="alert-success">{{ success_message }}</div>
+{% endif %}
+
+<form method="POST" action="/auth/login-page">
+
+<input type="hidden" name="language" value="{{ current_language }}">
+
+<div class="form-group">
+<label class="form-label">{{ text.login_label }}</label>
+<input
+type="text"
+name="login"
+class="form-input"
+value="{{ login_value|default('') }}"
+placeholder="{{ text.login_placeholder }}"
+required
+>
+</div>
+
+<div class="form-group">
+<label class="form-label">{{ text.password_label }}</label>
+<input
+type="password"
+id="password"
+name="password"
+class="form-input"
+placeholder="{{ text.password_placeholder }}"
+required
+>
+</div>
+
+<a href="/auth/forgot-password" class="secondary-link">
+{{ text.forgot_password }}
+</a>
+
+<div class="option-row">
+<input
+type="checkbox"
+id="show_password"
+onclick="togglePasswordVisibility()"
+>
+<label for="show_password">Show password</label>
+</div>
+
+<div class="option-row">
+<input
+type="checkbox"
+id="remember_me"
+name="remember_me"
+{% if remember_me %}checked{% endif %}
+>
+<label for="remember_me">{{ text.remember_me }}</label>
+</div>
+
+<button class="login-button" type="submit">
+Login
+</button>
+
+</form>
+
+<a href="/auth/register-page" class="register-button">
+{{ text.register_button }}
+</a>
+
+</div>
+
+</div>
+
+<footer class="page-footer">
+
+<div class="footer-content">
+<div class="footer-info">
+<strong>{{ text.footer_university_name }}</strong>
+<div>{{ text.footer_address_line_1 }}</div>
+<div>{{ text.footer_address_line_2 }}</div>
+<div>{{ text.footer_phone }}</div>
+</div>
+</div>
+
+<div class="footer-bottom">
+{{ text.footer_copyright }}
+</div>
+
+</footer>
+
+<script>
+function togglePasswordVisibility(){
+const passwordInput = document.getElementById("password");
+const showPasswordCheckbox = document.getElementById("show_password");
+
+if(passwordInput && showPasswordCheckbox){
+passwordInput.type = showPasswordCheckbox.checked ? "text" : "password";
+}
+}
+</script>
+
+</body>
+</html>

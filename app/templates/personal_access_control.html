@@ -1,0 +1,828 @@
+{% extends "personal_base.html" %}
+
+{% block title %}{{ t('Access Control') if t else 'Access Control' }}{% endblock %}
+
+{% block content %}
+
+<style>
+.filter-card{
+    background:#f4f7ff;
+    border:1px solid #dbe4f0;
+    border-radius:18px;
+    padding:18px;
+    margin-bottom:20px;
+}
+
+.filter-grid{
+    display:grid;
+    grid-template-columns:minmax(220px, 320px) auto;
+    gap:14px;
+    align-items:end;
+}
+
+.filter-label{
+    display:block;
+    margin-bottom:8px;
+    font-size:14px;
+    font-weight:800;
+    color:#334155;
+}
+
+.filter-input{
+    width:100%;
+    min-height:48px;
+    padding:12px 14px;
+    border-radius:12px;
+    border:1px solid #cbd5e1;
+    background:#ffffff;
+    color:#0f172a;
+    font-size:15px;
+    outline:none;
+}
+
+.filter-button{
+    min-width:160px;
+    min-height:48px;
+    border:none;
+    border-radius:12px;
+    background:linear-gradient(90deg,#7c3aed,#a855f7,#38bdf8);
+    color:#ffffff;
+    font-size:15px;
+    font-weight:800;
+    cursor:pointer;
+    box-shadow:0 10px 24px rgba(124,58,237,0.24);
+    padding:0 18px;
+}
+
+.access-grid{
+    display:grid;
+    grid-template-columns:minmax(340px, 420px) 1fr;
+    gap:20px;
+    align-items:start;
+}
+
+.qr-card{
+    background:#f4f7ff;
+    border:1px solid #dbe4f0;
+    border-radius:18px;
+    padding:24px;
+}
+
+.info-card{
+    display:flex;
+    flex-direction:column;
+    gap:20px;
+}
+
+.qr-box{
+    width:100%;
+    max-width:260px;
+    aspect-ratio:1 / 1;
+    margin:20px auto 18px auto;
+    background:#ffffff;
+    border:1px solid #dbe4f0;
+    border-radius:20px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#64748b;
+    font-size:28px;
+    font-weight:900;
+    overflow:hidden;
+    box-shadow:0 10px 24px rgba(0,0,0,0.06);
+}
+
+.qr-actions{
+    display:flex;
+    justify-content:center;
+    margin-top:18px;
+}
+
+.qr-actions form{
+    width:100%;
+}
+
+.qr-badge{
+    width:100%;
+    min-height:50px;
+    border:none;
+    border-radius:14px;
+    font-size:16px;
+    font-weight:800;
+    cursor:pointer;
+    color:#ffffff;
+    box-shadow:0 10px 24px rgba(0,0,0,0.12);
+}
+
+.qr-checkin{
+    background:linear-gradient(90deg,#16a34a,#22c55e);
+}
+
+.qr-checkout{
+    background:linear-gradient(90deg,#dc2626,#ef4444);
+}
+
+.copy-btn{
+    min-width:90px;
+    height:42px;
+    border:none;
+    border-radius:10px;
+    padding:0 12px;
+    background:linear-gradient(90deg,#7c3aed,#a855f7,#38bdf8);
+    color:#ffffff;
+    font-weight:800;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+    box-sizing:border-box;
+}
+
+.summary-card{
+    background:#f4f7ff;
+    border:1px solid #dbe4f0;
+    border-radius:20px;
+    padding:22px;
+    margin-bottom:20px;
+}
+
+.summary-header{
+    display:flex;
+    align-items:center;
+    gap:18px;
+    flex-wrap:wrap;
+}
+
+.summary-avatar{
+    width:88px;
+    height:88px;
+    border-radius:22px;
+    overflow:hidden;
+    flex-shrink:0;
+    border:1px solid #dbe4f0;
+    background:#ffffff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    box-shadow:0 10px 24px rgba(0,0,0,0.06);
+}
+
+.summary-avatar img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+}
+
+.summary-avatar-fallback{
+    color:#64748b;
+    font-size:28px;
+    font-weight:900;
+}
+
+.summary-name{
+    margin:0;
+    color:#081a43;
+    font-size:24px;
+    font-weight:900;
+}
+
+.summary-sub{
+    margin-top:6px;
+    color:#475569;
+    font-size:14px;
+    font-weight:700;
+}
+
+.summary-status-wrap{
+    margin-left:auto;
+}
+
+.summary-grid{
+    margin-top:20px;
+    display:grid;
+    grid-template-columns:repeat(4, minmax(160px, 1fr));
+    gap:14px;
+}
+
+.summary-mini{
+    background:#ffffff;
+    border:1px solid #dbe4f0;
+    border-radius:16px;
+    padding:16px;
+    box-shadow:0 8px 20px rgba(0,0,0,0.04);
+}
+
+.summary-mini-label{
+    font-size:12px;
+    font-weight:900;
+    color:#64748b;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    margin-bottom:8px;
+}
+
+.summary-mini-value{
+    font-size:16px;
+    font-weight:900;
+    color:#081a43;
+    word-break:break-word;
+}
+
+.history-table-card{
+    background:#f4f7ff;
+    border:1px solid #dbe4f0;
+    border-radius:20px;
+    padding:22px;
+    margin-top:22px;
+}
+
+.history-table-header{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:16px;
+    flex-wrap:wrap;
+    margin-bottom:16px;
+}
+
+.history-table-title{
+    margin:0;
+    color:#081a43;
+    font-size:30px;
+    font-weight:900;
+    line-height:1.1;
+}
+
+.history-table-subtitle{
+    margin:6px 0 0 0;
+    color:#64748b;
+    font-size:14px;
+    font-weight:700;
+}
+
+.history-count{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-width:96px;
+    min-height:38px;
+    padding:0 14px;
+    background:#ffffff;
+    border:1px solid #dbe4f0;
+    border-radius:999px;
+    color:#081a43;
+    font-size:13px;
+    font-weight:900;
+    box-shadow:0 8px 20px rgba(0,0,0,0.04);
+}
+
+.history-table-wrap{
+    width:100%;
+    overflow-x:auto;
+    background:#ffffff;
+    border:1px solid #dbe4f0;
+    border-radius:18px;
+    box-shadow:0 8px 20px rgba(0,0,0,0.04);
+}
+
+.history-table{
+    width:100%;
+    min-width:940px;
+    border-collapse:collapse;
+}
+
+.history-table thead th{
+    background:#eef3fb;
+    color:#081a43;
+    font-size:13px;
+    font-weight:900;
+    text-align:left;
+    padding:14px 12px;
+    border-bottom:1px solid #dbe4f0;
+    white-space:nowrap;
+}
+
+.history-table tbody td{
+    padding:14px 12px;
+    border-bottom:1px solid #edf2f7;
+    color:#0f172a;
+    font-size:13px;
+    font-weight:700;
+    vertical-align:middle;
+}
+
+.history-table tbody tr:last-child td{
+    border-bottom:none;
+}
+
+.history-user-cell{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    min-width:180px;
+}
+
+.history-user-avatar{
+    width:44px;
+    height:44px;
+    border-radius:14px;
+    overflow:hidden;
+    flex-shrink:0;
+    border:1px solid #dbe4f0;
+    background:#ffffff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.history-user-avatar img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+}
+
+.history-user-fallback{
+    color:#64748b;
+    font-size:16px;
+    font-weight:900;
+}
+
+.history-user-name{
+    color:#081a43;
+    font-size:14px;
+    font-weight:900;
+    line-height:1.15;
+}
+
+.history-user-sub{
+    color:#64748b;
+    font-size:11px;
+    font-weight:800;
+    margin-top:3px;
+}
+
+.history-status{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-width:112px;
+    min-height:38px;
+    padding:0 12px;
+    border-radius:12px;
+    font-size:12px;
+    font-weight:900;
+    text-align:center;
+    line-height:1.1;
+    border:1px solid transparent;
+}
+
+.history-status-inside{
+    background:rgba(34,197,94,0.14);
+    color:#15803d;
+    border-color:rgba(34,197,94,0.28);
+}
+
+.history-status-outside{
+    background:rgba(239,68,68,0.12);
+    color:#dc2626;
+    border-color:rgba(239,68,68,0.24);
+}
+
+.history-empty{
+    background:#ffffff;
+    border:1px dashed #cbd5e1;
+    border-radius:18px;
+    padding:20px;
+    color:#64748b;
+    font-weight:700;
+    text-align:center;
+}
+
+@media (max-width:980px){
+    .access-grid{
+        grid-template-columns:1fr;
+    }
+
+    .filter-grid{
+        grid-template-columns:1fr;
+    }
+
+    .filter-button{
+        width:100%;
+    }
+
+    .summary-grid{
+        grid-template-columns:1fr 1fr;
+    }
+
+    .summary-status-wrap{
+        margin-left:0;
+        width:100%;
+    }
+}
+
+@media (max-width:640px){
+    .summary-grid{
+        grid-template-columns:1fr;
+    }
+
+    .summary-header{
+        align-items:flex-start;
+    }
+
+    .summary-avatar{
+        width:76px;
+        height:76px;
+        border-radius:18px;
+    }
+
+    .summary-name{
+        font-size:20px;
+    }
+
+    .history-table-title{
+        font-size:24px;
+    }
+}
+</style>
+
+{% set latest_record = demo_records[0] if demo_records else None %}
+
+<div style="margin-bottom:18px;">
+    <h1 class="section-title">{{ t('Access Control System') if t else 'Access Control System' }}</h1>
+    <p class="section-subtitle">
+        {{ t('Use your QR code to check in or check out.') if t else 'Use your QR code to check in or check out.' }}
+    </p>
+</div>
+
+{% if access_message %}
+<div class="card" style="
+    background:rgba(34,197,94,0.12);
+    border:1px solid rgba(34,197,94,0.28);
+    color:#166534;
+    font-weight:800;
+">
+    {{ access_message }}
+</div>
+{% endif %}
+
+{% if access_error %}
+<div class="card" style="
+    background:rgba(239,68,68,0.12);
+    border:1px solid rgba(239,68,68,0.28);
+    color:#b91c1c;
+    font-weight:800;
+">
+    {{ access_error }}
+</div>
+{% endif %}
+
+<div class="summary-card">
+    <div class="summary-header">
+        <div class="summary-avatar">
+            {% if current_user.photo_path %}
+                <img
+                    src="{{ url_for('static', filename=current_user.photo_path) }}"
+                    alt="{{ t('Staff Photo') if t else 'Staff Photo' }}"
+                >
+            {% else %}
+                <div class="summary-avatar-fallback">
+                    {{ (current_user.first_name[:1] if current_user.first_name else "S") ~ (current_user.last_name[:1] if current_user.last_name else "") }}
+                </div>
+            {% endif %}
+        </div>
+
+        <div>
+            <h2 class="summary-name">{{ staff_name if staff_name else (t('Staff') if t else 'Staff') }}</h2>
+            <div class="summary-sub">{{ t('Staff ID / Username:') if t else 'Staff ID / Username:' }} {{ current_user.username if current_user.username else "--" }}</div>
+        </div>
+
+        <div class="summary-status-wrap">
+            {% if current_access_status and current_access_status.status == "checked_in" %}
+                <span class="status-badge status-green">{{ t('Inside Campus') if t else 'Inside Campus' }}</span>
+            {% else %}
+                <span class="status-badge status-red">{{ t('Outside Campus') if t else 'Outside Campus' }}</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="summary-grid">
+        <div class="summary-mini">
+            <div class="summary-mini-label">{{ t('Latest Date') if t else 'Latest Date' }}</div>
+            <div class="summary-mini-value">{{ latest_record.date if latest_record and latest_record.date else "--" }}</div>
+        </div>
+
+        <div class="summary-mini">
+            <div class="summary-mini-label">{{ t('Check-In Time') if t else 'Check-In Time' }}</div>
+            <div class="summary-mini-value">{{ latest_record.check_in if latest_record and latest_record.check_in else "--" }}</div>
+        </div>
+
+        <div class="summary-mini">
+            <div class="summary-mini-label">{{ t('Check-Out Time') if t else 'Check-Out Time' }}</div>
+            <div class="summary-mini-value">{{ latest_record.check_out if latest_record and latest_record.check_out else "--" }}</div>
+        </div>
+
+        <div class="summary-mini">
+            <div class="summary-mini-label">{{ t('Hours') if t else 'Hours' }}</div>
+            <div class="summary-mini-value">{{ latest_record.hours if latest_record and latest_record.hours else "--" }}</div>
+        </div>
+    </div>
+</div>
+
+<form method="GET" action="{{ url_for('personal_views.access_control_page') }}">
+    <div class="filter-card">
+        <div class="filter-grid">
+
+            <div>
+                <label class="filter-label">{{ t('Date') if t else 'Date' }}</label>
+                <input
+                    type="text"
+                    name="date"
+                    class="filter-input"
+                    placeholder="MM/DD/YYYY"
+                    value="{{ selected_date or '' }}"
+                >
+            </div>
+
+            <div>
+                <button type="submit" class="filter-button">{{ t('Search') if t else 'Search' }}</button>
+            </div>
+
+        </div>
+    </div>
+</form>
+
+<div class="access-grid">
+
+    <div class="qr-card">
+        <h3 style="margin:0; color:#081a43;">{{ t('Your Access QR Code') if t else 'Your Access QR Code' }}</h3>
+
+        <div class="qr-box">
+            {% if access_qr_image %}
+                <img
+                    src="{{ access_qr_image }}"
+                    alt="{{ t('Staff Access QR Code') if t else 'Staff Access QR Code' }}"
+                    style="width:100%; height:100%; object-fit:contain;"
+                >
+            {% else %}
+                QR
+            {% endif %}
+        </div>
+
+        <div style="font-weight:800; margin-bottom:8px; color:#0f172a; text-align:center;">
+            {{ staff_name if staff_name else (t('Staff') if t else 'Staff') }}
+        </div>
+
+        <div class="card" style="margin-top:14px;">
+            <div style="font-size:13px; font-weight:900; margin-bottom:8px; color:#081a43;">
+                {{ t('QR Payload') if t else 'QR Payload' }}
+            </div>
+
+            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                <div id="accessQrPayloadText" style="
+                    flex:1;
+                    background:#fff;
+                    border:1px solid #dbe4f0;
+                    border-radius:10px;
+                    padding:10px;
+                    font-family:Consolas, monospace;
+                    font-size:12px;
+                    color:#0f172a;
+                    word-break:break-word;
+                ">
+                    {{ access_qr_payload if access_qr_payload else "--" }}
+                </div>
+
+                <button
+                    type="button"
+                    onclick="copyTextValue('accessQrPayloadText', this)"
+                    class="copy-btn"
+                    data-default-label="{{ t('Copy') if t else 'Copy' }}"
+                    data-copied-label="{{ t('Copied!') if t else 'Copied!' }}"
+                    data-failed-label="{{ t('Failed') if t else 'Failed' }}"
+                >
+                    {{ t('Copy') if t else 'Copy' }}
+                </button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div style="font-size:13px; font-weight:900; margin-bottom:8px; color:#081a43;">
+                {{ t('Backup QR ID Code') if t else 'Backup QR ID Code' }}
+            </div>
+
+            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                <div id="accessQrIdCodeText" style="
+                    flex:1;
+                    background:#fff;
+                    border:1px solid #dbe4f0;
+                    border-radius:10px;
+                    padding:10px;
+                    font-family:Consolas, monospace;
+                    font-weight:900;
+                    color:#0f172a;
+                    word-break:break-word;
+                ">
+                    {{ access_qr_id_code if access_qr_id_code else "--" }}
+                </div>
+
+                <button
+                    type="button"
+                    onclick="copyTextValue('accessQrIdCodeText', this)"
+                    class="copy-btn"
+                    data-default-label="{{ t('Copy') if t else 'Copy' }}"
+                    data-copied-label="{{ t('Copied!') if t else 'Copied!' }}"
+                    data-failed-label="{{ t('Failed') if t else 'Failed' }}"
+                >
+                    {{ t('Copy') if t else 'Copy' }}
+                </button>
+            </div>
+        </div>
+
+        <div class="qr-actions">
+            {% if current_access_status and current_access_status.status == "checked_in" %}
+                <form method="POST" action="{{ url_for('personal_views.access_control_check_out') }}">
+                    <button type="submit" class="qr-badge qr-checkout">{{ t('Check Out') if t else 'Check Out' }}</button>
+                </form>
+            {% else %}
+                <form method="POST" action="{{ url_for('personal_views.access_control_check_in') }}">
+                    <button type="submit" class="qr-badge qr-checkin">{{ t('Check In') if t else 'Check In' }}</button>
+                </form>
+            {% endif %}
+        </div>
+
+    </div>
+
+    <div class="info-card">
+        <div class="card">
+            <h3 style="margin-top:0; color:#081a43;">{{ t('Current Status') if t else 'Current Status' }}</h3>
+
+            <div style="display:grid; grid-template-columns:180px 1fr; gap:12px 14px;">
+
+                <div style="font-weight:800;">{{ t('Staff:') if t else 'Staff:' }}</div>
+                <div>{{ staff_name if staff_name else "--" }}</div>
+
+                <div style="font-weight:800;">{{ t('Username:') if t else 'Username:' }}</div>
+                <div>{{ current_user.username if current_user.username else "--" }}</div>
+
+                <div style="font-weight:800;">{{ t('Status:') if t else 'Status:' }}</div>
+                <div>
+                    {% if current_access_status and current_access_status.status == "checked_in" %}
+                        <span class="status-badge status-green">{{ t('Inside Campus') if t else 'Inside Campus' }}</span>
+                    {% else %}
+                        <span class="status-badge status-red">{{ t('Outside Campus') if t else 'Outside Campus' }}</span>
+                    {% endif %}
+                </div>
+
+                <div style="font-weight:800;">{{ t('Last Check-In:') if t else 'Last Check-In:' }}</div>
+                <div>{{ current_access_status.last_check_in if current_access_status and current_access_status.last_check_in else "--" }}</div>
+
+                <div style="font-weight:800;">{{ t('Last Check-Out:') if t else 'Last Check-Out:' }}</div>
+                <div>{{ current_access_status.last_check_out if current_access_status and current_access_status.last_check_out else "--" }}</div>
+
+                <div style="font-weight:800;">{{ t('Hours Today:') if t else 'Hours Today:' }}</div>
+                <div>{{ current_access_status.hours_today if current_access_status and current_access_status.hours_today else "--" }}</div>
+
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="history-table-card">
+    <div class="history-table-header">
+        <div>
+            <h2 class="history-table-title">{{ t('Access History') if t else 'Access History' }}</h2>
+            <p class="history-table-subtitle">{{ t('Review your recorded check-ins and check-outs.') if t else 'Review your recorded check-ins and check-outs.' }}</p>
+        </div>
+
+        <div class="history-count">
+            {{ demo_records|length if demo_records else 0 }} {{ t('record') if t else 'record' }}{% if demo_records and demo_records|length != 1 %}s{% endif %}
+        </div>
+    </div>
+
+    {% if demo_records and demo_records|length > 0 %}
+    <div class="history-table-wrap">
+        <table class="history-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>{{ t('Staff') if t else 'Staff' }}</th>
+                    <th>{{ t('ID / Username') if t else 'ID / Username' }}</th>
+                    <th>{{ t('Date') if t else 'Date' }}</th>
+                    <th>{{ t('Check-In') if t else 'Check-In' }}</th>
+                    <th>{{ t('Check-Out') if t else 'Check-Out' }}</th>
+                    <th>{{ t('Hours') if t else 'Hours' }}</th>
+                    <th>{{ t('Status') if t else 'Status' }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in demo_records %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+
+                    <td>
+                        <div class="history-user-cell">
+                            <div class="history-user-avatar">
+                                {% if current_user.photo_path %}
+                                    <img
+                                        src="{{ url_for('static', filename=current_user.photo_path) }}"
+                                        alt="{{ t('Staff Photo') if t else 'Staff Photo' }}"
+                                    >
+                                {% else %}
+                                    <div class="history-user-fallback">
+                                        {{ (current_user.first_name[:1] if current_user.first_name else "S") ~ (current_user.last_name[:1] if current_user.last_name else "") }}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <div>
+                                <div class="history-user-name">{{ staff_name if staff_name else (t('Staff') if t else 'Staff') }}</div>
+                                <div class="history-user-sub">{{ t('Campus access') if t else 'Campus access' }}</div>
+                            </div>
+                        </div>
+                    </td>
+
+                    <td>{{ current_user.username if current_user.username else "--" }}</td>
+                    <td>{{ record.date if record.date else "--" }}</td>
+                    <td>{{ record.check_in if record.check_in else "--" }}</td>
+                    <td>{{ record.check_out if record.check_out else "--" }}</td>
+                    <td>{{ record.hours if record.hours else "--" }}</td>
+
+                    <td>
+                        {% if record.check_in and not record.check_out %}
+                            <span class="history-status history-status-inside">{{ t('Inside Campus') if t else 'Inside Campus' }}</span>
+                        {% else %}
+                            <span class="history-status history-status-outside">{{ t('Outside Campus') if t else 'Outside Campus' }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="history-empty">
+        {{ t('No access history available yet.') if t else 'No access history available yet.' }}
+    </div>
+    {% endif %}
+</div>
+
+<script>
+async function copyTextValue(id, button){
+    const el = document.getElementById(id);
+    if(!el){
+        return;
+    }
+
+    const text = (el.textContent || el.innerText || "").trim();
+    if(!text || text === "--"){
+        return;
+    }
+
+    const defaultLabel = button ? (button.dataset.defaultLabel || button.textContent || "") : "";
+    const copiedLabel = button ? (button.dataset.copiedLabel || "Copied!") : "Copied!";
+    const failedLabel = button ? (button.dataset.failedLabel || "Failed") : "Failed";
+
+    try{
+        if(navigator.clipboard && window.isSecureContext){
+            await navigator.clipboard.writeText(text);
+        }else{
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.setAttribute("readonly", "");
+            textArea.style.position = "fixed";
+            textArea.style.opacity = "0";
+            textArea.style.pointerEvents = "none";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            textArea.setSelectionRange(0, textArea.value.length);
+
+            const copied = document.execCommand("copy");
+            document.body.removeChild(textArea);
+
+            if(!copied){
+                throw new Error("Copy command failed.");
+            }
+        }
+
+        if(button){
+            button.textContent = copiedLabel;
+            setTimeout(() => {
+                button.textContent = defaultLabel;
+            }, 1400);
+        }
+    }catch(error){
+        if(button){
+            button.textContent = failedLabel;
+            setTimeout(() => {
+                button.textContent = defaultLabel;
+            }, 1400);
+        }
+    }
+}
+</script>
+
+{% endblock %}

@@ -1,0 +1,870 @@
+{% extends "admin_base.html" %}
+
+{% block title %}{{ t('Admin Dashboard') }}{% endblock %}
+{% block nav_dashboard %}active{% endblock %}
+
+{% block page_eyebrow %}{{ t('Admin Overview') }}{% endblock %}
+{% block page_title %}{{ t('Admin Dashboard') }}{% endblock %}
+{% block page_subtitle %}
+{{ t('Monitor validation codes, access activity, and live system totals from one control center.') }}
+{% endblock %}
+
+{% block page_actions %}
+<a href="/admin/validation-codes" class="btn btn-primary">{{ t('Create Validation Code') }}</a>
+<a href="/admin/users" class="btn btn-secondary">{{ t('View Users') }}</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+        gap: 20px;
+    }
+
+    .stat-card,
+    .panel-card,
+    .quick-card,
+    .activity-card {
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 20px;
+        box-shadow: var(--shadow-card);
+    }
+
+    .stat-card {
+        grid-column: span 3;
+        padding: 22px;
+        position: relative;
+        overflow: hidden;
+        min-width: 0;
+    }
+
+    .stat-card::after {
+        content: "";
+        position: absolute;
+        inset: auto -30px -30px auto;
+        width: 110px;
+        height: 110px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(124, 58, 237, 0.14), transparent 68%);
+        pointer-events: none;
+    }
+
+    .stat-label {
+        margin: 0 0 10px;
+        color: #475569;
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+
+    .stat-value {
+        margin: 0;
+        font-size: 34px;
+        line-height: 1;
+        font-weight: 900;
+        color: var(--text-main);
+        word-break: break-word;
+    }
+
+    .stat-foot {
+        margin-top: 14px;
+        font-size: 13px;
+        color: #64748b;
+        line-height: 1.5;
+    }
+
+    .panel-card {
+        padding: 24px;
+        min-width: 0;
+        overflow: hidden;
+    }
+
+    .panel-title {
+        margin: 0 0 8px;
+        font-size: 21px;
+        font-weight: 900;
+        color: var(--text-main);
+        word-break: break-word;
+    }
+
+    .panel-subtitle {
+        margin: 0 0 20px;
+        color: var(--text-muted);
+        font-size: 14px;
+        line-height: 1.6;
+    }
+
+    .hero-panel {
+        grid-column: span 12;
+        padding: 28px;
+        background: linear-gradient(135deg, #f4f7ff 0%, #eef2ff 55%, #f8fafc 100%);
+        border: 1px solid var(--card-border);
+        box-shadow: var(--shadow-card);
+    }
+
+    .hero-title {
+        margin: 0 0 10px;
+        font-size: 30px;
+        line-height: 1.15;
+        font-weight: 900;
+        color: var(--text-main);
+        max-width: 760px;
+        word-break: break-word;
+    }
+
+    .hero-text {
+        margin: 0;
+        max-width: 760px;
+        color: var(--text-muted);
+        font-size: 15px;
+        line-height: 1.7;
+    }
+
+    .hero-actions {
+        margin-top: 22px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .hero-summary {
+        margin-top: 24px;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+    }
+
+    .hero-mini-card {
+        border-radius: 18px;
+        padding: 16px;
+        background: #ffffff;
+        border: 1px solid var(--card-border);
+        box-shadow: 0 10px 24px rgba(25,35,74,0.06);
+        min-width: 0;
+    }
+
+    .hero-mini-label {
+        margin: 0 0 8px;
+        color: #475569;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-weight: 800;
+    }
+
+    .hero-mini-value {
+        margin: 0;
+        font-size: 26px;
+        font-weight: 900;
+        color: var(--text-main);
+        word-break: break-word;
+    }
+
+    .hero-mini-note {
+        margin: 8px 0 0;
+        color: #64748b;
+        font-size: 12px;
+        line-height: 1.5;
+    }
+
+    .section-panel {
+        grid-column: span 12;
+    }
+
+    .two-column {
+        grid-column: span 6;
+    }
+
+    .three-column {
+        grid-column: span 4;
+    }
+
+    .quick-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+    }
+
+    .quick-card {
+        padding: 18px;
+        min-width: 0;
+    }
+
+    .quick-card h4 {
+        margin: 0 0 8px;
+        font-size: 15px;
+        font-weight: 900;
+        color: var(--text-main);
+        word-break: break-word;
+    }
+
+    .quick-card p {
+        margin: 0 0 16px;
+        font-size: 13px;
+        line-height: 1.6;
+        color: var(--text-muted);
+    }
+
+    .quick-card a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 11px 14px;
+        border-radius: 12px;
+        background: rgba(124,58,237,0.10);
+        border: 1px solid rgba(124,58,237,0.20);
+        color: #4c1d95;
+        font-size: 13px;
+        font-weight: 800;
+        text-align: center;
+        max-width: 100%;
+    }
+
+    .table-wrap {
+        overflow-x: auto;
+        width: 100%;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .dashboard-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 720px;
+    }
+
+    .dashboard-table thead th {
+        text-align: left;
+        padding: 14px 12px;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #475569;
+        border-bottom: 1px solid #d7e0f3;
+        white-space: nowrap;
+        background: #e9efff;
+    }
+
+    .dashboard-table tbody td {
+        padding: 16px 12px;
+        border-bottom: 1px solid #dfe7f4;
+        color: var(--text-main);
+        font-size: 14px;
+        vertical-align: middle;
+    }
+
+    .dashboard-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 7px 11px;
+        border-radius: 10px;
+        font-size: 12px;
+        font-weight: 800;
+        border: 1px solid transparent;
+        text-align: center;
+    }
+
+    .badge-success {
+        color: var(--success);
+        background: rgba(34,197,94,0.16);
+        border-color: rgba(34,197,94,0.35);
+    }
+
+    .badge-warning {
+        color: var(--warning);
+        background: rgba(234,179,8,0.16);
+        border-color: rgba(234,179,8,0.35);
+    }
+
+    .badge-danger {
+        color: var(--danger);
+        background: rgba(239,68,68,0.16);
+        border-color: rgba(239,68,68,0.35);
+    }
+
+    .badge-neutral {
+        color: #475569;
+        background: #e9efff;
+        border-color: #d7e0f3;
+    }
+
+    .search-row {
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr 1fr auto;
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+
+    .input-field,
+    .select-field {
+        width: 100%;
+        border-radius: 12px;
+        border: 1px solid var(--card-border);
+        background: #ffffff;
+        color: var(--text-main);
+        padding: 13px 14px;
+        font-size: 14px;
+        outline: none;
+        min-width: 0;
+    }
+
+    .input-field::placeholder {
+        color: #64748b;
+    }
+
+    .activity-list {
+        display: grid;
+        gap: 12px;
+    }
+
+    .activity-card {
+        padding: 18px;
+        min-width: 0;
+    }
+
+    .activity-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 8px;
+        min-width: 0;
+    }
+
+    .activity-name {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 900;
+        color: var(--text-main);
+        word-break: break-word;
+    }
+
+    .activity-meta {
+        margin: 0;
+        color: var(--text-muted);
+        font-size: 13px;
+        line-height: 1.6;
+        word-break: break-word;
+    }
+
+    .role-stats {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+    }
+
+    .role-box {
+        border-radius: 18px;
+        padding: 18px;
+        background: #f4f7ff;
+        border: 1px solid var(--card-border);
+        min-width: 0;
+        box-shadow: var(--shadow-card);
+    }
+
+    .role-box h4 {
+        margin: 0 0 10px;
+        font-size: 16px;
+        font-weight: 900;
+        color: var(--text-main);
+        word-break: break-word;
+    }
+
+    .role-box p {
+        margin: 0;
+        color: var(--text-muted);
+        font-size: 14px;
+        line-height: 1.7;
+        word-break: break-word;
+    }
+
+    @media (max-width: 1200px) {
+        .stat-card {
+            grid-column: span 6;
+        }
+
+        .two-column,
+        .three-column {
+            grid-column: span 12;
+        }
+    }
+
+    @media (max-width: 860px) {
+        .dashboard-grid {
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+
+        .stat-card,
+        .hero-panel,
+        .section-panel,
+        .two-column,
+        .three-column {
+            grid-column: span 1;
+        }
+
+        .hero-summary,
+        .quick-grid,
+        .role-stats {
+            grid-template-columns: 1fr;
+        }
+
+        .search-row {
+            grid-template-columns: 1fr;
+        }
+
+        .hero-title {
+            font-size: 25px;
+        }
+
+        .hero-actions {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .hero-actions .btn,
+        .hero-actions a.btn,
+        .hero-actions button.btn {
+            width: 100%;
+        }
+
+        .quick-card a {
+            width: 100%;
+        }
+
+        .activity-top {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .dashboard-grid {
+            gap: 14px;
+        }
+
+        .panel-card,
+        .stat-card,
+        .quick-card,
+        .activity-card,
+        .hero-panel {
+            border-radius: 16px;
+        }
+
+        .panel-card,
+        .hero-panel,
+        .stat-card,
+        .quick-card,
+        .activity-card {
+            padding: 16px;
+        }
+
+        .hero-title {
+            font-size: 22px;
+            line-height: 1.2;
+        }
+
+        .hero-text,
+        .panel-subtitle,
+        .role-box p,
+        .activity-meta,
+        .quick-card p {
+            font-size: 13px;
+        }
+
+        .panel-title {
+            font-size: 18px;
+        }
+
+        .stat-value {
+            font-size: 28px;
+        }
+
+        .hero-mini-value {
+            font-size: 22px;
+        }
+
+        .dashboard-table {
+            min-width: 640px;
+        }
+
+        .search-row {
+            gap: 10px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .dashboard-grid {
+            gap: 12px;
+        }
+
+        .panel-card,
+        .hero-panel,
+        .stat-card,
+        .quick-card,
+        .activity-card,
+        .role-box,
+        .hero-mini-card {
+            padding: 14px;
+        }
+
+        .hero-title {
+            font-size: 20px;
+        }
+
+        .panel-title {
+            font-size: 17px;
+        }
+
+        .stat-label,
+        .hero-mini-label {
+            font-size: 11px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+        }
+
+        .hero-mini-value {
+            font-size: 20px;
+        }
+
+        .quick-card a {
+            padding: 10px 12px;
+            font-size: 12px;
+        }
+
+        .dashboard-table {
+            min-width: 600px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid">
+    <section class="hero-panel panel-card">
+        <h3 class="hero-title">{{ t('Welcome to the UniTrack Admin Control Center') }}</h3>
+        <p class="hero-text">
+            {{ t('This dashboard is the first admin version aligned with the student design system. From here, administrators will manage validation codes, review live access totals, monitor active users, and control access operations for students, teachers, staff, and admins.') }}
+        </p>
+
+        <div class="hero-summary">
+            <div class="hero-mini-card">
+                <p class="hero-mini-label">{{ t('Created Codes') }}</p>
+                <p class="hero-mini-value">{{ total_validation_codes or 0 }}</p>
+                <p class="hero-mini-note">{{ t('All generated codes in the system') }}</p>
+            </div>
+
+            <div class="hero-mini-card">
+                <p class="hero-mini-label">{{ t('Used Codes') }}</p>
+                <p class="hero-mini-value">{{ used_validation_codes or 0 }}</p>
+                <p class="hero-mini-note">{{ t('Codes already consumed by users') }}</p>
+            </div>
+
+            <div class="hero-mini-card">
+                <p class="hero-mini-label">{{ t('Active Users Today') }}</p>
+                <p class="hero-mini-value">{{ active_users_today or 0 }}</p>
+                <p class="hero-mini-note">{{ t('Users currently active in today’s flow') }}</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="stat-card">
+        <p class="stat-label">{{ t('Students Signed In') }}</p>
+        <p class="stat-value">{{ total_students_signed_in or 0 }}</p>
+        <p class="stat-foot">{{ t('Registered student accounts currently tracked') }}</p>
+    </section>
+
+    <section class="stat-card">
+        <p class="stat-label">{{ t('Unused Codes') }}</p>
+        <p class="stat-value">{{ unused_validation_codes or 0 }}</p>
+        <p class="stat-foot">{{ t('Available codes not yet consumed') }}</p>
+    </section>
+
+    <section class="stat-card">
+        <p class="stat-label">{{ t('Today Check-Ins') }}</p>
+        <p class="stat-value">{{ today_check_ins or 0 }}</p>
+        <p class="stat-foot">{{ t('All check-in records detected today') }}</p>
+    </section>
+
+    <section class="stat-card">
+        <p class="stat-label">{{ t('Today Check-Outs') }}</p>
+        <p class="stat-value">{{ today_check_outs or 0 }}</p>
+        <p class="stat-foot">{{ t('All check-out records detected today') }}</p>
+    </section>
+
+    <section class="section-panel panel-card">
+        <h3 class="panel-title">{{ t('Today Activity by Role') }}</h3>
+        <p class="panel-subtitle">
+            {{ t('Quick role breakdown for daily access and live activity totals.') }}
+        </p>
+
+        <div class="role-stats">
+            <div class="role-box">
+                <h4>{{ t('Students') }}</h4>
+                <p>
+                    {{ t('Checked In:') }} <strong>{{ students_checked_in_today or 0 }}</strong><br>
+                    {{ t('Checked Out:') }} <strong>{{ students_checked_out_today or 0 }}</strong><br>
+                    {{ t('Active Today:') }} <strong>{{ active_students_today or 0 }}</strong>
+                </p>
+            </div>
+
+            <div class="role-box">
+                <h4>{{ t('Teachers') }}</h4>
+                <p>
+                    {{ t('Checked In:') }} <strong>{{ teachers_checked_in_today or 0 }}</strong><br>
+                    {{ t('Checked Out:') }} <strong>{{ teachers_checked_out_today or 0 }}</strong><br>
+                    {{ t('Active Today:') }} <strong>{{ active_teachers_today or 0 }}</strong>
+                </p>
+            </div>
+
+            <div class="role-box">
+                <h4>{{ t('Staff') }}</h4>
+                <p>
+                    {{ t('Checked In:') }} <strong>{{ staff_checked_in_today or 0 }}</strong><br>
+                    {{ t('Checked Out:') }} <strong>{{ staff_checked_out_today or 0 }}</strong><br>
+                    {{ t('Active Today:') }} <strong>{{ active_staff_today or 0 }}</strong>
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <section class="two-column panel-card">
+        <h3 class="panel-title">{{ t('Validation Code Overview') }}</h3>
+        <p class="panel-subtitle">
+            {{ t('Initial admin dashboard block for code activity and role-based creation tracking.') }}
+        </p>
+
+        <div class="table-wrap">
+            <table class="dashboard-table">
+                <thead>
+                    <tr>
+                        <th>{{ t('Code') }}</th>
+                        <th>{{ t('Role') }}</th>
+                        <th>{{ t('Status') }}</th>
+                        <th>{{ t('Expires') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if recent_validation_codes %}
+                        {% for code in recent_validation_codes %}
+                            <tr>
+                                <td>{{ code.code }}</td>
+                                <td>{{ code.role }}</td>
+                                <td>
+                                    {% if code.is_used %}
+                                        <span class="badge badge-danger">{{ t('Used') }}</span>
+                                    {% elif code.expires_at and code.expires_at < now %}
+                                        <span class="badge badge-warning">{{ t('Expired') }}</span>
+                                    {% else %}
+                                        <span class="badge badge-success">{{ t('Active') }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ code.expires_at or t('No limit') }}</td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="4">{{ t('No validation codes available yet.') }}</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="two-column panel-card">
+        <h3 class="panel-title">{{ t('Quick Actions') }}</h3>
+        <p class="panel-subtitle">
+            {{ t('Fast navigation for the first admin build. These sections can be expanded later without changing the design system.') }}
+        </p>
+
+        <div class="quick-grid">
+            <div class="quick-card">
+                <h4>{{ t('Create New Validation Code') }}</h4>
+                <p>{{ t('Open the validation-code section to create role-based codes with time expiration.') }}</p>
+                <a href="/admin/validation-codes">{{ t('Open Validation Codes') }}</a>
+            </div>
+
+            <div class="quick-card">
+                <h4>{{ t('Review Active Users') }}</h4>
+                <p>{{ t('Open user monitoring to review who is active and how many role accounts exist.') }}</p>
+                <a href="/admin/users">{{ t('Open Users') }}</a>
+            </div>
+
+            <div class="quick-card">
+                <h4>{{ t('Access Control Monitor') }}</h4>
+                <p>{{ t('Check live check-in and check-out flow for all tracked roles and today’s activity.') }}</p>
+                <a href="/admin/access-control">{{ t('Open Access Control') }}</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="section-panel panel-card">
+        <h3 class="panel-title">{{ t('Access Search') }}</h3>
+        <p class="panel-subtitle">
+            {{ t('Search by name, ID, role, and date to review access records.') }}
+        </p>
+
+        <div class="search-row">
+            <input type="text" class="input-field" placeholder="{{ t('Search by full name or ID') }}">
+            <select class="select-field">
+                <option>{{ t('All Roles') }}</option>
+                <option>{{ t('Student') }}</option>
+                <option>{{ t('Teacher') }}</option>
+                <option>{{ t('Staff') }}</option>
+                <option>{{ t('Admin') }}</option>
+            </select>
+            <input type="date" class="input-field">
+            <input type="time" class="input-field">
+            <button type="button" class="btn btn-primary">{{ t('Search') }}</button>
+        </div>
+
+        <div class="table-wrap">
+            <table class="dashboard-table">
+                <thead>
+                    <tr>
+                        <th>{{ t('Name') }}</th>
+                        <th>{{ t('Role') }}</th>
+                        <th>{{ t('ID') }}</th>
+                        <th>{{ t('Check In') }}</th>
+                        <th>{{ t('Check Out') }}</th>
+                        <th>{{ t('Hours') }}</th>
+                        <th>{{ t('Status') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if recent_access_records %}
+                        {% for record in recent_access_records %}
+                            <tr>
+                                <td>{{ record.full_name }}</td>
+                                <td>{{ record.role }}</td>
+                                <td>{{ record.user_id }}</td>
+                                <td>{{ record.check_in_time or "-" }}</td>
+                                <td>{{ record.check_out_time or "-" }}</td>
+                                <td>{{ record.total_hours or "-" }}</td>
+                                <td>
+                                    {% if record.status == "active" %}
+                                        <span class="badge badge-success">{{ t('Active') }}</span>
+                                    {% elif record.status == "closed" %}
+                                        <span class="badge badge-neutral">{{ t('Closed') }}</span>
+                                    {% else %}
+                                        <span class="badge badge-warning">{{ t(record.status or 'Pending') }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="7">{{ t('No access history data available yet.') }}</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="three-column panel-card">
+        <h3 class="panel-title">{{ t('Live Presence Feed') }}</h3>
+        <p class="panel-subtitle">
+            {{ t('People currently active or recently updated in the system.') }}
+        </p>
+
+        <div class="activity-list">
+            {% if live_presence_feed %}
+                {% for item in live_presence_feed %}
+                    <div class="activity-card">
+                        <div class="activity-top">
+                            <h4 class="activity-name">{{ item.full_name }}</h4>
+                            <span class="badge badge-success">{{ item.role }}</span>
+                        </div>
+                        <p class="activity-meta">
+                            {{ t('ID:') }} {{ item.user_id }}<br>
+                            {{ t('Last Action:') }} {{ item.last_action }}<br>
+                            {{ t('Time:') }} {{ item.last_time }}
+                        </p>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="activity-card">
+                    <div class="activity-top">
+                        <h4 class="activity-name">{{ t('No live activity yet') }}</h4>
+                        <span class="badge badge-neutral">{{ t('Waiting') }}</span>
+                    </div>
+                    <p class="activity-meta">
+                        {{ t('Live presence data will appear here once access activity is available.') }}
+                    </p>
+                </div>
+            {% endif %}
+        </div>
+    </section>
+
+    <section class="three-column panel-card">
+        <h3 class="panel-title">{{ t('System Notes') }}</h3>
+        <p class="panel-subtitle">
+            {{ t('Planned admin-only control features based on your system design.') }}
+        </p>
+
+        <div class="activity-list">
+            <div class="activity-card">
+                <div class="activity-top">
+                    <h4 class="activity-name">{{ t('Role-Based Code Expiration') }}</h4>
+                    <span class="badge badge-success">{{ t('Ready') }}</span>
+                </div>
+                <p class="activity-meta">
+                    {{ t('Validation codes are designed to support role selection and time limits like 24 or 48 hours.') }}
+                </p>
+            </div>
+
+            <div class="activity-card">
+                <div class="activity-top">
+                    <h4 class="activity-name">{{ t('Admin Access Participation') }}</h4>
+                    <span class="badge badge-neutral">{{ t('Included') }}</span>
+                </div>
+                <p class="activity-meta">
+                    {{ t('Admins will also use the same access-control flow, QR logic, and history structure as other roles.') }}
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <section class="three-column panel-card">
+        <h3 class="panel-title">{{ t('Recent Admin Activity') }}</h3>
+        <p class="panel-subtitle">
+            {{ t('Latest admin operations and important updates.') }}
+        </p>
+
+        <div class="activity-list">
+            {% if recent_admin_activity %}
+                {% for item in recent_admin_activity %}
+                    <div class="activity-card">
+                        <div class="activity-top">
+                            <h4 class="activity-name">{{ item.title }}</h4>
+                            <span class="badge badge-neutral">{{ item.time }}</span>
+                        </div>
+                        <p class="activity-meta">{{ item.description }}</p>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="activity-card">
+                    <div class="activity-top">
+                        <h4 class="activity-name">{{ t('No admin activity yet') }}</h4>
+                        <span class="badge badge-neutral">{{ t('Empty') }}</span>
+                    </div>
+                    <p class="activity-meta">
+                        {{ t('New admin actions will appear here once dashboard logic is connected.') }}
+                    </p>
+                </div>
+            {% endif %}
+        </div>
+    </section>
+</div>
+{% endblock %}

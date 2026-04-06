@@ -1,0 +1,362 @@
+{% extends "admin_base.html" %}
+
+{% block title %}Edit User | UniTrack Admin{% endblock %}
+
+{% block content %}
+<style>
+    :root{
+        --page-surface: rgba(255,255,255,0.82);
+        --page-surface-strong: rgba(255,255,255,0.96);
+        --page-border: rgba(124,92,255,0.14);
+        --page-shadow: 0 16px 40px rgba(101, 78, 163, 0.12);
+        --page-shadow-soft: 0 10px 24px rgba(101, 78, 163, 0.08);
+
+        --text-main:#1f2440;
+        --text-soft:#64708b;
+        --text-muted:#8b95ad;
+
+        --accent:#7c5cff;
+        --accent-2:#a855f7;
+
+        --success:#18b26b;
+        --danger:#ef4444;
+    }
+
+    .edit-user-page{
+        display:flex;
+        flex-direction:column;
+        gap:24px;
+    }
+
+    .edit-user-header{
+        display:flex;
+        justify-content:space-between;
+        gap:20px;
+        flex-wrap:wrap;
+        padding:28px;
+        border-radius:24px;
+        background:var(--page-surface);
+        border:1px solid var(--page-border);
+        box-shadow:var(--page-shadow);
+    }
+
+    .edit-user-header h1{
+        margin:0 0 10px;
+        font-size:30px;
+        font-weight:800;
+        color:var(--text-main);
+    }
+
+    .edit-user-header p{
+        margin:0;
+        max-width:700px;
+        color:var(--text-soft);
+        line-height:1.6;
+    }
+
+    .top-actions{
+        display:flex;
+        flex-wrap:wrap;
+        gap:10px;
+    }
+
+    .btn{
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        padding:10px 16px;
+        border-radius:12px;
+        font-size:13px;
+        font-weight:800;
+        text-decoration:none;
+        border:none;
+        cursor:pointer;
+    }
+
+    .btn-primary{
+        background:linear-gradient(135deg,var(--accent),var(--accent-2));
+        color:#fff;
+    }
+
+    .btn-secondary{
+        background:#ffffff;
+        border:1px solid var(--page-border);
+        color:var(--text-main);
+    }
+
+    .edit-grid{
+        display:grid;
+        grid-template-columns:340px 1fr;
+        gap:24px;
+    }
+
+    .panel{
+        background:var(--page-surface);
+        border-radius:24px;
+        border:1px solid var(--page-border);
+        box-shadow:var(--page-shadow);
+    }
+
+    .panel-inner{
+        padding:24px;
+    }
+
+    .profile-card{
+        text-align:center;
+    }
+
+    .avatar{
+        width:70px;
+        height:70px;
+        border-radius:20px;
+        background:linear-gradient(135deg,var(--accent),var(--accent-2));
+        color:#fff;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        font-size:22px;
+        font-weight:800;
+        margin:0 auto 16px;
+    }
+
+    .profile-name{
+        margin:0;
+        font-size:18px;
+        font-weight:800;
+        color:var(--text-main);
+    }
+
+    .profile-username{
+        margin:4px 0 0;
+        font-size:13px;
+        color:var(--text-muted);
+    }
+
+    .badge{
+        display:inline-flex;
+        padding:6px 12px;
+        border-radius:999px;
+        font-size:12px;
+        font-weight:800;
+        background:#f1efff;
+        color:#5a40d6;
+    }
+
+    .status-badge{
+        display:inline-flex;
+        align-items:center;
+        gap:6px;
+        padding:6px 12px;
+        border-radius:999px;
+        font-size:12px;
+        font-weight:800;
+    }
+
+    .status-dot{
+        width:8px;height:8px;border-radius:50%;
+    }
+
+    .status-online{background:#eafaf1;color:var(--success);}
+    .status-online .status-dot{background:var(--success);}
+
+    .status-active{background:#eef5ff;color:#3b82f6;}
+    .status-active .status-dot{background:#3b82f6;}
+
+    .status-inactive{background:#fff0f0;color:var(--danger);}
+    .status-inactive .status-dot{background:var(--danger);}
+
+    .profile-meta{
+        margin-top:20px;
+        display:flex;
+        flex-direction:column;
+        gap:10px;
+        text-align:left;
+    }
+
+    .meta-row{
+        display:flex;
+        justify-content:space-between;
+        font-size:13px;
+    }
+
+    .meta-label{color:var(--text-muted);}
+    .meta-value{font-weight:700;color:var(--text-main);}
+
+    .form-title{
+        margin:0 0 6px;
+        font-size:20px;
+        font-weight:800;
+        color:var(--text-main);
+    }
+
+    .form-subtitle{
+        margin:0 0 20px;
+        font-size:14px;
+        color:var(--text-soft);
+    }
+
+    .form-grid{
+        display:grid;
+        grid-template-columns:repeat(2,1fr);
+        gap:16px;
+    }
+
+    .field-group{
+        display:flex;
+        flex-direction:column;
+        gap:6px;
+    }
+
+    .field-group.full{
+        grid-column:1/-1;
+    }
+
+    .field-group label{
+        font-size:13px;
+        font-weight:700;
+        color:var(--text-soft);
+    }
+
+    .field-control{
+        height:46px;
+        border-radius:12px;
+        border:1px solid var(--page-border);
+        padding:0 12px;
+        font-size:14px;
+    }
+
+    .read-only-note{
+        margin-top:16px;
+        font-size:13px;
+        color:var(--text-muted);
+    }
+
+    .form-actions{
+        margin-top:18px;
+        display:flex;
+        gap:10px;
+    }
+
+    @media(max-width:900px){
+        .edit-grid{
+            grid-template-columns:1fr;
+        }
+
+        .form-grid{
+            grid-template-columns:1fr;
+        }
+    }
+</style>
+
+<div class="edit-user-page">
+    <section class="edit-user-header">
+        <div>
+            <h1>Edit User</h1>
+            <p>
+                Update the basic account information for this user. Role change, user ID update,
+                password change, and remove actions are available.
+            </p>
+        </div>
+
+        <div class="top-actions">
+            <a href="/admin/users/{{ user.id }}/change-role" class="btn btn-secondary">Change Role</a>
+            <a href="/admin/users/{{ user.id }}/update-user-id" class="btn btn-secondary">Update ID</a>
+            <a href="/admin/users/{{ user.id }}/change-password" class="btn btn-secondary">Change Password</a>
+            <a href="/admin/users/{{ user.id }}/delete" class="btn btn-secondary">Remove</a>
+            <a href="/admin/users" class="btn btn-secondary">Back</a>
+        </div>
+    </section>
+
+    <section class="edit-grid">
+        <div class="panel">
+            <div class="panel-inner profile-card">
+                <div class="avatar">
+                    {{ ((user.first_name or user.username or "U")[0])|upper }}
+                </div>
+
+                <h2 class="profile-name">
+                    {{ (user.first_name or "") ~ " " ~ (user.last_name or "") }}
+                </h2>
+
+                <p class="profile-username">@{{ user.username }}</p>
+
+                <div style="margin-top:12px;">
+                    <span class="badge">{{ role_label }}</span>
+                </div>
+
+                <div style="margin-top:10px;">
+                    {% if is_online %}
+                        <span class="status-badge status-online"><span class="status-dot"></span>Online</span>
+                    {% elif user.is_active_user %}
+                        <span class="status-badge status-active"><span class="status-dot"></span>Active</span>
+                    {% else %}
+                        <span class="status-badge status-inactive"><span class="status-dot"></span>Inactive</span>
+                    {% endif %}
+                </div>
+
+                <div class="profile-meta">
+                    <div class="meta-row"><span class="meta-label">User ID</span><span class="meta-value">{{ user.id }}</span></div>
+                    <div class="meta-row"><span class="meta-label">System Code</span><span class="meta-value">{{ user.user_id_code or '-' }}</span></div>
+                    <div class="meta-row"><span class="meta-label">Email</span><span class="meta-value">{{ user.email or '-' }}</span></div>
+                    <div class="meta-row"><span class="meta-label">Phone</span><span class="meta-value">{{ user.phone or '-' }}</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-inner">
+                <h2 class="form-title">Basic Information</h2>
+                <p class="form-subtitle">Edit and save user data.</p>
+
+                <form method="POST" action="/admin/users/{{ user.id }}/update">
+                    <div class="form-grid">
+                        <div class="field-group">
+                            <label>First Name</label>
+                            <input name="first_name" class="field-control" value="{{ user.first_name }}">
+                        </div>
+
+                        <div class="field-group">
+                            <label>Last Name</label>
+                            <input name="last_name" class="field-control" value="{{ user.last_name }}">
+                        </div>
+
+                        <div class="field-group">
+                            <label>Username</label>
+                            <input name="username" class="field-control" value="{{ user.username }}">
+                        </div>
+
+                        <div class="field-group">
+                            <label>Email</label>
+                            <input name="email" class="field-control" value="{{ user.email }}">
+                        </div>
+
+                        <div class="field-group">
+                            <label>Phone</label>
+                            <input name="phone" class="field-control" value="{{ user.phone }}">
+                        </div>
+
+                        <div class="field-group">
+                            <label>Role</label>
+                            <input class="field-control" value="{{ role_label }}" readonly>
+                        </div>
+
+                        <div class="field-group full">
+                            <label>User Code</label>
+                            <input class="field-control" value="{{ user.user_id_code or '-' }}" readonly>
+                        </div>
+                    </div>
+
+                    <div class="read-only-note">
+                        Only basic info is editable here.
+                    </div>
+
+                    <div class="form-actions">
+                        <button class="btn btn-primary">Save Changes</button>
+                        <a href="/admin/users" class="btn btn-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}

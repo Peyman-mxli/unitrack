@@ -1,0 +1,365 @@
+{% extends "personal_base.html" %}
+
+{% block title %}{{ "Panel de Personal" if (current_user.language == "es" or session.get("language") == "es") else "Staff Dashboard" }}{% endblock %}
+
+{% block page_eyebrow %}{{ "Espacio de Trabajo del Personal" if (current_user.language == "es" or session.get("language") == "es") else "Staff Workspace" }}{% endblock %}
+{% block page_title %}{{ "Panel de Personal" if (current_user.language == "es" or session.get("language") == "es") else "Staff Dashboard" }}{% endblock %}
+{% block page_subtitle %}
+{{ "Bienvenido a tu panel de personal de UniTrack. Desde aquí puedes acceder a tu escáner de control de acceso y revisar la información de tu cuenta de personal." if (current_user.language == "es" or session.get("language") == "es") else "Welcome to your UniTrack staff dashboard. From here you can access your access control scanner and review your staff account information." }}
+{% endblock %}
+
+{% block content %}
+<style>
+    .dashboard-shell {
+        display: flex;
+        flex-direction: column;
+        gap: 22px;
+    }
+
+    .hero-panel {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        padding: 30px 24px;
+        border-radius: 24px;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        background: linear-gradient(180deg, rgba(245, 247, 255, 0.96), rgba(239, 242, 252, 0.92));
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+    }
+
+    .hero-content {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .hero-title {
+        margin: 0 0 12px;
+        font-size: 30px;
+        line-height: 1.15;
+        font-weight: 900;
+        color: #0f2454;
+    }
+
+    .hero-text {
+        margin: 0 0 18px;
+        max-width: 760px;
+        color: #6b7280;
+        font-size: 15px;
+        line-height: 1.65;
+    }
+
+    .hero-meta {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+        margin-bottom: 18px;
+    }
+
+    .hero-user-id {
+        font-size: 15px;
+        font-weight: 900;
+        color: #7c3aed;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 14px;
+        border-radius: 999px;
+        background: rgba(34, 197, 94, 0.12);
+        border: 1px solid rgba(34, 197, 94, 0.24);
+        color: #15803d;
+        font-size: 13px;
+        font-weight: 800;
+        width: fit-content;
+        white-space: nowrap;
+    }
+
+    .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: #22c55e;
+        flex-shrink: 0;
+    }
+
+    .hero-actions {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+    }
+
+    .primary-action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 46px;
+        padding: 0 18px;
+        border-radius: 12px;
+        font-size: 15px;
+        font-weight: 800;
+        text-decoration: none;
+        color: #ffffff;
+        background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        box-shadow: 0 10px 24px rgba(124, 58, 237, 0.24);
+    }
+
+    .secondary-action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 46px;
+        padding: 0 18px;
+        border-radius: 12px;
+        font-size: 15px;
+        font-weight: 800;
+        text-decoration: none;
+        background: #ffffff;
+        color: #4c1d95;
+        border: 1px solid #ddd;
+    }
+
+    .hero-avatar {
+        width: 90px;
+        height: 90px;
+        border-radius: 20px;
+        object-fit: cover;
+        border: 1px solid rgba(148, 163, 184, 0.26);
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+        flex-shrink: 0;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+    }
+
+    .info-card {
+        border-radius: 20px;
+        padding: 20px;
+        background: #f3f4f6;
+        border: none;
+        box-shadow: none;
+    }
+
+    .info-label {
+        margin: 0 0 8px;
+        font-size: 12px;
+        font-weight: 900;
+        color: #64748b;
+        text-transform: uppercase;
+    }
+
+    .info-value {
+        margin: 0 0 6px;
+        font-size: 22px;
+        font-weight: 900;
+        color: #7c3aed;
+        line-height: 1.2;
+        word-break: break-word;
+    }
+
+    .info-text {
+        margin: 0;
+        color: #64748b;
+        font-size: 13px;
+        line-height: 1.55;
+    }
+
+    .details-card {
+        border-radius: 20px;
+        padding: 24px;
+        background: #f9fafb;
+        border: 1px solid rgba(167, 139, 250, 0.18);
+        box-shadow: none;
+    }
+
+    .details-title {
+        margin: 0 0 6px;
+        font-size: 20px;
+        font-weight: 900;
+        color: #081a43;
+    }
+
+    .details-subtitle {
+        margin: 0 0 16px;
+        color: #64748b;
+        font-size: 14px;
+        line-height: 1.6;
+    }
+
+    .details-grid {
+        display: grid;
+        grid-template-columns: 180px minmax(0, 1fr);
+        gap: 12px 20px;
+        align-items: start;
+    }
+
+    .details-key {
+        font-size: 15px;
+        font-weight: 400;
+        color: #0f172a;
+    }
+
+    .details-value {
+        font-size: 15px;
+        line-height: 1.55;
+        word-break: break-word;
+        color: #7c3aed;
+        font-weight: 900;
+    }
+
+    @media (max-width: 1080px) {
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 860px) {
+        .hero-panel {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .hero-avatar {
+            width: 88px;
+            height: 88px;
+            border-radius: 20px;
+        }
+
+        .details-grid {
+            grid-template-columns: 1fr;
+            gap: 8px;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .hero-panel,
+        .info-card,
+        .details-card {
+            padding-left: 18px;
+            padding-right: 18px;
+        }
+
+        .hero-title {
+            font-size: 26px;
+        }
+
+        .hero-actions {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .primary-action,
+        .secondary-action {
+            width: 100%;
+        }
+    }
+</style>
+
+{% set is_spanish = (current_user.language == "es" or session.get("language") == "es") %}
+{% set profile_image = current_user.profile_image if current_user.profile_image else current_user.photo_path %}
+{% set user_id_code = current_user.user_id_code if current_user.user_id_code else ('No asignado todavía' if is_spanish else 'Not assigned yet') %}
+{% set full_name = ((current_user.first_name or '') ~ ' ' ~ (current_user.last_name or ''))|trim %}
+{% set display_name = full_name if full_name else staff_name %}
+{% set status_text = ('Activo' if current_user.is_active_user else 'Inactivo') if is_spanish else ('Active' if current_user.is_active_user else 'Inactive') %}
+
+<div class="dashboard-shell">
+    <div class="hero-panel">
+        <div class="hero-content">
+            <h2 class="hero-title">{{ "Bienvenido," if is_spanish else "Welcome," }} <span style="color:#7c3aed;">{{ staff_name }}</span></h2>
+            <p class="hero-text">
+                {{ "Este es tu panel principal de UniTrack. Desde aquí puedes acceder a tu escáner de control de acceso del personal y revisar la información de tu cuenta de personal." if is_spanish else "This is your main UniTrack dashboard. From here you can access your staff access control scanner and review your staff account information." }}
+            </p>
+
+            <div class="hero-meta">
+                <div class="hero-user-id">{{ "ID de Usuario" if is_spanish else "User ID" }}: {{ user_id_code }}</div>
+                <div class="status-badge">
+                    <span class="status-dot"></span>
+                    {{ status_text }}
+                </div>
+            </div>
+
+            <div class="hero-actions">
+                <a href="{{ url_for('personal_views.access_control_scanner') }}" class="primary-action">{{ "Abrir Escáner de Acceso" if is_spanish else "Open Access Scanner" }}</a>
+                <a href="{{ url_for('personal_views.configuration_page') }}" class="secondary-action">{{ "Ver Configuración" if is_spanish else "View Configuration" }}</a>
+            </div>
+        </div>
+
+        {% if profile_image %}
+            <img
+                src="{{ url_for('static', filename=profile_image) }}"
+                alt="{{ 'Perfil del Personal' if is_spanish else 'Staff Profile' }}"
+                class="hero-avatar"
+            >
+        {% else %}
+            <img
+                src="{{ url_for('static', filename='img/default_profile.png') }}"
+                alt="{{ 'Perfil del Personal' if is_spanish else 'Staff Profile' }}"
+                class="hero-avatar"
+            >
+        {% endif %}
+    </div>
+
+    <div class="stats-grid">
+        <div class="info-card">
+            <p class="info-label">{{ "ROL" if is_spanish else "ROLE" }}</p>
+            <p class="info-value">{{ "Personal" if is_spanish else "Staff" }}</p>
+            <p class="info-text">{{ "Tu rol en UniTrack" if is_spanish else "Your UniTrack role" }}</p>
+        </div>
+
+        <div class="info-card">
+            <p class="info-label">{{ "ESTADO DE LA CUENTA" if is_spanish else "ACCOUNT STATUS" }}</p>
+            <p class="info-value">{{ status_text }}</p>
+            <p class="info-text">{{ "Estado de la sesión" if is_spanish else "Session state" }}</p>
+        </div>
+
+        <div class="info-card">
+            <p class="info-label">{{ "ID DE USUARIO" if is_spanish else "USER ID" }}</p>
+            <p class="info-value">{{ user_id_code }}</p>
+            <p class="info-text">{{ "Tu identificador único" if is_spanish else "Your unique identifier" }}</p>
+        </div>
+    </div>
+
+    <div class="details-card">
+        <h3 class="details-title">{{ "Información del Personal" if is_spanish else "Staff Information" }}</h3>
+        <p class="details-subtitle">
+            {{ "Revisa los datos personales de tu cuenta almacenados actualmente en UniTrack." if is_spanish else "Review your personal account details currently stored in UniTrack." }}
+        </p>
+
+        <div class="details-grid">
+            <div class="details-key">{{ "Nombre Completo" if is_spanish else "Full Name" }}</div>
+            <div class="details-value">{{ display_name }}</div>
+
+            <div class="details-key">{{ "ID de Usuario" if is_spanish else "User ID" }}</div>
+            <div class="details-value">{{ user_id_code }}</div>
+
+            <div class="details-key">{{ "Nombre de Usuario" if is_spanish else "Username" }}</div>
+            <div class="details-value">{{ current_user.username or ('No disponible' if is_spanish else 'Not available') }}</div>
+
+            <div class="details-key">{{ "Correo Electrónico" if is_spanish else "Email" }}</div>
+            <div class="details-value">{{ current_user.email or ('No disponible' if is_spanish else 'Not available') }}</div>
+
+            <div class="details-key">{{ "Teléfono" if is_spanish else "Phone" }}</div>
+            <div class="details-value">{{ current_user.phone or ('No disponible' if is_spanish else 'Not available') }}</div>
+
+            <div class="details-key">{{ "Rol" if is_spanish else "Role" }}</div>
+            <div class="details-value">{{ "Personal" if is_spanish else "Staff" }}</div>
+
+            <div class="details-key">{{ "Estado" if is_spanish else "Status" }}</div>
+            <div>
+                <span class="status-badge">
+                    <span class="status-dot"></span>
+                    {{ status_text }}
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

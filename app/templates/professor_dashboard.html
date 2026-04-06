@@ -1,0 +1,261 @@
+{% extends "professor_base.html" %}
+
+{% block title %}{{ t('professor') }} {{ t('dashboard') }}{% endblock %}
+
+{% block page_eyebrow %}{{ t('workspace') }}{% endblock %}
+{% block page_title %}{{ t('professor') }} {{ t('dashboard') }}{% endblock %}
+{% block page_subtitle %}
+{{ t('professor_dashboard_subtitle') }}
+{% endblock %}
+
+{% block content %}
+<style>
+    .dashboard-shell {
+        display: flex;
+        flex-direction: column;
+        gap: 22px;
+    }
+
+    .hero-panel {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        padding: 30px 24px;
+        border-radius: 24px;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        background: linear-gradient(180deg, rgba(245, 247, 255, 0.96), rgba(239, 242, 252, 0.92));
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+    }
+
+    .hero-content {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .hero-title {
+        margin: 0 0 12px;
+        font-size: 30px;
+        font-weight: 900;
+        color: #0f2454;
+    }
+
+    .hero-meta {
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+        margin-bottom: 18px;
+    }
+
+    .hero-user-id {
+        font-size: 15px;
+        font-weight: 900;
+        color: #7c3aed;
+    }
+
+    /* 🔥 FIXED SIZE (IMPORTANT) */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 14px;
+        border-radius: 999px;
+        background: rgba(34, 197, 94, 0.12);
+        border: 1px solid rgba(34, 197, 94, 0.24);
+        color: #15803d;
+        font-size: 13px;
+        font-weight: 800;
+        width: fit-content;        /* 🔥 prevent full width */
+        white-space: nowrap;       /* 🔥 keep compact */
+    }
+
+    .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: #22c55e;
+    }
+
+    .hero-actions {
+        display: flex;
+        gap: 14px;
+    }
+
+    .primary-action {
+        color: #fff;
+        background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        padding: 10px 18px;
+        border-radius: 12px;
+        font-weight: 800;
+        text-decoration: none;
+    }
+
+    .secondary-action {
+        background: #fff;
+        padding: 10px 18px;
+        border-radius: 12px;
+        font-weight: 800;
+        text-decoration: none;
+        border: 1px solid #ddd;
+    }
+
+    .hero-avatar {
+        width: 90px;
+        height: 90px;
+        border-radius: 20px;
+        object-fit: cover;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 18px;
+    }
+
+    .info-card {
+        border-radius: 20px;
+        padding: 20px;
+        background: #f3f4f6;
+    }
+
+    .info-label {
+        font-size: 12px;
+        font-weight: 900;
+        color: #64748b;
+    }
+
+    .info-value {
+        font-size: 22px;
+        font-weight: 900;
+        color: #7c3aed;
+        margin-top: 6px;
+    }
+
+    .info-text {
+        font-size: 13px;
+        color: #64748b;
+        margin-top: 6px;
+    }
+
+    .details-card {
+        border-radius: 20px;
+        padding: 24px;
+        background: #f9fafb;
+    }
+
+    .details-title {
+        font-size: 20px;
+        font-weight: 900;
+        margin-bottom: 6px;
+    }
+
+    .details-subtitle {
+        font-size: 14px;
+        color: #64748b;
+        margin-bottom: 16px;
+    }
+
+    .details-grid {
+        display: grid;
+        grid-template-columns: 180px 1fr;
+        gap: 12px 20px;
+    }
+
+    .highlight-text {
+        color: #7c3aed;
+        font-weight: 900;
+    }
+</style>
+
+{% set user_id_code = current_user.user_id_code %}
+{% set status_text = t('active') if current_user.is_active_user else t('inactive') %}
+{% set raw_profile_image = current_user.profile_image or current_user.photo_path or 'img/default_profile.png' %}
+
+<div class="dashboard-shell">
+
+    <div class="hero-panel">
+        <div class="hero-content">
+            <h2 class="hero-title">{{ t('welcome') }}, <span class="highlight-text">{{ professor_name }}</span></h2>
+
+            <div class="hero-meta">
+                <div class="hero-user-id">{{ t('user_id') }}: {{ user_id_code }}</div>
+                <div class="status-badge">
+                    <span class="status-dot"></span>
+                    {{ status_text }}
+                </div>
+            </div>
+
+            <div class="hero-actions">
+                <a href="{{ url_for('professor_views.access_control_scanner') }}" class="primary-action">
+                    {{ t('open_access_scanner') }}
+                </a>
+                <a href="{{ url_for('professor_views.configuration_page') }}" class="secondary-action">
+                    {{ t('view_configuration') }}
+                </a>
+            </div>
+        </div>
+
+        {% if raw_profile_image and (raw_profile_image.startswith('http://') or raw_profile_image.startswith('https://') or raw_profile_image.startswith('/')) %}
+            <img src="{{ raw_profile_image }}" class="hero-avatar">
+        {% elif raw_profile_image and raw_profile_image.startswith('static/') %}
+            <img src="{{ url_for('static', filename=raw_profile_image[7:]) }}" class="hero-avatar">
+        {% else %}
+            <img src="{{ url_for('static', filename=raw_profile_image) }}" class="hero-avatar">
+        {% endif %}
+    </div>
+
+    <div class="stats-grid">
+        <div class="info-card">
+            <div class="info-label">{{ t('role')|upper }}</div>
+            <div class="info-value">{{ t('professor') }}</div>
+            <div class="info-text">{{ t('your_role') }}</div>
+        </div>
+
+        <div class="info-card">
+            <div class="info-label">{{ t('account_status')|upper }}</div>
+            <div class="info-value">{{ status_text }}</div>
+            <div class="info-text">{{ t('session_state') }}</div>
+        </div>
+
+        <div class="info-card">
+            <div class="info-label">{{ t('user_id')|upper }}</div>
+            <div class="info-value">{{ user_id_code }}</div>
+            <div class="info-text">{{ t('unique_identifier') }}</div>
+        </div>
+    </div>
+
+    <div class="details-card">
+        <div class="details-title">{{ t('professor_information') }}</div>
+        <div class="details-subtitle">
+            {{ t('professor_info_subtitle') }}
+        </div>
+
+        <div class="details-grid">
+            <div>{{ t('full_name') }}</div>
+            <div class="highlight-text">{{ professor_name }}</div>
+
+            <div>{{ t('user_id') }}</div>
+            <div class="highlight-text">{{ user_id_code }}</div>
+
+            <div>{{ t('username') }}</div>
+            <div class="highlight-text">{{ current_user.username }}</div>
+
+            <div>{{ t('email') }}</div>
+            <div class="highlight-text">{{ current_user.email }}</div>
+
+            <div>{{ t('phone') }}</div>
+            <div class="highlight-text">{{ current_user.phone }}</div>
+
+            <div>{{ t('role') }}</div>
+            <div class="highlight-text">{{ t('professor') }}</div>
+
+            <div>{{ t('status') }}</div>
+            <div class="status-badge">
+                <span class="status-dot"></span>
+                {{ status_text }}
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

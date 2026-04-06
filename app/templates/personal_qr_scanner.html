@@ -1,0 +1,146 @@
+{% extends "personal_base.html" %}
+
+{% block title %}{{ t('QR Scanner') if t else 'QR Scanner' }}{% endblock %}
+
+{% block content %}
+
+<div class="card">
+    <h1 class="section-title">{{ t('Access QR Scanner') if t else 'Access QR Scanner' }}</h1>
+    <p class="section-subtitle">
+        {{ t('Simulate the access reader by pasting the staff QR code content.') if t else 'Simulate the access reader by pasting the staff QR code content.' }}
+    </p>
+</div>
+
+<div class="card" style="max-width:900px;">
+    <form method="POST" action="/personal/access-control/scanner">
+        <div style="margin-bottom:14px;">
+            <label style="display:block; font-weight:800; margin-bottom:8px;">
+                {{ t('QR Content') if t else 'QR Content' }}
+            </label>
+
+            <textarea
+                name="qr_text"
+                rows="5"
+                style="
+                    width:100%;
+                    border:1px solid #dbe4f0;
+                    border-radius:14px;
+                    padding:14px;
+                    font-size:14px;
+                    resize:vertical;
+                    font-family:Consolas, 'Courier New', monospace;
+                    color:#0f172a;
+                    background:#ffffff;
+                    outline:none;
+                "
+                placeholder=""
+            >{{ qr_text_value or '' }}</textarea>
+        </div>
+
+        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+            <button type="submit" style="
+                border:none;
+                border-radius:12px;
+                padding:12px 18px;
+                background:linear-gradient(90deg,#16a34a,#22c55e);
+                color:white;
+                font-size:15px;
+                font-weight:900;
+                cursor:pointer;
+                box-shadow:0 10px 24px rgba(34,197,94,0.20);
+            ">
+                {{ t('Scan QR') if t else 'Scan QR' }}
+            </button>
+
+            <a href="/personal/access-control/scanner" style="
+                display:inline-block;
+                text-decoration:none;
+                border-radius:12px;
+                padding:12px 18px;
+                background:#e2e8f0;
+                color:#0f172a;
+                font-size:15px;
+                font-weight:900;
+                box-shadow:0 6px 14px rgba(0,0,0,0.08);
+            ">
+                {{ t('Clear') if t else 'Clear' }}
+            </a>
+        </div>
+    </form>
+</div>
+
+{% if scan_result %}
+    {% if scan_result.success %}
+        <div class="card" style="
+            max-width:900px;
+            background:rgba(34,197,94,0.10);
+            border:1px solid rgba(34,197,94,0.28);
+        ">
+            <h3 style="margin-top:0; color:#166534;">{{ t('Successful Scan') if t else 'Successful Scan' }}</h3>
+
+            <div style="display:grid; grid-template-columns:220px 1fr; gap:12px 14px; align-items:center;">
+                <div style="font-weight:800;">{{ t('Message:') if t else 'Message:' }}</div>
+                <div>{{ scan_result.message }}</div>
+
+                <div style="font-weight:800;">{{ t('Action:') if t else 'Action:' }}</div>
+                <div>
+                    {% if scan_result.action == "check_in" %}
+                        <span class="status-badge status-green">{{ t('Check In') if t else 'Check In' }}</span>
+                    {% elif scan_result.action == "check_out" %}
+                        <span class="status-badge status-red">{{ t('Check Out') if t else 'Check Out' }}</span>
+                    {% else %}
+                        {{ scan_result.action }}
+                    {% endif %}
+                </div>
+
+                <div style="font-weight:800;">{{ t('Name:') if t else 'Name:' }}</div>
+                <div>{{ scan_result.staff_name }}</div>
+
+                <div style="font-weight:800;">{{ t('Username:') if t else 'Username:' }}</div>
+                <div>{{ scan_result.username }}</div>
+
+                <div style="font-weight:800;">{{ t('Status:') if t else 'Status:' }}</div>
+                <div>{{ scan_result.status }}</div>
+
+                <div style="font-weight:800;">{{ t('Check In:') if t else 'Check In:' }}</div>
+                <div>{{ scan_result.check_in_time or "--" }}</div>
+
+                <div style="font-weight:800;">{{ t('Check Out:') if t else 'Check Out:' }}</div>
+                <div>{{ scan_result.check_out_time or "--" }}</div>
+            </div>
+        </div>
+    {% else %}
+        <div class="card" style="
+            max-width:900px;
+            background:rgba(239,68,68,0.10);
+            border:1px solid rgba(239,68,68,0.28);
+        ">
+            <h3 style="margin-top:0; color:#b91c1c;">{{ t('Failed Scan') if t else 'Failed Scan' }}</h3>
+
+            <div style="display:grid; grid-template-columns:220px 1fr; gap:12px 14px;">
+                <div style="font-weight:800;">{{ t('Message:') if t else 'Message:' }}</div>
+                <div>{{ scan_result.message }}</div>
+
+                <div style="font-weight:800;">{{ t('HTTP Status Code:') if t else 'HTTP Status Code:' }}</div>
+                <div>{{ scan_result.status_code }}</div>
+            </div>
+        </div>
+    {% endif %}
+{% endif %}
+
+<div class="card" style="max-width:900px;">
+    <h3 style="margin-top:0;">{{ t('Quick Example') if t else 'Quick Example' }}</h3>
+    <p style="margin-top:0; color:#64748b;">
+        {{ t('Paste a real QR value like one of these:') if t else 'Paste a real QR value like one of these:' }}
+    </p>
+
+    <div style="background:#0f172a;color:#f8fafc;padding:14px;border-radius:14px;font-family:Consolas, monospace; margin-bottom:12px;">
+        UT-UPBC-0001
+    </div>
+
+    <div style="background:#0f172a;color:#f8fafc;padding:14px;border-radius:14px;font-family:Consolas, monospace;">
+        07AB43
+    </div>
+</div>
+
+{% endblock %}

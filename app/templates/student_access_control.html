@@ -1,0 +1,783 @@
+{% extends "student_base.html" %}
+
+{% block title %}{{ "Control de Acceso" if (current_user.language == "es" or session.get("language") == "es") else "Access Control" }}{% endblock %}
+
+{% block content %}
+
+<style>
+.filter-card{
+    background:#f4f7ff;
+    border:1px solid #dbe4f0;
+    border-radius:18px;
+    padding:18px;
+    margin-bottom:20px;
+}
+
+.filter-grid{
+    display:grid;
+    grid-template-columns:minmax(220px, 320px) auto;
+    gap:14px;
+    align-items:end;
+}
+
+.filter-label{
+    display:block;
+    margin-bottom:8px;
+    font-size:14px;
+    font-weight:800;
+    color:#334155;
+}
+
+.filter-input{
+    width:100%;
+    min-height:48px;
+    padding:12px 14px;
+    border-radius:12px;
+    border:1px solid #cbd5e1;
+    background:#ffffff;
+    color:#0f172a;
+    font-size:15px;
+    outline:none;
+}
+
+.filter-button{
+    min-width:160px;
+    min-height:48px;
+    border:none;
+    border-radius:12px;
+    background:linear-gradient(90deg,#7c3aed,#a855f7,#38bdf8);
+    color:#ffffff;
+    font-size:15px;
+    font-weight:800;
+    cursor:pointer;
+    box-shadow:0 10px 24px rgba(124,58,237,0.24);
+    padding:0 18px;
+}
+
+.access-grid{
+    display:grid;
+    grid-template-columns:minmax(340px, 420px) 1fr;
+    gap:20px;
+    align-items:start;
+}
+
+.qr-card{
+    background:#f4f7ff;
+    border:1px solid #dbe4f0;
+    border-radius:18px;
+    padding:24px;
+}
+
+.info-card{
+    display:flex;
+    flex-direction:column;
+    gap:20px;
+}
+
+.qr-box{
+    width:100%;
+    max-width:260px;
+    aspect-ratio:1 / 1;
+    margin:20px auto 18px auto;
+    background:#ffffff;
+    border:1px solid #dbe4f0;
+    border-radius:20px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#64748b;
+    font-size:28px;
+    font-weight:900;
+    overflow:hidden;
+    box-shadow:0 10px 24px rgba(0,0,0,0.06);
+}
+
+.qr-actions{
+    display:flex;
+    justify-content:center;
+    margin-top:18px;
+}
+
+.qr-actions form{
+    width:100%;
+}
+
+.qr-badge{
+    width:100%;
+    min-height:50px;
+    border:none;
+    border-radius:14px;
+    font-size:16px;
+    font-weight:800;
+    cursor:pointer;
+    color:#ffffff;
+    box-shadow:0 10px 24px rgba(0,0,0,0.12);
+}
+
+.qr-checkin{
+    background:linear-gradient(90deg,#16a34a,#22c55e);
+}
+
+.qr-checkout{
+    background:linear-gradient(90deg,#dc2626,#ef4444);
+}
+
+.copy-btn{
+    min-width:90px;
+    height:42px;
+    border:none;
+    border-radius:10px;
+    padding:0 12px;
+    background:linear-gradient(90deg,#7c3aed,#a855f7,#38bdf8);
+    color:#ffffff;
+    font-weight:800;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+    box-sizing:border-box;
+}
+
+.summary-card{
+    background:#f4f7ff;
+    border:1px solid #dbe4f0;
+    border-radius:20px;
+    padding:22px;
+    margin-bottom:20px;
+}
+
+.summary-header{
+    display:flex;
+    align-items:center;
+    gap:18px;
+    flex-wrap:wrap;
+}
+
+.summary-avatar{
+    width:88px;
+    height:88px;
+    border-radius:22px;
+    overflow:hidden;
+    flex-shrink:0;
+    border:1px solid #dbe4f0;
+    background:#ffffff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    box-shadow:0 10px 24px rgba(0,0,0,0.06);
+}
+
+.summary-avatar img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+}
+
+.summary-avatar-fallback{
+    color:#64748b;
+    font-size:28px;
+    font-weight:900;
+}
+
+.summary-name{
+    margin:0;
+    color:#081a43;
+    font-size:24px;
+    font-weight:900;
+}
+
+.summary-sub{
+    margin-top:6px;
+    color:#475569;
+    font-size:14px;
+    font-weight:700;
+}
+
+.summary-status-wrap{
+    margin-left:auto;
+}
+
+.summary-grid{
+    margin-top:20px;
+    display:grid;
+    grid-template-columns:repeat(4, minmax(160px, 1fr));
+    gap:14px;
+}
+
+.summary-mini{
+    background:#ffffff;
+    border:1px solid #dbe4f0;
+    border-radius:16px;
+    padding:16px;
+    box-shadow:0 8px 20px rgba(0,0,0,0.04);
+}
+
+.summary-mini-label{
+    font-size:12px;
+    font-weight:900;
+    color:#64748b;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    margin-bottom:8px;
+}
+
+.summary-mini-value{
+    font-size:16px;
+    font-weight:900;
+    color:#081a43;
+    word-break:break-word;
+}
+
+.history-card{
+    background:#f4f7ff;
+    border:1px solid #dbe4f0;
+    border-radius:20px;
+    padding:22px;
+    margin-top:20px;
+}
+
+.history-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    margin-bottom:16px;
+    flex-wrap:wrap;
+}
+
+.history-title{
+    margin:0;
+    color:#081a43;
+    font-size:22px;
+    font-weight:900;
+}
+
+.history-subtitle{
+    margin:4px 0 0 0;
+    color:#64748b;
+    font-size:14px;
+    font-weight:600;
+}
+
+.history-count{
+    background:#ffffff;
+    border:1px solid #dbe4f0;
+    border-radius:999px;
+    padding:8px 14px;
+    color:#081a43;
+    font-size:13px;
+    font-weight:900;
+}
+
+.history-table-wrap{
+    width:100%;
+    overflow-x:auto;
+}
+
+.history-table{
+    width:100%;
+    border-collapse:separate;
+    border-spacing:0;
+    min-width:760px;
+    background:#ffffff;
+    border:1px solid #dbe4f0;
+    border-radius:16px;
+    overflow:hidden;
+}
+
+.history-table thead th{
+    background:#eef4ff;
+    color:#081a43;
+    font-size:13px;
+    font-weight:900;
+    text-align:left;
+    padding:14px 16px;
+    border-bottom:1px solid #dbe4f0;
+    white-space:nowrap;
+}
+
+.history-table tbody td{
+    padding:14px 16px;
+    font-size:14px;
+    color:#0f172a;
+    border-bottom:1px solid #edf2f7;
+    vertical-align:middle;
+}
+
+.history-table tbody tr:last-child td{
+    border-bottom:none;
+}
+
+.history-empty{
+    background:#ffffff;
+    border:1px solid #dbe4f0;
+    border-radius:16px;
+    padding:26px;
+    text-align:center;
+    color:#64748b;
+    font-weight:700;
+}
+
+.inline-user{
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+
+.inline-user-photo{
+    width:42px;
+    height:42px;
+    border-radius:12px;
+    overflow:hidden;
+    border:1px solid #dbe4f0;
+    background:#ffffff;
+    flex-shrink:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.inline-user-photo img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+}
+
+.inline-user-fallback{
+    color:#64748b;
+    font-size:15px;
+    font-weight:900;
+}
+
+.inline-user-text strong{
+    display:block;
+    color:#081a43;
+    font-size:14px;
+    font-weight:900;
+}
+
+.inline-user-text span{
+    display:block;
+    color:#64748b;
+    font-size:12px;
+    font-weight:700;
+}
+
+@media (max-width:980px){
+    .access-grid{
+        grid-template-columns:1fr;
+    }
+
+    .filter-grid{
+        grid-template-columns:1fr;
+    }
+
+    .filter-button{
+        width:100%;
+    }
+
+    .summary-grid{
+        grid-template-columns:1fr 1fr;
+    }
+
+    .summary-status-wrap{
+        margin-left:0;
+        width:100%;
+    }
+}
+
+@media (max-width:640px){
+    .summary-grid{
+        grid-template-columns:1fr;
+    }
+
+    .summary-header{
+        align-items:flex-start;
+    }
+
+    .summary-avatar{
+        width:76px;
+        height:76px;
+        border-radius:18px;
+    }
+
+    .summary-name{
+        font-size:20px;
+    }
+}
+</style>
+
+{% set is_spanish = (current_user.language == "es" or session.get("language") == "es") %}
+{% set latest_record = demo_records[0] if demo_records else None %}
+
+<div style="margin-bottom:18px;">
+    <h1 class="section-title">{{ "Control de Acceso" if is_spanish else "Access Control System" }}</h1>
+    <p class="section-subtitle">
+        {{ "Usa tu código QR para registrar entrada o salida y revisar tu historial de acceso." if is_spanish else "Use your QR code to check in or check out and review your access history." }}
+    </p>
+</div>
+
+{% if access_message %}
+<div class="card" style="
+    background:rgba(34,197,94,0.12);
+    border:1px solid rgba(34,197,94,0.28);
+    color:#166534;
+    font-weight:800;
+">
+    {{ access_message }}
+</div>
+{% endif %}
+
+{% if access_error %}
+<div class="card" style="
+    background:rgba(239,68,68,0.12);
+    border:1px solid rgba(239,68,68,0.28);
+    color:#b91c1c;
+    font-weight:800;
+">
+    {{ access_error }}
+</div>
+{% endif %}
+
+<div class="summary-card">
+    <div class="summary-header">
+        <div class="summary-avatar">
+            {% if current_user.photo_path %}
+                <img
+                    src="{{ url_for('static', filename=current_user.photo_path) }}"
+                    alt="{{ 'Foto del Estudiante' if is_spanish else 'Student Photo' }}"
+                >
+            {% else %}
+                <div class="summary-avatar-fallback">
+                    {{ (current_user.first_name[:1] if current_user.first_name else "S") ~ (current_user.last_name[:1] if current_user.last_name else "") }}
+                </div>
+            {% endif %}
+        </div>
+
+        <div>
+            <h2 class="summary-name">{{ student_name if student_name else ("Estudiante" if is_spanish else "Student") }}</h2>
+            <div class="summary-sub">{{ "ID del Estudiante / Usuario" if is_spanish else "Student ID / Username" }}: {{ current_user.username if current_user.username else "--" }}</div>
+        </div>
+
+        <div class="summary-status-wrap">
+            {% if current_access_status and current_access_status.status == "checked_in" %}
+                <span class="status-badge status-green">{{ "Dentro del Campus" if is_spanish else "Inside Campus" }}</span>
+            {% else %}
+                <span class="status-badge status-red">{{ "Fuera del Campus" if is_spanish else "Outside Campus" }}</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="summary-grid">
+        <div class="summary-mini">
+            <div class="summary-mini-label">{{ "Fecha Más Reciente" if is_spanish else "Latest Date" }}</div>
+            <div class="summary-mini-value">{{ latest_record.date if latest_record and latest_record.date else "--" }}</div>
+        </div>
+
+        <div class="summary-mini">
+            <div class="summary-mini-label">{{ "Hora de Entrada" if is_spanish else "Check-In Time" }}</div>
+            <div class="summary-mini-value">{{ latest_record.check_in if latest_record and latest_record.check_in else "--" }}</div>
+        </div>
+
+        <div class="summary-mini">
+            <div class="summary-mini-label">{{ "Hora de Salida" if is_spanish else "Check-Out Time" }}</div>
+            <div class="summary-mini-value">{{ latest_record.check_out if latest_record and latest_record.check_out else "--" }}</div>
+        </div>
+
+        <div class="summary-mini">
+            <div class="summary-mini-label">{{ "Horas" if is_spanish else "Hours" }}</div>
+            <div class="summary-mini-value">{{ latest_record.hours if latest_record and latest_record.hours else "--" }}</div>
+        </div>
+    </div>
+</div>
+
+<form method="GET" action="{{ url_for('student_views.access_control_page') }}">
+    <div class="filter-card">
+        <div class="filter-grid">
+
+            <div>
+                <label class="filter-label">{{ "Fecha" if is_spanish else "Date" }}</label>
+                <input
+                    type="text"
+                    name="date"
+                    class="filter-input"
+                    placeholder="{{ 'MM/DD/AAAA' if is_spanish else 'MM/DD/YYYY' }}"
+                    value="{{ selected_date or '' }}"
+                >
+            </div>
+
+            <div>
+                <button type="submit" class="filter-button">{{ "Buscar" if is_spanish else "Search" }}</button>
+            </div>
+
+        </div>
+    </div>
+</form>
+
+<div class="access-grid">
+
+    <div class="qr-card">
+        <h3 style="margin:0; color:#081a43;">{{ "Tu Código QR de Acceso" if is_spanish else "Your Access QR Code" }}</h3>
+
+        <div class="qr-box">
+            {% if access_qr_image %}
+                <img
+                    src="{{ access_qr_image }}"
+                    alt="{{ 'Código QR de Acceso del Estudiante' if is_spanish else 'Student Access QR Code' }}"
+                    style="width:100%; height:100%; object-fit:contain;"
+                >
+            {% else %}
+                QR
+            {% endif %}
+        </div>
+
+        <div style="font-weight:800; margin-bottom:8px; color:#0f172a; text-align:center;">
+            {{ student_name if student_name else ("Estudiante" if is_spanish else "Student") }}
+        </div>
+
+        <div class="card" style="margin-top:14px;">
+            <div style="font-size:13px; font-weight:900; margin-bottom:8px; color:#081a43;">
+                {{ "Contenido del QR" if is_spanish else "QR Payload" }}
+            </div>
+
+            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                <div id="accessQrPayloadText" style="
+                    flex:1;
+                    background:#fff;
+                    border:1px solid #dbe4f0;
+                    border-radius:10px;
+                    padding:10px;
+                    font-family:Consolas, monospace;
+                    font-size:12px;
+                    color:#0f172a;
+                    word-break:break-word;
+                ">
+                    {{ access_qr_payload if access_qr_payload else "--" }}
+                </div>
+
+                <button
+                    type="button"
+                    onclick="copyTextValue('accessQrPayloadText', this)"
+                    class="copy-btn"
+                >
+                    {{ "Copiar" if is_spanish else "Copy" }}
+                </button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div style="font-size:13px; font-weight:900; margin-bottom:8px; color:#081a43;">
+                {{ "Código de Respaldo QR" if is_spanish else "Backup QR ID Code" }}
+            </div>
+
+            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                <div id="accessQrIdCodeText" style="
+                    flex:1;
+                    background:#fff;
+                    border:1px solid #dbe4f0;
+                    border-radius:10px;
+                    padding:10px;
+                    font-family:Consolas, monospace;
+                    font-weight:900;
+                    color:#0f172a;
+                    word-break:break-word;
+                ">
+                    {{ access_qr_id_code if access_qr_id_code else "--" }}
+                </div>
+
+                <button
+                    type="button"
+                    onclick="copyTextValue('accessQrIdCodeText', this)"
+                    class="copy-btn"
+                >
+                    {{ "Copiar" if is_spanish else "Copy" }}
+                </button>
+            </div>
+        </div>
+
+        <div class="qr-actions">
+            {% if current_access_status and current_access_status.status == "checked_in" %}
+                <form method="POST" action="{{ url_for('student_views.access_control_check_out') }}">
+                    <button type="submit" class="qr-badge qr-checkout">{{ "Registrar Salida" if is_spanish else "Check Out" }}</button>
+                </form>
+            {% else %}
+                <form method="POST" action="{{ url_for('student_views.access_control_check_in') }}">
+                    <button type="submit" class="qr-badge qr-checkin">{{ "Registrar Entrada" if is_spanish else "Check In" }}</button>
+                </form>
+            {% endif %}
+        </div>
+
+    </div>
+
+    <div class="info-card">
+        <div class="card">
+            <h3 style="margin-top:0; color:#081a43;">{{ "Estado Actual" if is_spanish else "Current Status" }}</h3>
+
+            <div style="display:grid; grid-template-columns:180px 1fr; gap:12px 14px;">
+
+                <div style="font-weight:800;">{{ "Estudiante:" if is_spanish else "Student:" }}</div>
+                <div>{{ student_name if student_name else "--" }}</div>
+
+                <div style="font-weight:800;">{{ "Usuario:" if is_spanish else "Username:" }}</div>
+                <div>{{ current_user.username if current_user.username else "--" }}</div>
+
+                <div style="font-weight:800;">{{ "Estado:" if is_spanish else "Status:" }}</div>
+                <div>
+                    {% if current_access_status and current_access_status.status == "checked_in" %}
+                        <span class="status-badge status-green">{{ "Dentro del Campus" if is_spanish else "Inside Campus" }}</span>
+                    {% else %}
+                        <span class="status-badge status-red">{{ "Fuera del Campus" if is_spanish else "Outside Campus" }}</span>
+                    {% endif %}
+                </div>
+
+                <div style="font-weight:800;">{{ "Última Entrada:" if is_spanish else "Last Check-In:" }}</div>
+                <div>{{ current_access_status.last_check_in if current_access_status and current_access_status.last_check_in else "--" }}</div>
+
+                <div style="font-weight:800;">{{ "Última Salida:" if is_spanish else "Last Check-Out:" }}</div>
+                <div>{{ current_access_status.last_check_out if current_access_status and current_access_status.last_check_out else "--" }}</div>
+
+                <div style="font-weight:800;">{{ "Horas de Hoy:" if is_spanish else "Hours Today:" }}</div>
+                <div>{{ current_access_status.hours_today if current_access_status and current_access_status.hours_today else "--" }}</div>
+
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="history-card">
+    <div class="history-header">
+        <div>
+            <h3 class="history-title">{{ "Historial de Acceso" if is_spanish else "Access History" }}</h3>
+            <p class="history-subtitle">{{ "Revisa tus entradas y salidas registradas." if is_spanish else "Review your recorded check-ins and check-outs." }}</p>
+        </div>
+
+        <div class="history-count">
+            {% if is_spanish %}
+                {{ demo_records|length if demo_records else 0 }} registro{{ '' if demo_records and demo_records|length == 1 else 's' }}
+            {% else %}
+                {{ demo_records|length if demo_records else 0 }} record{{ '' if demo_records and demo_records|length == 1 else 's' }}
+            {% endif %}
+        </div>
+    </div>
+
+    {% if demo_records and demo_records|length > 0 %}
+    <div class="history-table-wrap">
+        <table class="history-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>{{ "Estudiante" if is_spanish else "Student" }}</th>
+                    <th>{{ "ID / Usuario" if is_spanish else "ID / Username" }}</th>
+                    <th>{{ "Fecha" if is_spanish else "Date" }}</th>
+                    <th>{{ "Entrada" if is_spanish else "Check-In" }}</th>
+                    <th>{{ "Salida" if is_spanish else "Check-Out" }}</th>
+                    <th>{{ "Horas" if is_spanish else "Hours" }}</th>
+                    <th>{{ "Estado" if is_spanish else "Status" }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in demo_records %}
+                <tr>
+                    <td>{{ record.row if record.row else loop.index }}</td>
+                    <td>
+                        <div class="inline-user">
+                            <div class="inline-user-photo">
+                                {% if current_user.photo_path %}
+                                    <img
+                                        src="{{ url_for('static', filename=current_user.photo_path) }}"
+                                        alt="{{ 'Foto del Estudiante' if is_spanish else 'Student Photo' }}"
+                                    >
+                                {% else %}
+                                    <div class="inline-user-fallback">
+                                        {{ (current_user.first_name[:1] if current_user.first_name else "S") ~ (current_user.last_name[:1] if current_user.last_name else "") }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="inline-user-text">
+                                <strong>{{ record.name if record.name else student_name }}</strong>
+                                <span>{{ "Acceso al campus" if is_spanish else "Campus access" }}</span>
+                            </div>
+                        </div>
+                    </td>
+                    <td>{{ record.matricula if record.matricula else "--" }}</td>
+                    <td>{{ record.date if record.date else "--" }}</td>
+                    <td>{{ record.check_in if record.check_in else "--" }}</td>
+                    <td>{{ record.check_out if record.check_out else "--" }}</td>
+                    <td>{{ record.hours if record.hours else "--" }}</td>
+                    <td>
+                        {% if record.status == "checked_in" %}
+                            <span class="status-badge status-green">{{ "Dentro del Campus" if is_spanish else "Inside Campus" }}</span>
+                        {% else %}
+                            <span class="status-badge status-red">{{ "Fuera del Campus" if is_spanish else "Outside Campus" }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="history-empty">
+        {{ "Aún no hay historial de acceso disponible." if is_spanish else "No access history available yet." }}
+    </div>
+    {% endif %}
+</div>
+
+<script>
+async function copyTextValue(id, button){
+    const el = document.getElementById(id);
+    if(!el){
+        return;
+    }
+
+    const text = (el.textContent || el.innerText || "").trim();
+    if(!text || text === "--"){
+        return;
+    }
+
+    const isSpanish = {{ "true" if is_spanish else "false" }};
+    const originalLabel = button ? button.textContent : "";
+
+    try{
+        if(navigator.clipboard && window.isSecureContext){
+            await navigator.clipboard.writeText(text);
+        }else{
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.setAttribute("readonly", "");
+            textArea.style.position = "fixed";
+            textArea.style.opacity = "0";
+            textArea.style.pointerEvents = "none";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            textArea.setSelectionRange(0, textArea.value.length);
+
+            const copied = document.execCommand("copy");
+            document.body.removeChild(textArea);
+
+            if(!copied){
+                throw new Error("Copy command failed.");
+            }
+        }
+
+        if(button){
+            button.textContent = isSpanish ? "¡Copiado!" : "Copied!";
+            setTimeout(() => {
+                button.textContent = originalLabel || (isSpanish ? "Copiar" : "Copy");
+            }, 1400);
+        }
+    }catch(error){
+        if(button){
+            button.textContent = isSpanish ? "Falló" : "Failed";
+            setTimeout(() => {
+                button.textContent = originalLabel || (isSpanish ? "Copiar" : "Copy");
+            }, 1400);
+        }
+    }
+}
+</script>
+
+{% endblock %}

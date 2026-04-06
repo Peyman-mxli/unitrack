@@ -1,0 +1,551 @@
+{% extends "personal_base.html" %}
+
+{% block title %}{{ t('Staff Configuration') if t else 'Staff Configuration' }}{% endblock %}
+
+{% block page_eyebrow %}{{ t('Staff Panel') if t else 'Staff Panel' }}{% endblock %}
+{% block page_title %}{{ t('Configuration') if t else 'Configuration' }}{% endblock %}
+{% block page_subtitle %}
+{{ t('Manage your personal information and account settings.') if t else 'Manage your personal information and account settings.' }}
+{% endblock %}
+
+{% block content %}
+
+<style>
+.configuration-shell{
+    display:flex;
+    flex-direction:column;
+    gap:20px;
+    width:100%;
+    min-width:0;
+}
+
+.configuration-grid{
+    display:grid;
+    grid-template-columns:320px minmax(0, 1fr);
+    gap:24px;
+    align-items:start;
+    width:100%;
+    min-width:0;
+}
+
+.config-panel{
+    background:#f4f7ff;
+    border:1px solid #dbe4f0;
+    border-radius:20px;
+    padding:22px;
+    min-width:0;
+    width:100%;
+}
+
+.config-section{
+    background:#f4f7ff;
+    border-radius:20px;
+    padding:22px;
+    margin-bottom:22px;
+    border:1px solid #dbe4f0;
+    min-width:0;
+    width:100%;
+}
+
+.config-section:last-child{
+    margin-bottom:0;
+}
+
+.config-title{
+    margin:0 0 18px 0;
+    color:#081a43;
+    font-size:22px;
+    font-weight:900;
+    word-break:break-word;
+}
+
+.config-subtitle{
+    margin:0 0 14px 0;
+    color:#081a43;
+    font-size:18px;
+    font-weight:800;
+    word-break:break-word;
+}
+
+.avatar-wrap{
+    display:flex;
+    justify-content:center;
+    margin-bottom:16px;
+}
+
+.avatar-preview{
+    width:190px;
+    height:190px;
+    border-radius:50%;
+    object-fit:cover;
+    border:1px solid #dbe4f0;
+    background:#ffffff;
+    box-shadow:0 10px 24px rgba(0,0,0,0.08);
+    max-width:100%;
+}
+
+.photo-form{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+    width:100%;
+}
+
+.file-input{
+    width:100%;
+    max-width:100%;
+    padding:12px;
+    background:#ffffff;
+    border:1px solid #cbd5e1;
+    border-radius:12px;
+    color:#0f172a;
+    font-size:14px;
+}
+
+.form-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+    width:100%;
+}
+
+.form-grid-single{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:14px;
+    width:100%;
+}
+
+.field-wrap{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    min-width:0;
+    width:100%;
+}
+
+.field-label{
+    font-size:13px;
+    font-weight:900;
+    color:#334155;
+    letter-spacing:0.02em;
+    word-break:break-word;
+}
+
+.config-input{
+    width:100%;
+    min-height:48px;
+    padding:12px 14px;
+    border-radius:12px;
+    border:1px solid #cbd5e1;
+    background:#ffffff;
+    color:#0f172a;
+    font-size:15px;
+    outline:none;
+    max-width:100%;
+}
+
+.config-input[readonly]{
+    background:#eef4ff;
+    color:#475569;
+    font-weight:700;
+}
+
+.config-actions{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+    width:100%;
+}
+
+.primary-button{
+    min-width:170px;
+    min-height:48px;
+    border:none;
+    border-radius:12px;
+    background:linear-gradient(90deg,#7c3aed,#a855f7,#38bdf8);
+    color:#ffffff;
+    font-size:15px;
+    font-weight:800;
+    cursor:pointer;
+    box-shadow:0 10px 24px rgba(124,58,237,0.24);
+    padding:0 18px;
+    max-width:100%;
+}
+
+@media (max-width:1100px){
+    .configuration-grid{
+        grid-template-columns:280px minmax(0, 1fr);
+        gap:20px;
+    }
+}
+
+@media (max-width:980px){
+    .configuration-grid{
+        grid-template-columns:1fr;
+    }
+
+    .form-grid{
+        grid-template-columns:1fr;
+    }
+
+    .config-panel{
+        max-width:100%;
+    }
+}
+
+@media (max-width:768px){
+    .configuration-shell{
+        gap:16px;
+    }
+
+    .card{
+        padding:18px !important;
+        border-radius:18px !important;
+    }
+
+    .config-panel,
+    .config-section{
+        padding:18px;
+        border-radius:18px;
+    }
+
+    .config-title{
+        font-size:21px;
+    }
+
+    .config-subtitle{
+        font-size:17px;
+    }
+
+    .avatar-preview{
+        width:160px;
+        height:160px;
+    }
+
+    .file-input,
+    .config-input{
+        font-size:16px;
+    }
+}
+
+@media (max-width:640px){
+    .configuration-shell{
+        gap:14px;
+    }
+
+    .card{
+        padding:16px !important;
+        border-radius:16px !important;
+    }
+
+    .config-panel,
+    .config-section{
+        padding:16px;
+        border-radius:16px;
+    }
+
+    .config-title{
+        font-size:20px;
+    }
+
+    .config-subtitle{
+        font-size:17px;
+    }
+
+    .avatar-preview{
+        width:150px;
+        height:150px;
+    }
+
+    .file-input,
+    .config-input{
+        min-height:46px;
+        font-size:16px;
+        padding:12px;
+    }
+
+    .config-actions{
+        flex-direction:column;
+    }
+
+    .primary-button{
+        width:100%;
+        min-width:0;
+        min-height:46px;
+        font-size:14px;
+    }
+}
+
+@media (max-width:480px){
+    .configuration-shell{
+        gap:12px;
+    }
+
+    .card{
+        padding:14px !important;
+        border-radius:14px !important;
+    }
+
+    .config-panel,
+    .config-section{
+        padding:14px;
+        border-radius:14px;
+    }
+
+    .config-title{
+        font-size:18px;
+        margin-bottom:14px;
+    }
+
+    .config-subtitle{
+        font-size:16px;
+        margin-bottom:12px;
+    }
+
+    .avatar-wrap{
+        margin-bottom:14px;
+    }
+
+    .avatar-preview{
+        width:128px;
+        height:128px;
+    }
+
+    .file-input{
+        padding:10px;
+        font-size:16px;
+    }
+
+    .config-input{
+        min-height:44px;
+        padding:10px 12px;
+        font-size:16px;
+    }
+
+    .field-label{
+        font-size:12px;
+    }
+
+    .primary-button{
+        min-height:44px;
+        font-size:14px;
+    }
+}
+
+@media (max-width:360px){
+    .card{
+        padding:12px !important;
+    }
+
+    .config-panel,
+    .config-section{
+        padding:12px;
+    }
+
+    .avatar-preview{
+        width:112px;
+        height:112px;
+    }
+
+    .config-title{
+        font-size:17px;
+    }
+
+    .config-subtitle{
+        font-size:15px;
+    }
+}
+</style>
+
+<div class="configuration-shell">
+
+    <div class="card">
+        <h2 class="section-title">{{ t('Configuration') if t else 'Configuration' }}</h2>
+        <p class="section-subtitle">
+            {{ t('Update your personal information, security, preferences, and profile image.') if t else 'Update your personal information, security, preferences, and profile image.' }}
+        </p>
+    </div>
+
+    {% if profile_message %}
+    <div class="card" style="background:#ecfdf5; border:1px solid #bbf7d0;">
+        <p style="margin:0; color:#166534; font-weight:700;">
+            {{ profile_message }}
+        </p>
+    </div>
+    {% endif %}
+
+    {% if profile_error %}
+    <div class="card" style="background:#fef2f2; border:1px solid #fecaca;">
+        <p style="margin:0; color:#991b1b; font-weight:700;">
+            {{ profile_error }}
+        </p>
+    </div>
+    {% endif %}
+
+    <div class="card" style="background:#ffffff; border:1px solid #dbe4f0;">
+        <div class="configuration-grid">
+
+            <div class="config-panel">
+                <h3 class="config-title">{{ t('Profile Photo') if t else 'Profile Photo' }}</h3>
+
+                <div class="avatar-wrap">
+                    {% if current_user.photo_path %}
+                        <img
+                            id="avatarPreview"
+                            class="avatar-preview"
+                            src="{{ url_for('static', filename=current_user.photo_path) }}"
+                            alt="{{ t('Profile Photo') if t else 'Profile Photo' }}"
+                        >
+                    {% else %}
+                        <img
+                            id="avatarPreview"
+                            class="avatar-preview"
+                            src="{{ url_for('static', filename='img/unitrack_logo.png') }}"
+                            alt="{{ t('Profile Photo') if t else 'Profile Photo' }}"
+                        >
+                    {% endif %}
+                </div>
+
+                <form
+                    method="POST"
+                    action="{{ url_for('personal_views.configuration_update_photo') }}"
+                    enctype="multipart/form-data"
+                    class="photo-form"
+                >
+                    <input
+                        type="file"
+                        id="avatarInput"
+                        name="photo"
+                        required
+                        class="file-input"
+                    >
+
+                    <button type="submit" class="primary-button">{{ t('Upload Photo') if t else 'Upload Photo' }}</button>
+                </form>
+            </div>
+
+            <div>
+                <form method="POST" action="{{ url_for('personal_views.configuration_update') }}">
+
+                    <div class="config-section">
+                        <h3 class="config-subtitle">{{ t('Contact Information') if t else 'Contact Information' }}</h3>
+
+                        <div class="form-grid-single">
+                            <div class="field-wrap">
+                                <label class="field-label">{{ t('User ID') if t else 'User ID' }}</label>
+                                <input
+                                    type="text"
+                                    readonly
+                                    class="config-input"
+                                    value="{{ current_user.user_id_code if current_user.user_id_code else '--' }}"
+                                >
+                            </div>
+                        </div>
+
+                        <div class="form-grid" style="margin-top:14px;">
+                            <div class="field-wrap">
+                                <label class="field-label">{{ t('First Name') if t else 'First Name' }}</label>
+                                <input
+                                    type="text"
+                                    name="first_name"
+                                    required
+                                    class="config-input"
+                                    value="{{ current_user.first_name }}"
+                                >
+                            </div>
+
+                            <div class="field-wrap">
+                                <label class="field-label">{{ t('Last Name') if t else 'Last Name' }}</label>
+                                <input
+                                    type="text"
+                                    name="last_name"
+                                    required
+                                    class="config-input"
+                                    value="{{ current_user.last_name }}"
+                                >
+                            </div>
+
+                            <div class="field-wrap">
+                                <label class="field-label">{{ t('Username') if t else 'Username' }}</label>
+                                <input
+                                    type="text"
+                                    readonly
+                                    class="config-input"
+                                    value="{{ current_user.username }}"
+                                >
+                            </div>
+
+                            <div class="field-wrap">
+                                <label class="field-label">{{ t('Email') if t else 'Email' }}</label>
+                                <input
+                                    type="email"
+                                    name="email"
+                                    required
+                                    class="config-input"
+                                    value="{{ current_user.email }}"
+                                >
+                            </div>
+
+                            <div class="field-wrap">
+                                <label class="field-label">{{ t('Phone') if t else 'Phone' }}</label>
+                                <input
+                                    type="text"
+                                    name="phone"
+                                    required
+                                    class="config-input"
+                                    value="{{ current_user.phone }}"
+                                >
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="config-section">
+                        <h3 class="config-subtitle">{{ t('Security') if t else 'Security' }}</h3>
+
+                        <div class="form-grid-single">
+                            <div class="field-wrap">
+                                <label class="field-label">{{ t('Current Password') if t else 'Current Password' }}</label>
+                                <input
+                                    type="password"
+                                    name="current_password"
+                                    placeholder="{{ t('Current Password') if t else 'Current Password' }}"
+                                    class="config-input"
+                                >
+                            </div>
+
+                            <div class="field-wrap">
+                                <label class="field-label">{{ t('New Password') if t else 'New Password' }}</label>
+                                <input
+                                    type="password"
+                                    name="new_password"
+                                    placeholder="{{ t('New Password') if t else 'New Password' }}"
+                                    class="config-input"
+                                >
+                            </div>
+
+                            <div class="field-wrap">
+                                <label class="field-label">{{ t('Confirm Password') if t else 'Confirm Password' }}</label>
+                                <input
+                                    type="password"
+                                    name="confirm_password"
+                                    placeholder="{{ t('Confirm Password') if t else 'Confirm Password' }}"
+                                    class="config-input"
+                                >
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="config-actions">
+                        <button type="submit" class="primary-button">{{ t('Save Changes') if t else 'Save Changes' }}</button>
+                    </div>
+
+                </form>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

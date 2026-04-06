@@ -1,0 +1,534 @@
+{% extends "admin_base.html" %}
+
+{% block title %}Delete User | UniTrack Admin{% endblock %}
+
+{% block content %}
+<style>
+    :root{
+        --page-surface: rgba(255,255,255,0.82);
+        --page-surface-strong: rgba(255,255,255,0.96);
+        --page-border: rgba(124,92,255,0.14);
+        --page-border-strong: rgba(124,92,255,0.22);
+        --page-shadow: 0 16px 40px rgba(101, 78, 163, 0.12);
+        --page-shadow-soft: 0 10px 24px rgba(101, 78, 163, 0.08);
+
+        --page-text: #1f2440;
+        --page-text-soft: #64708b;
+        --page-text-muted: #8b95ad;
+
+        --page-accent: #7c5cff;
+        --page-accent-2: #a855f7;
+
+        --page-success: #18b26b;
+        --page-success-soft: #eafaf1;
+
+        --page-danger: #ef4444;
+        --page-danger-soft: #fff0f0;
+        --page-danger-strong: #dc2626;
+
+        --page-warning: #f59e0b;
+        --page-warning-soft: #fff6df;
+
+        --page-role-soft: #f1efff;
+    }
+
+    .admin-delete-page{
+        display:flex;
+        flex-direction:column;
+        gap:24px;
+        padding:4px 0 8px;
+    }
+
+    .delete-hero,
+    .card{
+        position:relative;
+        overflow:hidden;
+        border-radius:24px;
+        border:1px solid var(--page-border);
+        background:var(--page-surface);
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+        box-shadow:var(--page-shadow);
+    }
+
+    .delete-hero::before,
+    .card::before{
+        content:"";
+        position:absolute;
+        inset:0 auto auto 0;
+        width:100%;
+        height:1px;
+        background:linear-gradient(90deg, rgba(124,92,255,0.35), rgba(168,85,247,0.08), rgba(124,92,255,0));
+    }
+
+    .delete-hero{
+        display:flex;
+        align-items:flex-start;
+        justify-content:space-between;
+        gap:20px;
+        flex-wrap:wrap;
+        padding:30px 32px;
+        background:
+            radial-gradient(circle at top right, rgba(239,68,68,0.14), transparent 30%),
+            radial-gradient(circle at bottom left, rgba(248,113,113,0.10), transparent 28%),
+            linear-gradient(135deg, rgba(255,255,255,0.94), rgba(255,247,247,0.92));
+        border-color:rgba(239,68,68,0.14);
+    }
+
+    .delete-hero h1{
+        margin:0 0 10px 0;
+        font-size:32px;
+        line-height:1.1;
+        font-weight:800;
+        letter-spacing:-0.03em;
+        color:var(--page-text);
+    }
+
+    .delete-hero p{
+        margin:0;
+        max-width:760px;
+        color:var(--page-text-soft);
+        line-height:1.75;
+        font-size:15px;
+    }
+
+    .status-chip{
+        display:inline-flex;
+        align-items:center;
+        gap:8px;
+        min-height:42px;
+        padding:10px 16px;
+        border-radius:999px;
+        font-weight:800;
+        font-size:13px;
+        border:1px solid rgba(124,92,255,0.12);
+        background:rgba(255,255,255,0.88);
+        color:var(--page-text);
+        box-shadow:var(--page-shadow-soft);
+        white-space:nowrap;
+    }
+
+    .status-dot{
+        width:8px;
+        height:8px;
+        border-radius:999px;
+        display:inline-block;
+        flex-shrink:0;
+        background:#9ca3af;
+        box-shadow:0 0 0 4px rgba(156,163,175,0.14);
+    }
+
+    .status-online{
+        color:var(--page-success);
+        background:var(--page-success-soft);
+        border-color:rgba(24,178,107,0.16);
+    }
+
+    .status-online .status-dot{
+        background:var(--page-success);
+        box-shadow:0 0 0 4px rgba(24,178,107,0.14);
+    }
+
+    .status-offline{
+        color:var(--page-text-soft);
+        background:rgba(255,255,255,0.88);
+        border-color:rgba(124,92,255,0.12);
+    }
+
+    .status-offline .status-dot{
+        background:#9ca3af;
+        box-shadow:0 0 0 4px rgba(156,163,175,0.14);
+    }
+
+    .content-grid{
+        display:grid;
+        grid-template-columns:minmax(320px, 1fr) minmax(320px, 460px);
+        gap:24px;
+    }
+
+    .card{
+        padding:28px;
+        background:
+            radial-gradient(circle at top right, rgba(168,85,247,0.08), transparent 24%),
+            linear-gradient(180deg, rgba(255,255,255,0.96), rgba(251,250,255,0.92));
+    }
+
+    .card h2{
+        margin:0 0 8px 0;
+        font-size:22px;
+        font-weight:800;
+        letter-spacing:-0.02em;
+        color:var(--page-text);
+    }
+
+    .card p.card-text{
+        margin:0 0 22px 0;
+        color:var(--page-text-soft);
+        line-height:1.7;
+        font-size:14px;
+    }
+
+    .details-grid{
+        display:grid;
+        grid-template-columns:repeat(2, minmax(0, 1fr));
+        gap:16px;
+    }
+
+    .detail-box{
+        padding:16px 18px;
+        border-radius:18px;
+        background:rgba(255,255,255,0.88);
+        border:1px solid rgba(124,92,255,0.10);
+        box-shadow:var(--page-shadow-soft);
+    }
+
+    .detail-label{
+        display:block;
+        margin-bottom:6px;
+        font-size:11px;
+        font-weight:800;
+        text-transform:uppercase;
+        letter-spacing:0.08em;
+        color:var(--page-text-muted);
+    }
+
+    .detail-value{
+        font-size:14px;
+        font-weight:800;
+        line-height:1.5;
+        color:var(--page-text);
+        word-break:break-word;
+    }
+
+    .role-badge{
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        min-height:32px;
+        padding:8px 12px;
+        border-radius:999px;
+        font-size:12px;
+        font-weight:800;
+        background:var(--page-role-soft);
+        color:#5a40d6;
+        border:1px solid rgba(124,92,255,0.14);
+    }
+
+    .danger-box{
+        padding:18px;
+        border-radius:18px;
+        background:var(--page-danger-soft);
+        border:1px solid rgba(239,68,68,0.16);
+        color:#991b1b;
+        line-height:1.7;
+        font-size:14px;
+        font-weight:700;
+        box-shadow:var(--page-shadow-soft);
+    }
+
+    .warning-list{
+        margin:14px 0 0 18px;
+        padding:0;
+        color:#7f1d1d;
+    }
+
+    .warning-list li{
+        margin-bottom:8px;
+    }
+
+    .protected-box{
+        padding:18px;
+        border-radius:18px;
+        background:var(--page-warning-soft);
+        border:1px solid rgba(245,158,11,0.20);
+        color:#92400e;
+        line-height:1.7;
+        font-size:14px;
+        font-weight:700;
+        box-shadow:var(--page-shadow-soft);
+    }
+
+    .form-grid{
+        display:grid;
+        gap:18px;
+        margin-top:18px;
+    }
+
+    .field-group{
+        display:flex;
+        flex-direction:column;
+        gap:8px;
+    }
+
+    .field-group label{
+        font-size:14px;
+        font-weight:800;
+        color:var(--page-text-soft);
+    }
+
+    .field-control{
+        width:100%;
+        min-height:52px;
+        padding:14px 16px;
+        border-radius:14px;
+        border:1px solid rgba(239,68,68,0.18);
+        background:#ffffff;
+        color:var(--page-text);
+        font-size:15px;
+        outline:none;
+        transition:border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .field-control:focus{
+        border-color:rgba(239,68,68,0.42);
+        box-shadow:0 0 0 4px rgba(239,68,68,0.10);
+    }
+
+    .helper-text{
+        margin:0;
+        font-size:13px;
+        color:var(--page-text-muted);
+        line-height:1.6;
+    }
+
+    .actions-row{
+        display:flex;
+        flex-wrap:wrap;
+        gap:12px;
+        margin-top:8px;
+    }
+
+    .btn{
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        min-height:48px;
+        padding:0 18px;
+        border-radius:14px;
+        font-size:14px;
+        font-weight:800;
+        text-decoration:none;
+        border:none;
+        cursor:pointer;
+        transition:transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
+        white-space:nowrap;
+    }
+
+    .btn:hover{
+        transform:translateY(-1px);
+        opacity:0.97;
+    }
+
+    .btn-danger{
+        background:linear-gradient(135deg, var(--page-danger-strong), var(--page-danger));
+        color:#ffffff;
+        box-shadow:0 12px 24px rgba(239,68,68,0.22);
+    }
+
+    .btn-secondary{
+        background:#ffffff;
+        color:var(--page-accent);
+        border:1px solid rgba(124,92,255,0.14);
+        box-shadow:0 8px 20px rgba(101, 78, 163, 0.08);
+    }
+
+    .btn-dark{
+        background:#111827;
+        color:#ffffff;
+        box-shadow:0 10px 20px rgba(17,24,39,0.14);
+    }
+
+    .btn-disabled{
+        background:#e5e7eb;
+        color:#6b7280;
+        cursor:not-allowed;
+        pointer-events:none;
+        box-shadow:none;
+    }
+
+    @media (max-width: 980px){
+        .content-grid{
+            grid-template-columns:1fr;
+        }
+    }
+
+    @media (max-width: 640px){
+        .admin-delete-page{
+            gap:18px;
+        }
+
+        .delete-hero,
+        .card{
+            padding:20px;
+            border-radius:20px;
+        }
+
+        .delete-hero h1{
+            font-size:26px;
+        }
+
+        .delete-hero p{
+            font-size:14px;
+            line-height:1.7;
+        }
+
+        .details-grid{
+            grid-template-columns:1fr;
+        }
+
+        .actions-row{
+            flex-direction:column;
+        }
+
+        .btn{
+            width:100%;
+        }
+    }
+</style>
+
+<div class="admin-delete-page">
+    <section class="delete-hero">
+        <div>
+            <h1>Delete User</h1>
+            <p>
+                Review this account carefully before deletion. This action is intended for
+                permanent removal of a user from the UniTrack system and should only be used
+                when absolutely necessary.
+            </p>
+        </div>
+
+        <div class="status-chip {% if is_online %}status-online{% else %}status-offline{% endif %}">
+            <span class="status-dot"></span>
+            {% if is_online %}Online{% else %}Offline{% endif %}
+        </div>
+    </section>
+
+    <div class="content-grid">
+        <section class="card">
+            <h2>User Information</h2>
+            <p class="card-text">
+                Confirm the exact user account you are about to remove.
+            </p>
+
+            <div class="details-grid">
+                <div class="detail-box">
+                    <span class="detail-label">Full Name</span>
+                    <span class="detail-value">
+                        {{ ((user.first_name or '') ~ ' ' ~ (user.last_name or '')).strip() or user.username or 'Unknown User' }}
+                    </span>
+                </div>
+
+                <div class="detail-box">
+                    <span class="detail-label">Username</span>
+                    <span class="detail-value">@{{ user.username or '-' }}</span>
+                </div>
+
+                <div class="detail-box">
+                    <span class="detail-label">Role</span>
+                    <span class="detail-value">
+                        <span class="role-badge">{{ role_label or 'User' }}</span>
+                    </span>
+                </div>
+
+                <div class="detail-box">
+                    <span class="detail-label">Email</span>
+                    <span class="detail-value">{{ user.email or '-' }}</span>
+                </div>
+
+                <div class="detail-box">
+                    <span class="detail-label">Phone</span>
+                    <span class="detail-value">{{ user.phone or '-' }}</span>
+                </div>
+
+                <div class="detail-box">
+                    <span class="detail-label">User ID</span>
+                    <span class="detail-value">{{ user.user_id_code or 'Not assigned' }}</span>
+                </div>
+
+                <div class="detail-box">
+                    <span class="detail-label">Account Status</span>
+                    <span class="detail-value">
+                        {% if is_online %}
+                            Online
+                        {% elif user.is_active_user %}
+                            Active
+                        {% else %}
+                            Inactive
+                        {% endif %}
+                    </span>
+                </div>
+
+                <div class="detail-box">
+                    <span class="detail-label">Password Rule</span>
+                    <span class="detail-value">
+                        {% if user.must_change_password %}
+                            Must change password
+                        {% else %}
+                            Normal
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>Delete Confirmation</h2>
+            <p class="card-text">
+                This action is protected. Read the warning below before continuing.
+            </p>
+
+            {% if can_delete %}
+                <div class="danger-box">
+                    Warning: deleting this user may also affect related records connected to this account.
+
+                    <ul class="warning-list">
+                        <li>This action should be treated as permanent.</li>
+                        <li>The user will lose access to UniTrack immediately.</li>
+                        <li>Use this only when you are sure the account must be removed.</li>
+                    </ul>
+                </div>
+
+                <form method="POST" action="/admin/users/{{ user.id }}/delete" class="form-grid">
+                    <div class="field-group">
+                        <label for="confirmation_text">Type DELETE to confirm</label>
+                        <input
+                            id="confirmation_text"
+                            name="confirmation_text"
+                            type="text"
+                            class="field-control"
+                            placeholder="DELETE"
+                            autocomplete="off"
+                            required
+                        >
+                        <p class="helper-text">
+                            You must type DELETE exactly in uppercase to remove this user.
+                        </p>
+                    </div>
+
+                    <div class="actions-row">
+                        <button type="submit" class="btn btn-danger">Delete User</button>
+                        <a href="/admin/users/{{ user.id }}/edit" class="btn btn-secondary">Back to Edit User</a>
+                        <a href="/admin/users" class="btn btn-dark">Back to Users</a>
+                    </div>
+                </form>
+            {% else %}
+                <div class="protected-box">
+                    This account is protected and cannot be deleted.
+
+                    {% if protection_message %}
+                        <div style="margin-top:10px;">
+                            {{ protection_message }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="actions-row" style="margin-top:18px;">
+                    <span class="btn btn-disabled">Delete User</span>
+                    <a href="/admin/users/{{ user.id }}/edit" class="btn btn-secondary">Back to Edit User</a>
+                    <a href="/admin/users" class="btn btn-dark">Back to Users</a>
+                </div>
+            {% endif %}
+        </section>
+    </div>
+</div>
+{% endblock %}
