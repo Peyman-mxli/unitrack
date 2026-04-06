@@ -10,6 +10,14 @@
 
 ---
 
+## 🌐 Live Demo
+
+🔗 https://unitrack-6ozt.onrender.com
+
+> Note: Render free tier may take a little time to wake up after inactivity.
+
+---
+
 ## 🚀 Features
 
 * 🔐 Role-based authentication (Admin, Student, Professor, Staff)
@@ -68,7 +76,7 @@
 
 ## 📁 Project Structure
 
-```
+```text
 unitrack/
 │
 ├── app/
@@ -115,13 +123,13 @@ python run.py
 
 Local:
 
-```
+```text
 http://127.0.0.1:5000
 ```
 
 Network:
 
-```
+```text
 http://<your-ip>:5000
 ```
 
@@ -135,10 +143,10 @@ http://<your-ip>:5000
 
 ## 📌 Roadmap
 
-* [ ] Advanced attendance History
+* [ ] Advanced attendance history
 * [ ] Mobile app integration
-* [ ] Admin has more features
-* [ ] Teachers have more features
+* [ ] More admin features
+* [ ] More teacher features
 * [ ] Better design and structure
 
 ---
@@ -148,10 +156,13 @@ http://<your-ip>:5000
 This project is licensed under the MIT License.
 
 ---
+## ⭐ Support
 
-=============================================================================
+If you like this project, give it a ⭐ on GitHub!
+
+---
 👤 Author
-=========
+
 
 Peyman Miyandashti
 🎓 Polytechnic University of Baja California
@@ -159,10 +170,7 @@ Peyman Miyandashti
 📍 From Mexico
 📅 Year: 2026
 🆔 ID: 250161
-=============
+
 
 ---
 
-## ⭐ Support
-
-If you like this project, give it a ⭐ on GitHub!
