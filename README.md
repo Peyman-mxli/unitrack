@@ -1,5 +1,13 @@
 # 🎓 UniTrack
 
+# 🎓 UniTrack
+
+![Python](https://img.shields.io/badge/Python-3.11-blue)
+![Flask](https://img.shields.io/badge/Flask-3.1.3-black)
+![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0-red)
+![License](https://img.shields.io/badge/License-MIT-green)
+![Status](https://img.shields.io/badge/Status-Active-success)
+
 **UniTrack** is a university attendance and access control system designed to manage student, staff, and professor presence using QR-based check-in and check-out.
 
 ---
