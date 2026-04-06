@@ -1,7 +1,5 @@
 # 🎓 UniTrack
 
-# 🎓 UniTrack
-
 ![Python](https://img.shields.io/badge/Python-3.11-blue)
 ![Flask](https://img.shields.io/badge/Flask-3.1.3-black)
 ![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0-red)
