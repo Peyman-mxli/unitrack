@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="{{ current_language }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ t('admin') }} UniTrack{% endblock %}</title>
+
+    <style>
+        *{
+            box-sizing:border-box;
+            margin:0;
+            padding:0;
+        }
+
+        :root{
+            --page-bg:#f5f7fb;
+            --shell-bg:#ffffff;
+            --topbar-start:#7a0019;
+            --topbar-mid:#97001f;
+            --topbar-end:#7a0019;
+            --sidebar-bg:#06122f;
+            --sidebar-hover:#0d1f4d;
+            --sidebar-active:#162b69;
+            --sidebar-text:#c9d6f2;
+            --panel-white:#ffffff;
+            --card-bg:#f4f7ff;
+            --card-border:#dbe4f0;
+            --text-main:#081a43;
+            --text-muted:#6b7280;
+            --text-soft:#64748b;
+            --success:#15803d;
+            --danger:#b91c1c;
+            --warning:#a16207;
+            --accent:#7c3aed;
+            --accent-2:#8b5cf6;
+            --shadow-soft:0 18px 40px rgba(15,23,42,0.08);
+            --shadow-card:0 14px 34px rgba(25,35,74,0.08);
+            --radius-lg:22px;
+            --radius-md:16px;
+            --radius-sm:12px;
+        }
+
+        html, body{
+            min-height:100%;
+        }
+
+        body{
+            font-family:Arial, Helvetica, sans-serif;
+            background:linear-gradient(180deg,#eef2ff 0%, #f8fafc 100%);
+            color:var(--text-main);
+            display:flex;
+            flex-direction:column;
+        }
+
+        a{
+            color:inherit;
+            text-decoration:none;
+        }
+
+        .admin-shell{
+            min-height:100vh;
+            display:flex;
+            flex-direction:column;
+        }
+
+        .admin-topbar{
+            min-height:96px;
+            background:linear-gradient(90deg, var(--topbar-start) 0%, var(--topbar-mid) 35%, var(--topbar-end) 100%);
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:18px;
+            padding:14px 24px 16px 24px;
+            border-bottom:1px solid rgba(255,255,255,0.10);
+            box-shadow:0 10px 28px rgba(69,0,18,0.20);
+            position:relative;
+            z-index:5;
+        }
+
+        .admin-topbar::before{
+            content:"";
+            position:absolute;
+            left:0;
+            right:0;
+            top:0;
+            height:8px;
+            background:rgba(255,255,255,0.96);
+        }
+
+        .topbar-left{
+            display:flex;
+            align-items:center;
+            gap:14px;
+            min-width:0;
+            color:#ffffff;
+            padding-top:4px;
+            flex-wrap:wrap;
+            flex:1;
+        }
+
+        .menu-toggle{
+            display:none;
+            border:none;
+            background:rgba(255,255,255,0.12);
+            color:#ffffff;
+            border-radius:12px;
+            padding:10px 12px;
+            cursor:pointer;
+            font-size:16px;
+            flex-shrink:0;
+        }
+
+        .header-brand{
+            display:flex;
+            align-items:center;
+            gap:14px;
+            min-width:0;
+            color:#ffffff;
+            padding-top:4px;
+            flex-wrap:wrap;
+        }
+
+        .header-brand img{
+            display:block;
+            width:auto;
+            height:50px;
+            max-width:none;
+            max-height:50px;
+            object-fit:contain;
+            filter:drop-shadow(0 3px 8px rgba(0,0,0,0.14));
+            flex:0 0 auto;
+        }
+
+        .brand-text{
+            display:flex;
+            flex-direction:column;
+            justify-content:center;
+            gap:2px;
+            min-width:0;
+        }
+
+        .brand-title{
+            font-size:15px;
+            font-weight:900;
+            letter-spacing:1.1px;
+            text-transform:uppercase;
+            line-height:1.1;
+            color:#ffffff;
+        }
+
+        .brand-subtitle{
+            font-size:13px;
+            font-weight:700;
+            line-height:1.3;
+            opacity:0.95;
+            word-break:break-word;
+            color:#ffffff;
+        }
+
+        .topbar-right{
+            display:flex;
+            align-items:center;
+            gap:12px;
+            flex-shrink:0;
+            margin-left:auto;
+        }
+
+        .topbar-badge{
+            display:inline-flex;
+            align-items:center;
+            gap:6px;
+            padding:8px 12px;
+            border-radius:999px;
+            background:rgba(255,255,255,0.10);
+            border:1px solid rgba(255,255,255,0.18);
+            color:#d1fae5;
+            font-size:12px;
+            font-weight:700;
+            white-space:nowrap;
+        }
+
+        .topbar-user-card{
+            display:inline-flex;
+            align-items:center;
+            gap:12px;
+            padding:8px 12px;
+            border-radius:18px;
+            background:rgba(255,255,255,0.10);
+            border:1px solid rgba(255,255,255,0.18);
+            white-space:nowrap;
+        }
+
+        .topbar-user-meta{
+            display:flex;
+            flex-direction:column;
+            align-items:flex-end;
+            gap:3px;
+            min-width:0;
+        }
+
+        .topbar-user-role{
+            font-size:12px;
+            font-weight:900;
+            color:#facc15;
+            line-height:1.1;
+            text-align:right;
+        }
+
+        .topbar-user-name{
+            font-size:14px;
+            font-weight:900;
+            color:#ffffff;
+            line-height:1.2;
+            text-align:right;
+        }
+
+        .topbar-user-status{
+            display:inline-flex;
+            align-items:center;
+            gap:6px;
+            font-size:12px;
+            font-weight:800;
+            color:#ffffff;
+            line-height:1.1;
+            justify-content:flex-end;
+        }
+
+        .status-dot{
+            width:10px;
+            height:10px;
+            border-radius:50%;
+            flex-shrink:0;
+        }
+
+        .status-dot.online{
+            background:#22c55e;
+            box-shadow:0 0 0 4px rgba(34,197,94,0.18);
+        }
+
+        .status-dot.offline{
+            background:#ef4444;
+            box-shadow:0 0 0 4px rgba(239,68,68,0.18);
+        }
+
+        .topbar-avatar{
+            width:54px;
+            height:54px;
+            border-radius:16px;
+            object-fit:cover;
+            border:1px solid rgba(255,255,255,0.26);
+            background:#ffffff;
+            box-shadow:0 8px 18px rgba(0,0,0,0.14);
+            flex:0 0 auto;
+        }
+
+        .admin-body{
+            flex:1;
+            display:flex;
+            min-height:calc(100vh - 96px);
+        }
+
+        .admin-sidebar{
+            width:270px;
+            padding:26px 18px;
+            background:
+            linear-gradient(180deg, rgba(255,255,255,0.78) 0%, rgba(244,240,255,0.72) 55%, rgba(229,221,255,0.74) 100%);
+            backdrop-filter:blur(10px);
+            -webkit-backdrop-filter:blur(10px);
+            border-right:1px solid rgba(167,139,250,0.20);
+            box-shadow:
+            inset -1px 0 0 rgba(255,255,255,0.45),
+            0 16px 36px rgba(124,58,237,0.08);
+            position:sticky;
+            top:0;
+            overflow:hidden;
+            flex-shrink:0;
+            height:auto;
+        }
+
+        .admin-sidebar::before{
+            content:"";
+            position:absolute;
+            inset:0;
+            pointer-events:none;
+            background:
+            radial-gradient(circle at 20% 18%, rgba(255,255,255,0.72) 0 2px, transparent 3px),
+            radial-gradient(circle at 72% 34%, rgba(255,255,255,0.40) 0 2px, transparent 4px),
+            radial-gradient(circle at 34% 62%, rgba(255,255,255,0.34) 0 2px, transparent 4px),
+            radial-gradient(circle at 60% 84%, rgba(255,255,255,0.34) 0 2px, transparent 4px),
+            linear-gradient(160deg, rgba(255,255,255,0.18) 0%, transparent 38%, rgba(168,85,247,0.08) 100%);
+            opacity:0.9;
+        }
+
+        .admin-profile{
+            position:relative;
+            z-index:1;
+            background:rgba(255,255,255,0.44);
+            border:1px solid rgba(167,139,250,0.28);
+            border-radius:18px;
+            padding:18px;
+            box-shadow:0 10px 22px rgba(124,58,237,0.10);
+            text-align:center;
+            margin-bottom:18px;
+        }
+
+        .admin-profile-image{
+            width:84px;
+            height:84px;
+            border-radius:18px;
+            object-fit:cover;
+            border:1px solid rgba(255,255,255,0.26);
+            background:#ffffff;
+            box-shadow:0 8px 18px rgba(0,0,0,0.14);
+            display:block;
+            margin:0 auto 14px;
+        }
+
+        .admin-profile-name{
+            margin:0;
+            font-size:18px;
+            font-weight:900;
+            word-break:break-word;
+            color:var(--text-main);
+        }
+
+        .admin-profile-role{
+            margin:6px 0 0;
+            font-size:13px;
+            font-weight:800;
+            color:var(--text-soft);
+        }
+
+        .admin-profile-id{
+            margin:10px 0 0;
+            font-size:12px;
+            color:var(--text-muted);
+            word-break:break-word;
+        }
+
+        .nav-section-title{
+            position:relative;
+            z-index:1;
+            margin-bottom:12px;
+            font-size:12px;
+            font-weight:900;
+            letter-spacing:1.2px;
+            text-transform:uppercase;
+            color:#64748b;
+        }
+
+        .admin-nav{
+            position:relative;
+            z-index:1;
+            display:flex;
+            flex-direction:column;
+            gap:10px;
+        }
+
+        .nav-link{
+            display:flex;
+            align-items:center;
+            gap:10px;
+            min-height:48px;
+            padding:12px 14px;
+            border-radius:14px;
+            text-decoration:none;
+            color:#334155;
+            font-weight:800;
+            font-size:14px;
+            transition:background 0.2s ease, color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            word-break:break-word;
+        }
+
+        .nav-link:hover{
+            background:rgba(124,58,237,0.12);
+            color:#1e1b4b;
+            transform:translateY(-1px);
+        }
+
+        .nav-link.active{
+            background:rgba(255,255,255,0.44);
+            color:#4c1d95;
+            border:1px solid rgba(167,139,250,0.28);
+            box-shadow:0 10px 22px rgba(124,58,237,0.10);
+        }
+
+        .nav-icon{
+            width:18px;
+            text-align:center;
+            flex-shrink:0;
+        }
+
+        .sidebar-spacer{
+            flex:1;
+        }
+
+        .logout-form{
+            position:relative;
+            z-index:1;
+            margin-top:28px;
+        }
+
+        .logout-button{
+            width:100%;
+            min-height:48px;
+            border:none;
+            border-radius:14px;
+            background:linear-gradient(90deg,#8b5cf6,#7c3aed);
+            color:#ffffff;
+            font-size:14px;
+            font-weight:800;
+            cursor:pointer;
+            box-shadow:0 10px 24px rgba(124,58,237,0.24);
+            transition:transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .logout-button:hover{
+            transform:translateY(-1px);
+            box-shadow:0 12px 28px rgba(124,58,237,0.28);
+        }
+
+        .admin-content{
+            flex:1;
+            background:transparent;
+            padding:22px;
+            min-width:0;
+        }
+
+        .content-shell{
+            background:var(--panel-white);
+            border-radius:22px;
+            padding:26px;
+            box-shadow:var(--shadow-soft);
+            min-height:100%;
+            width:100%;
+            overflow-x:hidden;
+        }
+
+        .page-header{
+            margin-bottom:24px;
+            display:flex;
+            flex-wrap:wrap;
+            align-items:center;
+            justify-content:space-between;
+            gap:16px;
+        }
+
+        .page-title-wrap{
+            min-width:0;
+            flex:1;
+        }
+
+        .page-eyebrow{
+            margin:0 0 8px 0;
+            font-size:12px;
+            font-weight:900;
+            letter-spacing:1.2px;
+            text-transform:uppercase;
+            color:#64748b;
+        }
+
+        .page-title{
+            margin:0;
+            font-size:28px;
+            font-weight:900;
+            color:var(--text-main);
+        }
+
+        .page-subtitle{
+            margin:8px 0 0 0;
+            font-size:15px;
+            color:var(--text-muted);
+            line-height:1.5;
+            max-width:800px;
+        }
+
+        .page-actions{
+            display:flex;
+            flex-wrap:wrap;
+            gap:12px;
+        }
+
+        .btn{
+            border:none;
+            cursor:pointer;
+            border-radius:14px;
+            padding:12px 18px;
+            font-size:14px;
+            font-weight:800;
+            transition:transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            gap:10px;
+            min-height:46px;
+            text-align:center;
+        }
+
+        .btn-primary{
+            color:#ffffff;
+            background:linear-gradient(90deg,#8b5cf6,#7c3aed);
+            box-shadow:0 10px 24px rgba(124,58,237,0.24);
+        }
+
+        .btn-primary:hover{
+            transform:translateY(-1px);
+            box-shadow:0 12px 28px rgba(124,58,237,0.28);
+        }
+
+        .btn-secondary{
+            color:#4c1d95;
+            background:rgba(255,255,255,0.44);
+            border:1px solid rgba(167,139,250,0.28);
+            box-shadow:0 10px 22px rgba(124,58,237,0.10);
+        }
+
+        .btn-secondary:hover{
+            background:rgba(124,58,237,0.12);
+        }
+
+        .flash-stack{
+            display:flex;
+            flex-direction:column;
+            gap:12px;
+            margin-bottom:22px;
+        }
+
+        .flash-message{
+            border-radius:14px;
+            padding:14px 16px;
+            font-size:14px;
+            font-weight:700;
+            word-break:break-word;
+            background:#f4f7ff;
+            border:1px solid var(--card-border);
+            box-shadow:var(--shadow-card);
+        }
+
+        .flash-success{
+            background:rgba(34,197,94,0.12);
+            border-color:rgba(34,197,94,0.24);
+            color:var(--success);
+        }
+
+        .flash-warning{
+            background:rgba(234,179,8,0.12);
+            border-color:rgba(234,179,8,0.24);
+            color:var(--warning);
+        }
+
+        .flash-danger{
+            background:rgba(239,68,68,0.12);
+            border-color:rgba(239,68,68,0.24);
+            color:var(--danger);
+        }
+
+        .content-card{
+            background:var(--card-bg);
+            border:1px solid var(--card-border);
+            border-radius:20px;
+            padding:24px;
+            box-shadow:var(--shadow-card);
+            width:100%;
+            overflow-x:auto;
+        }
+
+        .page-footer{
+            margin-top:auto;
+            padding:14px 18px 20px 18px;
+            text-align:center;
+            font-size:13px;
+            font-weight:700;
+            color:#64748b;
+        }
+
+        @media (max-width: 1100px){
+            .admin-sidebar{
+                width:100%;
+                padding:16px 14px;
+                border-right:none;
+                border-bottom:1px solid rgba(167,139,250,0.20);
+                position:static;
+            }
+
+            .admin-nav{
+                display:grid;
+                grid-template-columns:1fr 1fr;
+                gap:10px;
+            }
+        }
+
+        @media (max-width: 900px){
+            .admin-topbar{
+                flex-direction:column;
+                align-items:flex-start;
+                padding:14px 18px 16px 18px;
+            }
+
+            .topbar-left,
+            .topbar-right{
+                width:100%;
+            }
+
+            .topbar-right{
+                justify-content:space-between;
+                margin-left:0;
+            }
+
+            .admin-body{
+                flex-direction:column;
+                min-height:auto;
+            }
+
+            .admin-content{
+                padding:14px;
+            }
+
+            .content-shell{
+                padding:18px;
+                border-radius:18px;
+            }
+
+            .page-footer{
+                padding:12px 14px 18px 14px;
+            }
+        }
+
+        @media (max-width: 640px){
+            .admin-topbar{
+                padding:12px 14px 14px 14px;
+                gap:12px;
+            }
+
+            .topbar-left{
+                align-items:flex-start;
+                gap:10px;
+                flex-wrap:nowrap;
+            }
+
+            .menu-toggle{
+                display:inline-flex;
+                align-items:center;
+                justify-content:center;
+            }
+
+            .header-brand{
+                align-items:flex-start;
+                gap:10px;
+                flex-wrap:nowrap;
+            }
+
+            .header-brand img{
+                height:40px;
+                max-height:40px;
+                width:auto;
+            }
+
+            .brand-text{
+                min-width:0;
+                flex:1;
+            }
+
+            .brand-title{
+                font-size:13px;
+            }
+
+            .brand-subtitle{
+                font-size:11px;
+            }
+
+            .topbar-badge{
+                padding:7px 10px;
+                font-size:11px;
+            }
+
+            .topbar-user-card{
+                padding:8px 10px;
+                gap:10px;
+            }
+
+            .topbar-user-role{
+                font-size:11px;
+            }
+
+            .topbar-user-name{
+                font-size:13px;
+            }
+
+            .topbar-user-status{
+                font-size:11px;
+            }
+
+            .topbar-avatar{
+                width:46px;
+                height:46px;
+                border-radius:14px;
+            }
+
+            .admin-sidebar{
+                padding:14px 12px;
+                display:none;
+            }
+
+            .admin-sidebar.open{
+                display:block;
+            }
+
+            .admin-nav{
+                grid-template-columns:1fr;
+            }
+
+            .nav-link{
+                min-height:46px;
+                font-size:13px;
+                padding:12px;
+            }
+
+            .logout-form{
+                margin-top:18px;
+            }
+
+            .logout-button{
+                min-height:46px;
+                font-size:13px;
+            }
+
+            .admin-content{
+                padding:10px;
+            }
+
+            .content-shell{
+                padding:14px;
+                border-radius:16px;
+            }
+
+            .page-title{
+                font-size:24px;
+                word-break:break-word;
+            }
+
+            .page-subtitle{
+                font-size:14px;
+            }
+
+            .content-card{
+                padding:16px;
+                border-radius:16px;
+            }
+
+            .page-actions{
+                width:100%;
+                flex-direction:column;
+            }
+
+            .page-actions .btn,
+            .page-actions a.btn,
+            .page-actions button.btn{
+                width:100%;
+            }
+
+            .page-footer{
+                font-size:12px;
+                line-height:1.5;
+                padding:12px 12px 18px 12px;
+            }
+        }
+
+        @media (max-width: 420px){
+            .admin-topbar{
+                padding:12px 10px 14px 10px;
+            }
+
+            .header-brand{
+                gap:8px;
+            }
+
+            .header-brand img{
+                height:34px;
+                max-height:34px;
+                width:auto;
+            }
+
+            .brand-title{
+                font-size:12px;
+                letter-spacing:0.8px;
+            }
+
+            .brand-subtitle{
+                font-size:10px;
+                line-height:1.25;
+            }
+
+            .topbar-avatar{
+                width:42px;
+                height:42px;
+            }
+
+            .admin-content{
+                padding:8px;
+            }
+
+            .content-shell{
+                padding:12px;
+                border-radius:14px;
+            }
+
+            .admin-sidebar{
+                padding:12px 10px;
+            }
+
+            .page-footer{
+                padding:10px 10px 16px 10px;
+            }
+        }
+    </style>
+
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    {% set admin_photo = current_user.profile_image or current_user.photo_path or current_user.image %}
+    {% set admin_photo_cache = request.args.get('message', '') or request.args.get('error', '') or request.args.get('success', '') or 'admin-photo' %}
+    {% set raw_role = (current_user.role|string|lower) if current_user.is_authenticated and current_user.role else 'administrativo' %}
+    {% if raw_role in ['administrativo', 'admin', 'administrator'] %}
+        {% set display_role = t('admin') %}
+    {% elif raw_role in ['estudiante', 'student'] %}
+        {% set display_role = t('student') %}
+    {% elif raw_role in ['personal', 'staff'] %}
+        {% set display_role = t('staff') %}
+    {% elif raw_role in ['docente', 'professor', 'teacher'] %}
+        {% set display_role = t('professor') %}
+    {% else %}
+        {% set display_role = t('admin') %}
+    {% endif %}
+    {% set is_online = current_user.is_authenticated and (current_user.is_active_user if current_user.is_active_user is defined else True) %}
+
+    <div class="admin-shell">
+        <header class="admin-topbar">
+            <div class="topbar-left">
+                <button class="menu-toggle" type="button" onclick="toggleAdminSidebar()">☰</button>
+
+                <div class="header-brand">
+                    <img src="{{ url_for('static', filename='img/unitrack_logo.png') }}" alt="UniTrack">
+                    <img src="{{ url_for('static', filename='img/upbc_official.png') }}" alt="UPBC">
+                    <div class="brand-text">
+                        <div class="brand-title">UPBC</div>
+                        <div class="brand-subtitle">{{ t('university_name') }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="topbar-right">
+                <div class="topbar-user-card">
+                    <div class="topbar-user-meta">
+                        <div class="topbar-user-role">{{ display_role }}</div>
+
+                        <div class="topbar-user-name">
+                            {% if current_user.is_authenticated %}
+                                {{ current_user.first_name }} {{ current_user.last_name }}
+                            {% else %}
+                                {{ t('admin') }}
+                            {% endif %}
+                        </div>
+
+                        <div class="topbar-user-status">
+                            <span class="status-dot {% if is_online %}online{% else %}offline{% endif %}"></span>
+                            <span>{% if is_online %}{{ t('active') }}{% else %}{{ t('offline') }}{% endif %}</span>
+                        </div>
+                    </div>
+
+                    {% if current_user.is_authenticated and admin_photo %}
+                        <img
+                            src="{{ url_for('static', filename=admin_photo, v=admin_photo_cache) }}"
+                            alt="{{ t('Admin Photo') }}"
+                            class="topbar-avatar"
+                        >
+                    {% else %}
+                        <img
+                            src="{{ url_for('static', filename='img/unitrack_logo.png') }}"
+                            alt="{{ t('Admin Photo') }}"
+                            class="topbar-avatar"
+                        >
+                    {% endif %}
+                </div>
+            </div>
+        </header>
+
+        <div class="admin-body">
+            <aside class="admin-sidebar" id="adminSidebar">
+                <div class="admin-profile">
+                    {% if current_user.is_authenticated and admin_photo %}
+                        <img
+                            src="{{ url_for('static', filename=admin_photo, v=admin_photo_cache) }}"
+                            alt="{{ t('Admin Photo') }}"
+                            class="admin-profile-image"
+                        >
+                    {% else %}
+                        <img
+                            src="{{ url_for('static', filename='img/unitrack_logo.png') }}"
+                            alt="{{ t('Admin Photo') }}"
+                            class="admin-profile-image"
+                        >
+                    {% endif %}
+
+                    <h2 class="admin-profile-name">
+                        {% if current_user.is_authenticated %}
+                            {{ current_user.first_name }} {{ current_user.last_name }}
+                        {% else %}
+                            {{ t('admin') }}
+                        {% endif %}
+                    </h2>
+
+                    <p class="admin-profile-role">{{ t('Admin Panel') }}</p>
+
+                    <p class="admin-profile-id">
+                        {% if current_user.is_authenticated %}
+                            {{ t('Username:') }} {{ current_user.username }}
+                        {% else %}
+                            {{ t('access_control') }}
+                        {% endif %}
+                    </p>
+                </div>
+
+                <div class="nav-section-title">{{ t('workspace') }}</div>
+
+                <nav class="admin-nav">
+                    <a href="/admin/dashboard" class="nav-link {% block nav_dashboard %}{% endblock %}">
+                        <span class="nav-icon">⌂</span>
+                        <span>{{ t('dashboard') }}</span>
+                    </a>
+
+                    <a href="/admin/validation-codes" class="nav-link {% block nav_validation_codes %}{% endblock %}">
+                        <span class="nav-icon">#</span>
+                        <span>{{ t('validation_codes') }}</span>
+                    </a>
+
+                    <a href="/admin/users" class="nav-link {% block nav_users %}{% endblock %}">
+                        <span class="nav-icon">◉</span>
+                        <span>{{ t('users') }}</span>
+                    </a>
+
+                    <a href="/admin/access-control" class="nav-link {% block nav_access_control %}{% endblock %}">
+                        <span class="nav-icon">▣</span>
+                        <span>{{ t('access_control') }}</span>
+                    </a>
+
+                    <a href="/admin/access-control/scanner" class="nav-link {% block nav_access_scanner %}{% endblock %}">
+                        <span class="nav-icon">◫</span>
+                        <span>{{ t('access_scanner') }}</span>
+                    </a>
+
+                    <a href="/admin/configuration" class="nav-link {% block nav_configuration %}{% endblock %}">
+                        <span class="nav-icon">⚙</span>
+                        <span>{{ t('configuration') }}</span>
+                    </a>
+                </nav>
+
+                <form action="/auth/logout" method="POST" class="logout-form">
+                    <button type="submit" class="logout-button">{{ t('logout') }}</button>
+                </form>
+            </aside>
+
+            <main class="admin-content">
+                <div class="content-shell">
+                    <div class="page-header">
+                        <div class="page-title-wrap">
+                            <p class="page-eyebrow">{% block page_eyebrow %}{{ t('workspace') }}{% endblock %}</p>
+                            <h2 class="page-title">{% block page_title %}{{ t('admin') }} {{ t('dashboard') }}{% endblock %}</h2>
+                            <p class="page-subtitle">
+                                {% block page_subtitle %}
+                                    {{ t('admin_dashboard_subtitle') }}
+                                {% endblock %}
+                            </p>
+                        </div>
+
+                        <div class="page-actions">
+                            {% block page_actions %}{% endblock %}
+                        </div>
+                    </div>
+
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            <div class="flash-stack">
+                                {% for category, message in messages %}
+                                    <div class="flash-message
+                                        {% if category == 'success' %}flash-success{% elif category == 'warning' %}flash-warning{% elif category == 'danger' or category == 'error' %}flash-danger{% endif %}">
+                                        {{ message }}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    {% endwith %}
+
+                    {% block content %}
+                    <div class="content-card">
+                        {{ t('admin') }} content goes here.
+                    </div>
+                    {% endblock %}
+                </div>
+            </main>
+        </div>
+
+        <footer class="page-footer">
+            {{ t('admin_panel_footer') }}
+        </footer>
+    </div>
+
+    <script>
+        function toggleAdminSidebar() {
+            const sidebar = document.getElementById("adminSidebar");
+            if (sidebar) {
+                sidebar.classList.toggle("open");
+            }
+        }
+
+        document.addEventListener("click", function (event) {
+            const sidebar = document.getElementById("adminSidebar");
+            const toggleButton = document.querySelector(".menu-toggle");
+
+            if (!sidebar || !toggleButton) return;
+
+            const clickedInsideSidebar = sidebar.contains(event.target);
+            const clickedToggle = toggleButton.contains(event.target);
+
+            if (window.innerWidth <= 640 && !clickedInsideSidebar && !clickedToggle) {
+                sidebar.classList.remove("open");
+            }
+        });
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

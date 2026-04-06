@@ -1,0 +1,669 @@
+{% extends "admin_base.html" %}
+
+{% block title %}{{ t('Access Control') }}{% endblock %}
+
+{% block content %}
+
+<style>
+.status-badge{
+    display:inline-flex;
+    align-items:center;
+    padding:6px 12px;
+    border-radius:999px;
+    font-size:13px;
+    font-weight:900;
+    line-height:1;
+    white-space:nowrap;
+}
+
+.status-green{
+    background:rgba(34,197,94,0.15);
+    color:#15803d;
+    border:1px solid rgba(34,197,94,0.28);
+}
+
+.status-red{
+    background:rgba(239,68,68,0.15);
+    color:#b91c1c;
+    border:1px solid rgba(239,68,68,0.28);
+}
+
+.filter-card{
+    background:#f4f7ff;
+    border:1px solid #dbe4f0;
+    border-radius:18px;
+    padding:18px;
+    margin-bottom:20px;
+}
+
+.filter-grid{
+    display:grid;
+    grid-template-columns:minmax(220px, 320px) auto;
+    gap:14px;
+    align-items:end;
+}
+
+.filter-label{
+    display:block;
+    margin-bottom:8px;
+    font-size:14px;
+    font-weight:800;
+    color:#334155;
+}
+
+.filter-input{
+    width:100%;
+    min-height:48px;
+    padding:12px 14px;
+    border-radius:12px;
+    border:1px solid #cbd5e1;
+    background:#ffffff;
+    color:#0f172a;
+    font-size:15px;
+    outline:none;
+}
+
+.filter-button{
+    min-width:160px;
+    min-height:48px;
+    border:none;
+    border-radius:12px;
+    background:linear-gradient(90deg,#7c3aed,#a855f7,#38bdf8);
+    color:#ffffff;
+    font-size:15px;
+    font-weight:800;
+    cursor:pointer;
+    box-shadow:0 10px 24px rgba(124,58,237,0.24);
+    padding:0 18px;
+}
+
+.access-grid{
+    display:grid;
+    grid-template-columns:minmax(340px, 420px) 1fr;
+    gap:20px;
+    align-items:start;
+}
+
+.qr-card{
+    background:#f4f7ff;
+    border:1px solid #dbe4f0;
+    border-radius:18px;
+    padding:24px;
+}
+
+.info-card{
+    display:flex;
+    flex-direction:column;
+    gap:20px;
+}
+
+.qr-box{
+    width:100%;
+    max-width:260px;
+    aspect-ratio:1 / 1;
+    margin:20px auto 18px auto;
+    background:#ffffff;
+    border:1px solid #dbe4f0;
+    border-radius:20px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#64748b;
+    font-size:28px;
+    font-weight:900;
+    overflow:hidden;
+    box-shadow:0 10px 24px rgba(0,0,0,0.06);
+}
+
+.qr-actions{
+    display:flex;
+    justify-content:center;
+    margin-top:18px;
+}
+
+.qr-actions form{
+    width:100%;
+}
+
+.qr-badge{
+    width:100%;
+    min-height:50px;
+    border:none;
+    border-radius:14px;
+    font-size:16px;
+    font-weight:800;
+    cursor:pointer;
+    color:#ffffff;
+    box-shadow:0 10px 24px rgba(0,0,0,0.12);
+}
+
+.qr-checkin{
+    background:linear-gradient(90deg,#16a34a,#22c55e);
+}
+
+.qr-checkout{
+    background:linear-gradient(90deg,#dc2626,#ef4444);
+}
+
+.copy-btn{
+    min-width:90px;
+    height:42px;
+    border:none;
+    border-radius:10px;
+    padding:0 12px;
+    background:linear-gradient(90deg,#7c3aed,#a855f7,#38bdf8);
+    color:#ffffff;
+    font-weight:800;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+    box-sizing:border-box;
+}
+
+.summary-card{
+    background:#f4f7ff;
+    border:1px solid #dbe4f0;
+    border-radius:20px;
+    padding:22px;
+    margin-bottom:20px;
+}
+
+.summary-header{
+    display:flex;
+    align-items:center;
+    gap:18px;
+    flex-wrap:wrap;
+}
+
+.summary-avatar{
+    width:88px;
+    height:88px;
+    border-radius:22px;
+    overflow:hidden;
+    flex-shrink:0;
+    border:1px solid #dbe4f0;
+    background:#ffffff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    box-shadow:0 10px 24px rgba(0,0,0,0.06);
+}
+
+.summary-avatar img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+}
+
+.summary-avatar-fallback{
+    color:#64748b;
+    font-size:28px;
+    font-weight:900;
+}
+
+.summary-name{
+    margin:0;
+    color:#081a43;
+    font-size:24px;
+    font-weight:900;
+}
+
+.summary-sub{
+    margin-top:6px;
+    color:#475569;
+    font-size:14px;
+    font-weight:700;
+}
+
+.summary-status-wrap{
+    margin-left:auto;
+}
+
+.summary-grid{
+    margin-top:20px;
+    display:grid;
+    grid-template-columns:repeat(4, minmax(160px, 1fr));
+    gap:14px;
+}
+
+.summary-mini{
+    background:#ffffff;
+    border:1px solid #dbe4f0;
+    border-radius:16px;
+    padding:16px;
+    box-shadow:0 8px 20px rgba(0,0,0,0.04);
+}
+
+.summary-mini-label{
+    font-size:12px;
+    font-weight:900;
+    color:#64748b;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    margin-bottom:8px;
+}
+
+.summary-mini-value{
+    font-size:16px;
+    font-weight:900;
+    color:#081a43;
+    word-break:break-word;
+}
+
+.history-card{
+    background:#f4f7ff;
+    border:1px solid #dbe4f0;
+    border-radius:20px;
+    padding:22px;
+    margin-top:20px;
+}
+
+.history-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    margin-bottom:16px;
+    flex-wrap:wrap;
+}
+
+.history-title{
+    margin:0;
+    color:#081a43;
+    font-size:22px;
+    font-weight:900;
+}
+
+.history-subtitle{
+    margin:4px 0 0 0;
+    color:#64748b;
+    font-size:14px;
+    font-weight:600;
+}
+
+.history-count{
+    background:#ffffff;
+    border:1px solid #dbe4f0;
+    border-radius:999px;
+    padding:8px 14px;
+    color:#081a43;
+    font-size:13px;
+    font-weight:900;
+}
+
+.history-table-wrap{
+    width:100%;
+    overflow-x:auto;
+}
+
+.history-table{
+    width:100%;
+    border-collapse:separate;
+    border-spacing:0;
+    min-width:760px;
+    background:#ffffff;
+    border:1px solid #dbe4f0;
+    border-radius:16px;
+    overflow:hidden;
+}
+
+.history-table thead th{
+    background:#eef4ff;
+    color:#081a43;
+    font-size:13px;
+    font-weight:900;
+    text-align:left;
+    padding:14px 16px;
+    border-bottom:1px solid #dbe4f0;
+    white-space:nowrap;
+}
+
+.history-table tbody td{
+    padding:14px 16px;
+    font-size:14px;
+    color:#0f172a;
+    border-bottom:1px solid #edf2f7;
+    vertical-align:middle;
+}
+
+.history-table tbody tr:last-child td{
+    border-bottom:none;
+}
+
+.history-empty{
+    background:#ffffff;
+    border:1px solid #dbe4f0;
+    border-radius:16px;
+    padding:26px;
+    text-align:center;
+    color:#64748b;
+    font-weight:700;
+}
+
+.inline-user{
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+
+.inline-user-photo{
+    width:42px;
+    height:42px;
+    border-radius:12px;
+    overflow:hidden;
+    border:1px solid #dbe4f0;
+    background:#ffffff;
+    flex-shrink:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.inline-user-photo img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+}
+
+.inline-user-fallback{
+    color:#64748b;
+    font-size:15px;
+    font-weight:900;
+}
+
+.inline-user-text strong{
+    display:block;
+    color:#081a43;
+    font-size:14px;
+    font-weight:900;
+}
+
+.inline-user-text span{
+    display:block;
+    color:#64748b;
+    font-size:12px;
+    font-weight:700;
+}
+
+@media (max-width:980px){
+    .access-grid{
+        grid-template-columns:1fr;
+    }
+
+    .filter-grid{
+        grid-template-columns:1fr;
+    }
+
+    .filter-button{
+        width:100%;
+    }
+
+    .summary-grid{
+        grid-template-columns:1fr 1fr;
+    }
+
+    .summary-status-wrap{
+        margin-left:0;
+        width:100%;
+    }
+}
+
+@media (max-width:640px){
+    .summary-grid{
+        grid-template-columns:1fr;
+    }
+
+    .summary-header{
+        align-items:flex-start;
+    }
+
+    .summary-avatar{
+        width:76px;
+        height:76px;
+        border-radius:18px;
+    }
+
+    .summary-name{
+        font-size:20px;
+    }
+}
+</style>
+
+{% set records = access_records if access_records is defined and access_records else demo_records if demo_records is defined and demo_records else [] %}
+{% set latest_record = records[0] if records else None %}
+
+{% set current_status_raw = current_access_status if current_access_status is defined and current_access_status else {} %}
+{% set current_status_value = (
+    current_status_raw.status
+    if current_status_raw.status is defined and current_status_raw.status
+    else current_status_raw.label
+    if current_status_raw.label is defined and current_status_raw.label
+    else current_status_raw.access_status
+    if current_status_raw.access_status is defined and current_status_raw.access_status
+    else current_status_raw.get('status')
+    if current_status_raw.get is defined and current_status_raw.get('status')
+    else current_status_raw.get('label')
+    if current_status_raw.get is defined and current_status_raw.get('label')
+    else current_status_raw.get('access_status')
+    if current_status_raw.get is defined
+    else ''
+) %}
+
+{% set current_status_check_in = (
+    current_status_raw.last_check_in
+    if current_status_raw.last_check_in is defined and current_status_raw.last_check_in
+    else current_status_raw.check_in_time
+    if current_status_raw.check_in_time is defined and current_status_raw.check_in_time
+    else current_status_raw.entry_time
+    if current_status_raw.entry_time is defined and current_status_raw.entry_time
+    else current_status_raw.get('last_check_in')
+    if current_status_raw.get is defined and current_status_raw.get('last_check_in')
+    else current_status_raw.get('check_in_time')
+    if current_status_raw.get is defined and current_status_raw.get('check_in_time')
+    else current_status_raw.get('entry_time')
+    if current_status_raw.get is defined
+    else ''
+) %}
+
+{% set current_status_check_out = (
+    current_status_raw.last_check_out
+    if current_status_raw.last_check_out is defined and current_status_raw.last_check_out
+    else current_status_raw.check_out_time
+    if current_status_raw.check_out_time is defined and current_status_raw.check_out_time
+    else current_status_raw.exit_time
+    if current_status_raw.exit_time is defined and current_status_raw.exit_time
+    else current_status_raw.get('last_check_out')
+    if current_status_raw.get is defined and current_status_raw.get('last_check_out')
+    else current_status_raw.get('check_out_time')
+    if current_status_raw.get is defined and current_status_raw.get('check_out_time')
+    else current_status_raw.get('exit_time')
+    if current_status_raw.get is defined
+    else ''
+) %}
+
+{% set current_status_hours = (
+    current_status_raw.hours_today
+    if current_status_raw.hours_today is defined and current_status_raw.hours_today
+    else current_status_raw.total_hours
+    if current_status_raw.total_hours is defined and current_status_raw.total_hours
+    else current_status_raw.hours
+    if current_status_raw.hours is defined and current_status_raw.hours
+    else current_status_raw.worked_hours
+    if current_status_raw.worked_hours is defined and current_status_raw.worked_hours
+    else current_status_raw.get('hours_today')
+    if current_status_raw.get is defined and current_status_raw.get('hours_today')
+    else current_status_raw.get('total_hours')
+    if current_status_raw.get is defined and current_status_raw.get('total_hours')
+    else current_status_raw.get('hours')
+    if current_status_raw.get is defined and current_status_raw.get('hours')
+    else current_status_raw.get('worked_hours')
+    if current_status_raw.get is defined
+    else ''
+) %}
+
+{% set normalized_status = (current_status_value|string).strip().lower() %}
+
+<div style="margin-bottom:18px;">
+    <h1 class="section-title">{{ t('Access Control System') }}</h1>
+    <p class="section-subtitle">
+        {{ t('Use your QR code to check in or check out.') }}
+    </p>
+</div>
+
+{% if access_message %}
+<div class="card" style="
+    background:rgba(34,197,94,0.12);
+    border:1px solid rgba(34,197,94,0.28);
+    color:#166534;
+    font-weight:800;
+">
+    {{ access_message }}
+</div>
+{% endif %}
+
+{% if access_error %}
+<div class="card" style="
+    background:rgba(239,68,68,0.12);
+    border:1px solid rgba(239,68,68,0.28);
+    color:#b91c1c;
+    font-weight:800;
+">
+    {{ access_error }}
+</div>
+{% endif %}
+
+<div class="summary-card">
+    <div class="summary-header">
+        <div class="summary-avatar">
+            {% if current_user.photo_path %}
+                <img src="{{ url_for('static', filename=current_user.photo_path) }}" alt="{{ t('Admin Photo') }}">
+            {% elif current_user.profile_image %}
+                <img src="{{ url_for('static', filename=current_user.profile_image) }}" alt="{{ t('Admin Photo') }}">
+            {% elif current_user.image %}
+                <img src="{{ url_for('static', filename=current_user.image) }}" alt="{{ t('Admin Photo') }}">
+            {% else %}
+                <div class="summary-avatar-fallback">
+                    {{ (current_user.first_name[:1] if current_user.first_name else "A") ~ (current_user.last_name[:1] if current_user.last_name else "") }}
+                </div>
+            {% endif %}
+        </div>
+
+        <div>
+            <h2 class="summary-name">{{ admin_name if admin_name else t('admin') }}</h2>
+            <div class="summary-sub">{{ t('Admin ID / Username:') }} {{ current_user.username if current_user.username else "--" }}</div>
+        </div>
+
+        <div class="summary-status-wrap">
+            {% if normalized_status in ["checked_in", "checked in", "inside", "inside campus", "active", "online", "present", "open"] %}
+                <span class="status-badge status-green">{{ t('Inside Campus') }}</span>
+            {% else %}
+                <span class="status-badge status-red">{{ t('Outside Campus') }}</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="summary-grid">
+        <div class="summary-mini">
+            <div class="summary-mini-label">{{ t('Latest Date') }}</div>
+            <div class="summary-mini-value">
+                {{ latest_record.date if latest_record and latest_record.date is defined and latest_record.date else "--" }}
+            </div>
+        </div>
+
+        <div class="summary-mini">
+            <div class="summary-mini-label">{{ t('Check-In Time') }}</div>
+            <div class="summary-mini-value">
+                {{ latest_record.check_in if latest_record and latest_record.check_in is defined and latest_record.check_in else "--" }}
+            </div>
+        </div>
+
+        <div class="summary-mini">
+            <div class="summary-mini-label">{{ t('Check-Out Time') }}</div>
+            <div class="summary-mini-value">
+                {{ latest_record.check_out if latest_record and latest_record.check_out is defined and latest_record.check_out else "--" }}
+            </div>
+        </div>
+
+        <div class="summary-mini">
+            <div class="summary-mini-label">{{ t('Hours') }}</div>
+            <div class="summary-mini-value">
+                {{ latest_record.hours if latest_record and latest_record.hours is defined and latest_record.hours else "--" }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<form method="GET" action="{{ url_for('admin_views.admin_access_control') }}">
+    <div class="filter-card">
+        <div class="filter-grid">
+            <div>
+                <label class="filter-label">{{ t('Date') }}</label>
+                <input type="text" name="date" class="filter-input" placeholder="MM/DD/YYYY" value="{{ selected_date or '' }}">
+            </div>
+
+            <div>
+                <button type="submit" class="filter-button">{{ t('Search') }}</button>
+            </div>
+        </div>
+    </div>
+</form>
+
+<div class="history-card">
+    <div class="history-header">
+        <div>
+            <h3 class="history-title">{{ t('Access History') }}</h3>
+            <p class="history-subtitle">{{ t('Review your recorded check-ins and check-outs.') }}</p>
+        </div>
+
+        <div class="history-count">
+            {{ records|length if records else 0 }} {{ t('record') }}
+        </div>
+    </div>
+
+    {% if records and records|length > 0 %}
+    <div class="history-table-wrap">
+        <table class="history-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>{{ t('Admin') }}</th>
+                    <th>{{ t('ID / Username') }}</th>
+                    <th>{{ t('Date') }}</th>
+                    <th>{{ t('Check-In') }}</th>
+                    <th>{{ t('Check-Out') }}</th>
+                    <th>{{ t('Hours') }}</th>
+                    <th>{{ t('Status') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in records %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ admin_name }}</td>
+                    <td>{{ current_user.username }}</td>
+                    <td>{{ record.date }}</td>
+                    <td>{{ record.check_in }}</td>
+                    <td>{{ record.check_out }}</td>
+                    <td>{{ record.hours }}</td>
+                    <td>
+                        {% if normalized_status in ["checked_in", "inside"] %}
+                            <span class="status-badge status-green">{{ t('Inside Campus') }}</span>
+                        {% else %}
+                            <span class="status-badge status-red">{{ t('Outside Campus') }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="history-empty">
+        {{ t('No access history available yet.') }}
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

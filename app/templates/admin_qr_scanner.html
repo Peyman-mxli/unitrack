@@ -1,0 +1,380 @@
+{% extends "admin_base.html" %}
+
+{% block title %}{{ t('Admin QR Scanner') }}{% endblock %}
+
+{% block content %}
+<style>
+    .scanner-page{
+        display:flex;
+        flex-direction:column;
+        gap:18px;
+    }
+
+    .scanner-card{
+        background:#f4f7ff;
+        border:1px solid #dbe4f0;
+        border-radius:18px;
+        padding:20px;
+        box-shadow:0 10px 24px rgba(15,23,42,0.04);
+    }
+
+    .scanner-title{
+        margin:0 0 6px 0;
+        font-size:22px;
+        font-weight:900;
+        color:#081a43;
+    }
+
+    .scanner-subtitle{
+        margin:0;
+        font-size:14px;
+        color:#64748b;
+        line-height:1.6;
+    }
+
+    .scanner-section-title{
+        margin:0 0 14px 0;
+        font-size:16px;
+        font-weight:900;
+        color:#081a43;
+    }
+
+    .scanner-form{
+        display:flex;
+        flex-direction:column;
+        gap:14px;
+    }
+
+    .scanner-textarea{
+        width:100%;
+        min-height:90px;
+        border-radius:14px;
+        border:1px solid #cfd8e6;
+        background:#ffffff;
+        padding:14px 16px;
+        resize:vertical;
+        font-size:14px;
+        line-height:1.5;
+        color:#081a43;
+        outline:none;
+    }
+
+    .scanner-textarea:focus{
+        border-color:#8b5cf6;
+        box-shadow:0 0 0 4px rgba(139,92,246,0.10);
+    }
+
+    .scanner-actions{
+        display:flex;
+        flex-wrap:wrap;
+        gap:10px;
+    }
+
+    .btn-scan,
+    .btn-clear,
+    .btn-back{
+        appearance:none;
+        border:none;
+        border-radius:12px;
+        min-height:44px;
+        padding:0 16px;
+        font-size:14px;
+        font-weight:900;
+        text-decoration:none;
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        cursor:pointer;
+        transition:transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+
+    .btn-scan{
+        background:linear-gradient(90deg,#22c55e,#16a34a);
+        color:#ffffff;
+        box-shadow:0 10px 22px rgba(34,197,94,0.22);
+    }
+
+    .btn-scan:hover{
+        transform:translateY(-1px);
+    }
+
+    .btn-clear{
+        background:#e2e8f0;
+        color:#081a43;
+        box-shadow:0 8px 18px rgba(15,23,42,0.08);
+    }
+
+    .btn-clear:hover{
+        background:#d8e0ea;
+    }
+
+    .btn-back{
+        background:#ede9fe;
+        color:#5b21b6;
+        border:1px solid rgba(139,92,246,0.18);
+    }
+
+    .btn-back:hover{
+        background:#e9e2ff;
+    }
+
+    .quick-example-text{
+        margin:0 0 14px 0;
+        font-size:14px;
+        color:#64748b;
+        line-height:1.5;
+    }
+
+    .example-list{
+        display:flex;
+        flex-direction:column;
+        gap:12px;
+    }
+
+    .example-item{
+        width:100%;
+        border:none;
+        border-radius:12px;
+        background:linear-gradient(90deg,#132046,#0b1638);
+        color:#ffffff;
+        padding:14px 14px;
+        font-size:13px;
+        font-weight:900;
+        text-align:left;
+        cursor:pointer;
+        transition:transform 0.2s ease, box-shadow 0.2s ease;
+        box-shadow:0 8px 18px rgba(15,23,42,0.10);
+    }
+
+    .example-item:hover{
+        transform:translateY(-1px);
+        box-shadow:0 10px 22px rgba(15,23,42,0.14);
+    }
+
+    .result-status{
+        display:inline-flex;
+        align-items:center;
+        padding:8px 12px;
+        border-radius:999px;
+        font-size:12px;
+        font-weight:900;
+        margin-bottom:14px;
+    }
+
+    .result-status.success{
+        background:rgba(34,197,94,0.14);
+        color:#166534;
+    }
+
+    .result-status.error{
+        background:rgba(239,68,68,0.14);
+        color:#991b1b;
+    }
+
+    .result-message{
+        padding:14px 16px;
+        border-radius:14px;
+        font-size:14px;
+        font-weight:700;
+        line-height:1.6;
+        margin-bottom:14px;
+        border:1px solid transparent;
+    }
+
+    .result-message.success{
+        background:rgba(34,197,94,0.10);
+        color:#166534;
+        border-color:rgba(34,197,94,0.18);
+    }
+
+    .result-message.error{
+        background:rgba(239,68,68,0.10);
+        color:#991b1b;
+        border-color:rgba(239,68,68,0.16);
+    }
+
+    .result-grid{
+        display:grid;
+        grid-template-columns:repeat(2, minmax(0,1fr));
+        gap:12px;
+    }
+
+    .result-item{
+        background:#ffffff;
+        border:1px solid #dbe4f0;
+        border-radius:14px;
+        padding:14px;
+    }
+
+    .result-label{
+        font-size:12px;
+        font-weight:900;
+        text-transform:uppercase;
+        letter-spacing:0.04em;
+        color:#64748b;
+        margin-bottom:6px;
+    }
+
+    .result-value{
+        font-size:14px;
+        font-weight:800;
+        color:#081a43;
+        line-height:1.5;
+        word-break:break-word;
+    }
+
+    .empty-state{
+        padding:18px;
+        border-radius:14px;
+        background:#ffffff;
+        border:1px dashed #cfd8e6;
+        color:#64748b;
+        font-size:14px;
+        font-weight:700;
+        text-align:center;
+        line-height:1.6;
+    }
+
+    @media (max-width: 768px){
+        .scanner-card{
+            padding:16px;
+        }
+
+        .scanner-title{
+            font-size:20px;
+        }
+
+        .scanner-actions{
+            flex-direction:column;
+        }
+
+        .btn-scan,
+        .btn-clear,
+        .btn-back{
+            width:100%;
+        }
+
+        .result-grid{
+            grid-template-columns:1fr;
+        }
+    }
+</style>
+
+{% set result = scan_result if scan_result is defined and scan_result else None %}
+{% set is_success = result.success if result and result.success is defined else (result.get('success') if result else False) %}
+{% set result_message = result.message if result and result.message is defined else (result.get('message') if result else '') %}
+{% set result_action = result.action if result and result.action is defined else (result.get('action') if result else '') %}
+{% set result_name = result.user_name if result and result.user_name is defined else (result.get('user_name') if result else (result.admin_name if result and result.admin_name is defined else (result.get('admin_name') if result else '--'))) %}
+{% set result_username = result.username if result and result.username is defined else (result.get('username') if result else '--') %}
+{% set result_status = result.status if result and result.status is defined else (result.get('status') if result else '--') %}
+{% set result_check_in = result.check_in_time if result and result.check_in_time is defined else (result.get('check_in_time') if result else '--') %}
+{% set result_check_out = result.check_out_time if result and result.check_out_time is defined else (result.get('check_out_time') if result else '--') %}
+{% set result_status_code = result.status_code if result and result.status_code is defined else (result.get('status_code') if result else '--') %}
+
+<div class="scanner-page">
+    <div class="scanner-card">
+        <h1 class="scanner-title">{{ t('Access QR Scanner') }}</h1>
+        <p class="scanner-subtitle">
+            {{ t('Simulate the access reader by pasting the user QR code content or backup access code.') }}
+        </p>
+    </div>
+
+    <div class="scanner-card">
+        <h2 class="scanner-section-title">{{ t('QR Content') }}</h2>
+
+        <form method="POST" action="{{ url_for('admin_views.admin_access_control_scanner') }}" class="scanner-form">
+            <textarea
+                id="qr_text"
+                name="qr_text"
+                class="scanner-textarea"
+                placeholder=""
+            >{{ qr_text_value or '' }}</textarea>
+
+            <div class="scanner-actions">
+                <button type="submit" class="btn-scan">{{ t('Scan QR') }}</button>
+                <a href="{{ url_for('admin_views.admin_access_control_scanner') }}" class="btn-clear">{{ t('Clear') }}</a>
+                <a href="{{ url_for('admin_views.admin_access_control') }}" class="btn-back">{{ t('Back') }}</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="scanner-card">
+        <h2 class="scanner-section-title">{{ t('Quick Example') }}</h2>
+        <p class="quick-example-text">{{ t('Paste a real QR value like one of these:') }}</p>
+
+        <div class="example-list">
+            <button type="button" class="example-item" onclick="fillQrValue('UT-UPBC-0001')">UT-UPBC-0001</button>
+            <button type="button" class="example-item" onclick="fillQrValue('07AB43')">07AB43</button>
+        </div>
+    </div>
+
+    {% if result %}
+    <div class="scanner-card">
+        <h2 class="scanner-section-title">{{ t('Scan Result') }}</h2>
+
+        <div class="result-status {% if is_success %}success{% else %}error{% endif %}">
+            {% if is_success %}{{ t('Success') }}{% else %}{{ t('Error') }}{% endif %}
+        </div>
+
+        <div class="result-message {% if is_success %}success{% else %}error{% endif %}">
+            {{ result_message or t('No message returned.') }}
+        </div>
+
+        <div class="result-grid">
+            <div class="result-item">
+                <div class="result-label">{{ t('Name') }}</div>
+                <div class="result-value">{{ result_name or "--" }}</div>
+            </div>
+
+            <div class="result-item">
+                <div class="result-label">{{ t('Username') }}</div>
+                <div class="result-value">{{ result_username or "--" }}</div>
+            </div>
+
+            <div class="result-item">
+                <div class="result-label">{{ t('Action') }}</div>
+                <div class="result-value">{{ result_action or "--" }}</div>
+            </div>
+
+            <div class="result-item">
+                <div class="result-label">{{ t('Status') }}</div>
+                <div class="result-value">{{ result_status or "--" }}</div>
+            </div>
+
+            <div class="result-item">
+                <div class="result-label">{{ t('Check-In Time') }}</div>
+                <div class="result-value">{{ result_check_in or "--" }}</div>
+            </div>
+
+            <div class="result-item">
+                <div class="result-label">{{ t('Check-Out Time') }}</div>
+                <div class="result-value">{{ result_check_out or "--" }}</div>
+            </div>
+
+            <div class="result-item">
+                <div class="result-label">{{ t('HTTP Status') }}</div>
+                <div class="result-value">{{ result_status_code or "--" }}</div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="scanner-card">
+        <h2 class="scanner-section-title">{{ t('Scan Result') }}</h2>
+        <div class="empty-state">
+            {{ t('No scan has been processed yet. Paste a QR payload or backup access code and click') }}
+            <strong>{{ t('Scan QR') }}</strong>.
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    function fillQrValue(value) {
+        const input = document.getElementById("qr_text");
+        if (input) {
+            input.value = value;
+            input.focus();
+        }
+    }
+</script>
+{% endblock %}

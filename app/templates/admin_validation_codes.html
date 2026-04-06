@@ -1,0 +1,182 @@
+{% extends "admin_base.html" %}
+
+{% block title %}Validation Codes{% endblock %}
+{% block nav_validation_codes %}active{% endblock %}
+
+{% block page_eyebrow %}Admin Control{% endblock %}
+{% block page_title %}Validation Codes{% endblock %}
+{% block page_subtitle %}
+Create role-based validation codes with expiration control and monitor their usage status.
+{% endblock %}
+
+{% block page_actions %}
+<button class="btn btn-primary" onclick="toggleCreateForm()">New Code</button>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-card {
+        margin-bottom: 20px;
+        display: none;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+    }
+
+    .input-field,
+    .select-field {
+        width: 100%;
+        padding: 12px;
+        border-radius: 12px;
+        border: 1px solid var(--card-border);
+        background: #ffffff;
+        color: var(--text-main);
+        font-weight: 700;
+    }
+
+    .select-field option {
+        background: #ffffff;
+        color: var(--text-main);
+    }
+
+    .select-field:focus,
+    .input-field:focus {
+        outline: none;
+        border-color: rgba(124,58,237,0.35);
+        box-shadow: 0 0 0 3px rgba(124,58,237,0.10);
+    }
+
+    .select-field:required:invalid {
+        color: var(--text-muted);
+    }
+
+    .table-wrap {
+        overflow-x: auto;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    th, td {
+        padding: 14px;
+        text-align: left;
+    }
+
+    th {
+        font-size: 12px;
+        color: #64748b;
+        text-transform: uppercase;
+    }
+
+    td {
+        border-top: 1px solid #dfe7f4;
+        color: var(--text-main);
+    }
+
+    .badge {
+        padding: 6px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    .badge-success {
+        background: rgba(34,197,94,0.16);
+        color: var(--success);
+        border: 1px solid rgba(34,197,94,0.35);
+    }
+
+    .badge-danger {
+        background: rgba(239,68,68,0.16);
+        color: var(--danger);
+        border: 1px solid rgba(239,68,68,0.35);
+    }
+
+    .badge-warning {
+        background: rgba(234,179,8,0.16);
+        color: var(--warning);
+        border: 1px solid rgba(234,179,8,0.35);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="content-card form-card" id="createForm">
+    <h3>Create Validation Code</h3>
+
+    <form method="POST" action="/admin/validation-codes/create">
+        <div class="form-grid">
+            <select name="role" class="select-field" required>
+                <option value="" selected disabled>Select Role</option>
+                <option value="estudiante">Student</option>
+                <option value="docente">Teacher</option>
+                <option value="personal">Staff</option>
+                <option value="administrativo">Admin</option>
+            </select>
+
+            <select name="hours" class="select-field">
+                <option value="24">24 Hours</option>
+                <option value="48">48 Hours</option>
+                <option value="72">72 Hours</option>
+            </select>
+
+            <button type="submit" class="btn btn-primary">Create Code</button>
+        </div>
+    </form>
+</div>
+
+<div class="content-card">
+    <h3>Recent Validation Codes</h3>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Expires</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if codes %}
+                    {% for code in codes %}
+                    <tr>
+                        <td>{{ code.code }}</td>
+                        <td>{{ code.role }}</td>
+                        <td>
+                            {% if code.is_used %}
+                                <span class="badge badge-danger">Used</span>
+                            {% elif code.expires_at and code.expires_at < now %}
+                                <span class="badge badge-warning">Expired</span>
+                            {% else %}
+                                <span class="badge badge-success">Active</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ code.expires_at or "No limit" }}</td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="4">No codes yet</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+function toggleCreateForm() {
+    const form = document.getElementById("createForm");
+    form.style.display = form.style.display === "none" ? "block" : "none";
+}
+</script>
+
+{% endblock %}

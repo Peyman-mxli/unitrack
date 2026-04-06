@@ -1,0 +1,251 @@
+{% extends "student_base.html" %}
+
+{% block title %}{{ t("dashboard") }}{% endblock %}
+
+{% block content %}
+
+<div class="card" style="
+    background: linear-gradient(180deg, rgba(245, 247, 255, 0.96), rgba(239, 242, 252, 0.92));
+    border:1px solid rgba(148, 163, 184, 0.22);
+    position:relative;
+    overflow:hidden;
+    box-shadow:0 10px 30px rgba(15, 23, 42, 0.06);
+    border-radius:24px;
+">
+    <div style="position:relative; z-index:1; display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap;">
+
+        <div style="flex:1; min-width:260px;">
+            <h2 class="section-title" style="margin-bottom:10px; font-size:30px; font-weight:900; color:#0f2454;">
+                {{ t("welcome") }}, <span style="color:#7c3aed;">{{ student_name }}</span>
+            </h2>
+            <p class="section-subtitle" style="max-width:700px;">
+                {{ t("student_dashboard_subtitle") }}
+            </p>
+
+            <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                <span style="
+                    font-size:15px;
+                    font-weight:900;
+                    color:#7c3aed;
+                ">
+                    {{ t("user_id") }}: {{ current_user.user_id_code if current_user.user_id_code else "--" }}
+                </span>
+
+                {% if current_user.is_active_user %}
+                    <span class="status-badge status-green" style="border-radius:999px; padding:8px 16px;"><span class="status-lamp green"></span>{{ t("active") }}</span>
+                {% else %}
+                    <span class="status-badge status-red" style="border-radius:999px; padding:8px 16px;"><span class="status-lamp red"></span>{{ t("inactive") }}</span>
+                {% endif %}
+            </div>
+
+            <div style="margin-top:18px; display:flex; gap:12px; flex-wrap:wrap;">
+                <a
+                    href="/student/access-control/scanner"
+                    style="
+                        display:inline-flex;
+                        align-items:center;
+                        justify-content:center;
+                        min-height:46px;
+                        padding:0 18px;
+                        border-radius:12px;
+                        text-decoration:none;
+                        font-weight:800;
+                        font-size:14px;
+                        background:linear-gradient(135deg,#8b5cf6,#7c3aed);
+                        color:#ffffff;
+                        box-shadow:0 10px 24px rgba(124,58,237,0.24);
+                    "
+                >
+                    {{ t("open_access_scanner") }}
+                </a>
+
+                <a
+                    href="/student/attendance-history"
+                    style="
+                        display:inline-flex;
+                        align-items:center;
+                        justify-content:center;
+                        min-height:46px;
+                        padding:0 18px;
+                        border-radius:12px;
+                        text-decoration:none;
+                        font-weight:800;
+                        font-size:14px;
+                        background:#ffffff;
+                        color:#4c1d95;
+                        border:1px solid #ddd;
+                        box-shadow:none;
+                    "
+                >
+                    {{ t("view_attendance_history") }}
+                </a>
+            </div>
+        </div>
+
+        <div style="flex:0 0 auto;">
+            {% if current_user.photo_path %}
+                <img
+                    src="{{ url_for('static', filename=current_user.photo_path) }}"
+                    alt="Student Photo"
+                    class="dashboard-hero-photo"
+                    style="
+                        width:90px;
+                        height:90px;
+                        max-width:90px;
+                        max-height:90px;
+                        border-radius:20px;
+                        object-fit:cover;
+                        border:1px solid rgba(0,0,0,0.08);
+                        box-shadow:0 10px 24px rgba(0,0,0,0.12);
+                        background:#ffffff;
+                        display:block;
+                    "
+                >
+            {% else %}
+                <img
+                    src="{{ url_for('static', filename='img/unitrack_logo.png') }}"
+                    alt="Student Avatar"
+                    class="dashboard-hero-photo"
+                    style="
+                        width:90px;
+                        height:90px;
+                        max-width:90px;
+                        max-height:90px;
+                        border-radius:20px;
+                        object-fit:cover;
+                        border:1px solid rgba(0,0,0,0.08);
+                        box-shadow:0 10px 24px rgba(0,0,0,0.12);
+                        background:#ffffff;
+                        display:block;
+                    "
+                >
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+
+<div style="display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:18px; margin-bottom:20px;">
+    <div class="card" style="
+        margin-bottom:0;
+        background:#f3f4f6;
+        border-radius:20px;
+        box-shadow:none;
+    ">
+        <div style="font-size:12px; font-weight:900; color:#64748b; margin-bottom:8px; text-transform:uppercase;">{{ t("role") }}</div>
+        <div style="font-size:22px; font-weight:900; color:#7c3aed;">{{ t("student") }}</div>
+        <div style="margin-top:6px; font-size:13px; color:#64748b;">{{ t("your_role") }}</div>
+    </div>
+
+    <div class="card" style="
+        margin-bottom:0;
+        background:#f3f4f6;
+        border-radius:20px;
+        box-shadow:none;
+    ">
+        <div style="font-size:12px; font-weight:900; color:#64748b; margin-bottom:8px; text-transform:uppercase;">{{ t("account_status") }}</div>
+        <div style="font-size:22px; font-weight:900; color:#7c3aed;">
+            {% if current_user.is_active_user %}{{ t("active") }}{% else %}{{ t("inactive") }}{% endif %}
+        </div>
+        <div style="margin-top:6px; font-size:13px; color:#64748b;">{{ t("session_state") }}</div>
+    </div>
+
+    <div class="card" style="
+        margin-bottom:0;
+        background:#f3f4f6;
+        border-radius:20px;
+        box-shadow:none;
+    ">
+        <div style="font-size:12px; font-weight:900; color:#64748b; margin-bottom:8px; text-transform:uppercase;">{{ t("user_id") }}</div>
+        <div style="font-size:22px; font-weight:900; color:#7c3aed;">{{ current_user.user_id_code if current_user.user_id_code else "--" }}</div>
+        <div style="margin-top:6px; font-size:13px; color:#64748b;">{{ t("unique_identifier") }}</div>
+    </div>
+</div>
+
+<div class="card" style="
+    background:#f9fafb;
+    border:1px solid rgba(167,139,250,0.18);
+    overflow:hidden;
+    position:relative;
+    border-radius:20px;
+    box-shadow:none;
+">
+    <div style="position:relative; z-index:1; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:18px;">
+        <div>
+            <h3 style="margin:0; font-size:20px; font-weight:900; color:#081a43;">{{ t("student_information") }}</h3>
+            <p style="margin:8px 0 0 0; font-size:14px; color:#64748b;">
+                {{ t("student_info_subtitle") }}
+            </p>
+        </div>
+    </div>
+
+    <div style="position:relative; z-index:1; display:grid; grid-template-columns:190px 1fr; gap:14px 18px; align-items:center;">
+
+        <div style="font-weight:800; color:#334155;">{{ t("full_name") }}</div>
+        <div style="color:#7c3aed; font-weight:900;">{{ student_name }}</div>
+
+        <div style="font-weight:800; color:#334155;">{{ t("user_id") }}</div>
+        <div style="color:#7c3aed; font-weight:900;">{{ current_user.user_id_code if current_user.user_id_code else "--" }}</div>
+
+        <div style="font-weight:800; color:#334155;">{{ t("username") }}</div>
+        <div style="color:#7c3aed; font-weight:900;">{{ current_user.username or "--" }}</div>
+
+        <div style="font-weight:800; color:#334155;">{{ t("email") }}</div>
+        <div style="color:#7c3aed; font-weight:900;">{{ current_user.email if current_user.email else "--" }}</div>
+
+        <div style="font-weight:800; color:#334155;">{{ t("phone") }}</div>
+        <div style="color:#7c3aed; font-weight:900;">{{ current_user.phone if current_user.phone else "--" }}</div>
+
+        <div style="font-weight:800; color:#334155;">{{ t("role") }}</div>
+        <div style="color:#7c3aed; font-weight:900;">{{ t("student") }}</div>
+
+        <div style="font-weight:800; color:#334155;">{{ t("status") }}</div>
+        <div>
+            {% if current_user.is_active_user %}
+                <span class="status-badge status-green" style="border-radius:999px; padding:8px 16px;"><span class="status-lamp green"></span>{{ t("active") }}</span>
+            {% else %}
+                <span class="status-badge status-red" style="border-radius:999px; padding:8px 16px;"><span class="status-lamp red"></span>{{ t("inactive") }}</span>
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+
+<style>
+.dashboard-hero-photo{
+    width:90px !important;
+    height:90px !important;
+    max-width:90px !important;
+    max-height:90px !important;
+    object-fit:cover !important;
+    display:block !important;
+    flex-shrink:0 !important;
+}
+
+@media (max-width: 900px){
+    .content-body > div[style*="grid-template-columns:repeat(3, minmax(0, 1fr))"]{
+        grid-template-columns:1fr !important;
+    }
+}
+
+@media (max-width: 640px){
+    .content-body > .card:first-child img{
+        width:72px !important;
+        height:72px !important;
+        max-width:72px !important;
+        max-height:72px !important;
+        border-radius:18px !important;
+    }
+
+    .content-body > .card:first-child a{
+        width:100%;
+    }
+
+    .content-body > .card:last-child div[style*="grid-template-columns:190px 1fr"]{
+        grid-template-columns:1fr !important;
+        gap:10px !important;
+    }
+}
+</style>
+
+{% endblock %}

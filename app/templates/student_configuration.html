@@ -1,0 +1,342 @@
+{% extends "student_base.html" %}
+
+{% block title %}{{ "Configuración del Estudiante" if (current_user.language == "es" or session.get("language") == "es") else "Student Configuration" }}{% endblock %}
+
+{% block page_eyebrow %}{{ "Panel del Estudiante" if (current_user.language == "es" or session.get("language") == "es") else "Student Panel" }}{% endblock %}
+{% block page_title %}{{ "Configuración" if (current_user.language == "es" or session.get("language") == "es") else "Configuration" }}{% endblock %}
+{% block page_subtitle %}
+{{ "Administra tu información personal y la configuración de tu cuenta." if (current_user.language == "es" or session.get("language") == "es") else "Manage your personal information and account settings." }}
+{% endblock %}
+
+{% block content %}
+
+<style>
+.configuration-shell{
+    display:flex;
+    flex-direction:column;
+    gap:20px;
+    width:100%;
+    min-width:0;
+}
+
+.configuration-grid{
+    display:grid;
+    grid-template-columns:320px minmax(0, 1fr);
+    gap:24px;
+    align-items:start;
+    width:100%;
+    min-width:0;
+}
+
+.config-panel{
+    background:#f4f7ff;
+    border:1px solid #dbe4f0;
+    border-radius:20px;
+    padding:22px;
+    min-width:0;
+    width:100%;
+}
+
+.config-section{
+    background:#f4f7ff;
+    border-radius:20px;
+    padding:22px;
+    margin-bottom:22px;
+    border:1px solid #dbe4f0;
+    min-width:0;
+    width:100%;
+}
+
+.config-section:last-child{
+    margin-bottom:0;
+}
+
+.config-title{
+    margin:0 0 18px 0;
+    color:#081a43;
+    font-size:22px;
+    font-weight:900;
+    word-break:break-word;
+}
+
+.config-subtitle{
+    margin:0 0 14px 0;
+    color:#081a43;
+    font-size:18px;
+    font-weight:800;
+    word-break:break-word;
+}
+
+.avatar-wrap{
+    display:flex;
+    justify-content:center;
+    margin-bottom:16px;
+}
+
+.avatar-preview{
+    width:190px;
+    height:190px;
+    border-radius:50%;
+    object-fit:cover;
+    border:1px solid #dbe4f0;
+    background:#ffffff;
+    box-shadow:0 10px 24px rgba(0,0,0,0.08);
+    max-width:100%;
+}
+
+.photo-form{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+    width:100%;
+}
+
+.file-input{
+    width:100%;
+    max-width:100%;
+    padding:12px;
+    background:#ffffff;
+    border:1px solid #cbd5e1;
+    border-radius:12px;
+    color:#0f172a;
+    font-size:14px;
+}
+
+.form-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+    width:100%;
+}
+
+.form-grid-single{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:14px;
+    width:100%;
+}
+
+.field-wrap{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    min-width:0;
+    width:100%;
+}
+
+.field-label{
+    font-size:13px;
+    font-weight:900;
+    color:#334155;
+    letter-spacing:0.02em;
+    word-break:break-word;
+}
+
+.config-input{
+    width:100%;
+    min-height:48px;
+    padding:12px 14px;
+    border-radius:12px;
+    border:1px solid #cbd5e1;
+    background:#ffffff;
+    color:#0f172a;
+    font-size:15px;
+    outline:none;
+    max-width:100%;
+}
+
+.config-input[readonly]{
+    background:#eef4ff;
+    color:#475569;
+    font-weight:700;
+}
+
+.config-actions{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+    width:100%;
+}
+
+.primary-button{
+    min-width:170px;
+    min-height:48px;
+    border:none;
+    border-radius:12px;
+    background:linear-gradient(90deg,#7c3aed,#a855f7,#38bdf8);
+    color:#ffffff;
+    font-size:15px;
+    font-weight:800;
+    cursor:pointer;
+    box-shadow:0 10px 24px rgba(124,58,237,0.24);
+    padding:0 18px;
+    max-width:100%;
+}
+
+@media (max-width:980px){
+    .configuration-grid{
+        grid-template-columns:1fr;
+    }
+
+    .form-grid{
+        grid-template-columns:1fr;
+    }
+}
+</style>
+
+{% set is_spanish = (current_user.language == "es" or session.get("language") == "es") %}
+{% set profile_photo = current_user.profile_image or current_user.photo_path or current_user.image %}
+{% set cache_buster = (request.args.get('message', '') or request.args.get('error', '') or 'profile-photo') %}
+
+<div class="configuration-shell">
+
+    <div class="card">
+        <h2 class="section-title">{{ "Configuración" if is_spanish else "Configuration" }}</h2>
+        <p class="section-subtitle">
+            {{ "Actualiza tu información personal, seguridad, preferencias e imagen de perfil." if is_spanish else "Update your personal information, security, preferences, and profile image." }}
+        </p>
+    </div>
+
+    {% if profile_message %}
+    <div class="card" style="background:#ecfdf5; border:1px solid #bbf7d0;">
+        <p style="margin:0; color:#166534; font-weight:700;">
+            {{ profile_message }}
+        </p>
+    </div>
+    {% endif %}
+
+    {% if profile_error %}
+    <div class="card" style="background:#fef2f2; border:1px solid #fecaca;">
+        <p style="margin:0; color:#991b1b; font-weight:700;">
+            {{ profile_error }}
+        </p>
+    </div>
+    {% endif %}
+
+    <div class="card" style="background:#ffffff; border:1px solid #dbe4f0;">
+        <div class="configuration-grid">
+
+            <!-- PHOTO -->
+            <div class="config-panel">
+                <h3 class="config-title">{{ "Foto de Perfil" if is_spanish else "Profile Photo" }}</h3>
+
+                <div class="avatar-wrap">
+                    {% if profile_photo %}
+                        <img
+                            id="avatarPreview"
+                            class="avatar-preview"
+                            src="{{ url_for('static', filename=profile_photo, v=cache_buster) }}"
+                            alt="{{ 'Foto de Perfil del Estudiante' if is_spanish else 'Student Profile Photo' }}"
+                        >
+                    {% else %}
+                        <img
+                            id="avatarPreview"
+                            class="avatar-preview"
+                            src="{{ url_for('static', filename='img/unitrack_logo.png') }}"
+                            alt="{{ 'Foto de Perfil Predeterminada' if is_spanish else 'Default Profile Photo' }}"
+                        >
+                    {% endif %}
+                </div>
+
+                <form method="POST"
+                      action="{{ url_for('student_views.configuration_update_photo') }}"
+                      enctype="multipart/form-data"
+                      class="photo-form">
+
+                    <input type="file" name="photo" required class="file-input" accept=".png,.jpg,.jpeg,.webp">
+                    <button type="submit" class="primary-button">{{ "Subir Foto" if is_spanish else "Upload Photo" }}</button>
+                </form>
+            </div>
+
+            <!-- SETTINGS -->
+            <div>
+                <form method="POST"
+                      action="{{ url_for('student_views.configuration_update') }}">
+
+                    <!-- CONTACT -->
+                    <div class="config-section">
+                        <h3 class="config-subtitle">{{ "Información de Contacto" if is_spanish else "Contact Information" }}</h3>
+
+                        <div class="form-grid-single">
+                            <div class="field-wrap">
+                                <label class="field-label">{{ "ID de Usuario" if is_spanish else "User ID" }}</label>
+                                <input type="text" readonly class="config-input"
+                                       value="{{ current_user.user_id_code }}">
+                            </div>
+                        </div>
+
+                        <div class="form-grid" style="margin-top:14px;">
+                            <div class="field-wrap">
+                                <label class="field-label">{{ "Nombre" if is_spanish else "First Name" }}</label>
+                                <input type="text" name="first_name" required
+                                       class="config-input"
+                                       value="{{ current_user.first_name }}">
+                            </div>
+
+                            <div class="field-wrap">
+                                <label class="field-label">{{ "Apellido" if is_spanish else "Last Name" }}</label>
+                                <input type="text" name="last_name" required
+                                       class="config-input"
+                                       value="{{ current_user.last_name }}">
+                            </div>
+
+                            <div class="field-wrap">
+                                <label class="field-label">{{ "Nombre de Usuario" if is_spanish else "Username" }}</label>
+                                <input type="text" readonly class="config-input"
+                                       value="{{ current_user.username }}">
+                            </div>
+
+                            <div class="field-wrap">
+                                <label class="field-label">{{ "Correo Electrónico" if is_spanish else "Email" }}</label>
+                                <input type="email" name="email" required
+                                       class="config-input"
+                                       value="{{ current_user.email }}">
+                            </div>
+
+                            <div class="field-wrap">
+                                <label class="field-label">{{ "Teléfono" if is_spanish else "Phone" }}</label>
+                                <input type="text" name="phone" required
+                                       class="config-input"
+                                       value="{{ current_user.phone }}">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECURITY -->
+                    <div class="config-section">
+                        <h3 class="config-subtitle">{{ "Seguridad" if is_spanish else "Security" }}</h3>
+
+                        <div class="form-grid-single">
+                            <div class="field-wrap">
+                                <label class="field-label">{{ "Contraseña Actual" if is_spanish else "Current Password" }}</label>
+                                <input type="password" name="current_password"
+                                       class="config-input">
+                            </div>
+
+                            <div class="field-wrap">
+                                <label class="field-label">{{ "Nueva Contraseña" if is_spanish else "New Password" }}</label>
+                                <input type="password" name="new_password"
+                                       class="config-input">
+                            </div>
+
+                            <div class="field-wrap">
+                                <label class="field-label">{{ "Confirmar Contraseña" if is_spanish else "Confirm Password" }}</label>
+                                <input type="password" name="confirm_password"
+                                       class="config-input">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="config-actions">
+                        <button type="submit" class="primary-button">{{ "Guardar Cambios" if is_spanish else "Save Changes" }}</button>
+                    </div>
+
+                </form>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

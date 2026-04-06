@@ -1,0 +1,332 @@
+{% extends "admin_base.html" %}
+
+{% block title %}Change Role | UniTrack Admin{% endblock %}
+
+{% block content %}
+<style>
+    :root{
+        --surface: rgba(255,255,255,0.82);
+        --border: rgba(124,92,255,0.14);
+        --shadow: 0 16px 40px rgba(101,78,163,0.12);
+        --shadow-soft: 0 10px 24px rgba(101,78,163,0.08);
+
+        --text-main:#1f2440;
+        --text-soft:#64708b;
+        --text-muted:#8b95ad;
+
+        --accent:#7c5cff;
+        --accent-2:#a855f7;
+
+        --success:#18b26b;
+        --danger:#ef4444;
+    }
+
+    .change-role-page{
+        display:flex;
+        flex-direction:column;
+        gap:24px;
+    }
+
+    .change-role-header{
+        display:flex;
+        justify-content:space-between;
+        gap:20px;
+        flex-wrap:wrap;
+        padding:28px;
+        border-radius:24px;
+        background:var(--surface);
+        border:1px solid var(--border);
+        box-shadow:var(--shadow);
+    }
+
+    .change-role-header h1{
+        margin:0 0 8px;
+        font-size:30px;
+        font-weight:800;
+        color:var(--text-main);
+    }
+
+    .change-role-header p{
+        margin:0;
+        color:var(--text-soft);
+        max-width:700px;
+        line-height:1.6;
+    }
+
+    .top-actions{
+        display:flex;
+        gap:10px;
+        flex-wrap:wrap;
+    }
+
+    .btn{
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        padding:10px 16px;
+        border-radius:12px;
+        font-size:13px;
+        font-weight:800;
+        text-decoration:none;
+        border:none;
+        cursor:pointer;
+    }
+
+    .btn-primary{
+        background:linear-gradient(135deg,var(--accent),var(--accent-2));
+        color:#fff;
+    }
+
+    .btn-secondary{
+        background:#fff;
+        border:1px solid var(--border);
+        color:var(--text-main);
+    }
+
+    .change-role-grid{
+        display:grid;
+        grid-template-columns:320px 1fr;
+        gap:24px;
+    }
+
+    .panel{
+        background:var(--surface);
+        border-radius:24px;
+        border:1px solid var(--border);
+        box-shadow:var(--shadow);
+    }
+
+    .panel-inner{
+        padding:24px;
+    }
+
+    .profile-card{
+        text-align:center;
+    }
+
+    .avatar{
+        width:70px;
+        height:70px;
+        border-radius:20px;
+        background:linear-gradient(135deg,var(--accent),var(--accent-2));
+        color:#fff;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        font-size:22px;
+        font-weight:800;
+        margin:0 auto 16px;
+    }
+
+    .profile-name{
+        margin:0;
+        font-size:18px;
+        font-weight:800;
+        color:var(--text-main);
+    }
+
+    .profile-username{
+        margin-top:4px;
+        font-size:13px;
+        color:var(--text-muted);
+    }
+
+    .badge{
+        display:inline-flex;
+        padding:6px 12px;
+        border-radius:999px;
+        font-size:12px;
+        font-weight:800;
+        background:#f1efff;
+        color:#5a40d6;
+    }
+
+    .status-badge{
+        display:inline-flex;
+        align-items:center;
+        gap:6px;
+        padding:6px 12px;
+        border-radius:999px;
+        font-size:12px;
+        font-weight:800;
+    }
+
+    .status-dot{
+        width:8px;height:8px;border-radius:50%;
+    }
+
+    .status-online{background:#eafaf1;color:var(--success);}
+    .status-online .status-dot{background:var(--success);}
+
+    .status-active{background:#eef5ff;color:#3b82f6;}
+    .status-active .status-dot{background:#3b82f6;}
+
+    .status-inactive{background:#fff0f0;color:var(--danger);}
+    .status-inactive .status-dot{background:var(--danger);}
+
+    .profile-meta{
+        margin-top:20px;
+        display:flex;
+        flex-direction:column;
+        gap:10px;
+        text-align:left;
+    }
+
+    .meta-row{
+        display:flex;
+        justify-content:space-between;
+        font-size:13px;
+    }
+
+    .meta-label{color:var(--text-muted);}
+    .meta-value{font-weight:700;color:var(--text-main);}
+
+    .form-title{
+        font-size:20px;
+        font-weight:800;
+        color:var(--text-main);
+    }
+
+    .form-subtitle{
+        margin-top:6px;
+        font-size:14px;
+        color:var(--text-soft);
+    }
+
+    .field-group{
+        display:flex;
+        flex-direction:column;
+        gap:6px;
+        margin-top:18px;
+    }
+
+    .field-group label{
+        font-size:13px;
+        font-weight:700;
+        color:var(--text-soft);
+    }
+
+    .field-control{
+        height:46px;
+        border-radius:12px;
+        border:1px solid var(--border);
+        padding:0 12px;
+    }
+
+    .info-box{
+        margin-top:14px;
+        padding:12px;
+        border-radius:14px;
+        font-size:13px;
+        font-weight:700;
+    }
+
+    .info-box-warning{
+        background:#fff6df;
+        color:#92400e;
+    }
+
+    .info-box-note{
+        background:#eef5ff;
+        color:#1d4ed8;
+    }
+
+    .form-actions{
+        margin-top:20px;
+        display:flex;
+        gap:10px;
+        flex-wrap:wrap;
+    }
+
+    @media(max-width:900px){
+        .change-role-grid{
+            grid-template-columns:1fr;
+        }
+    }
+</style>
+
+<div class="change-role-page">
+    <section class="change-role-header">
+        <div>
+            <h1>Change User Role</h1>
+            <p>
+                Update the role assigned to this account. This affects permissions and dashboard access.
+            </p>
+        </div>
+
+        <div class="top-actions">
+            <a href="/admin/users" class="btn btn-secondary">Back</a>
+            <a href="/admin/users/{{ user.id }}/edit" class="btn btn-secondary">Edit</a>
+        </div>
+    </section>
+
+    <section class="change-role-grid">
+        <div class="panel">
+            <div class="panel-inner profile-card">
+                <div class="avatar">
+                    {{ ((user.first_name or user.username or "U")[0])|upper }}
+                </div>
+
+                <h2 class="profile-name">
+                    {{ (user.first_name or "") ~ " " ~ (user.last_name or "") }}
+                </h2>
+
+                <p class="profile-username">@{{ user.username }}</p>
+
+                <div style="margin-top:10px;">
+                    <span class="badge">{{ current_role_label }}</span>
+                </div>
+
+                <div style="margin-top:10px;">
+                    {% if is_online %}
+                        <span class="status-badge status-online"><span class="status-dot"></span>Online</span>
+                    {% elif user.is_active_user %}
+                        <span class="status-badge status-active"><span class="status-dot"></span>Active</span>
+                    {% else %}
+                        <span class="status-badge status-inactive"><span class="status-dot"></span>Inactive</span>
+                    {% endif %}
+                </div>
+
+                <div class="profile-meta">
+                    <div class="meta-row"><span class="meta-label">User ID</span><span class="meta-value">{{ user.id }}</span></div>
+                    <div class="meta-row"><span class="meta-label">Code</span><span class="meta-value">{{ user.user_id_code or '-' }}</span></div>
+                    <div class="meta-row"><span class="meta-label">Email</span><span class="meta-value">{{ user.email or '-' }}</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-inner">
+                <h2 class="form-title">Role Assignment</h2>
+                <p class="form-subtitle">Select a new role and save.</p>
+
+                <form method="POST" action="/admin/users/{{ user.id }}/change-role">
+                    <div class="field-group">
+                        <label>New Role</label>
+                        <select name="role" class="field-control">
+                            {% for role_value in allowed_roles %}
+                                <option value="{{ role_value }}" {% if role_value == current_role %}selected{% endif %}>
+                                    {{ role_value|title }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="info-box info-box-warning">
+                        Changing role modifies permissions and dashboard access.
+                    </div>
+
+                    <div class="info-box info-box-note">
+                        You cannot change your own admin role.
+                    </div>
+
+                    <div class="form-actions">
+                        <button class="btn btn-primary">Save Role</button>
+                        <a href="/admin/users" class="btn btn-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}

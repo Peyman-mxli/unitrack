@@ -1,0 +1,182 @@
+{% extends "student_base.html" %}
+
+{% block title %}{{ "Escáner QR" if (current_user.language == "es" or session.get("language") == "es") else "QR Scanner" }}{% endblock %}
+
+{% block content %}
+
+{% set is_spanish = (current_user.language == "es" or session.get("language") == "es") %}
+
+<div class="card">
+    <h1 class="section-title">{{ "Escáner QR de Acceso" if is_spanish else "Access QR Scanner" }}</h1>
+    <p class="section-subtitle">
+        {{ "Simula el lector de acceso pegando el contenido del código QR del usuario o el código de acceso de respaldo." if is_spanish else "Simulate the access reader by pasting the user QR code content or backup access code." }}
+    </p>
+</div>
+
+<div class="card" style="max-width:900px;">
+    <form method="POST" action="/student/access-control/scanner">
+        <div style="margin-bottom:14px;">
+            <label style="display:block; font-weight:800; margin-bottom:8px;">
+                {{ "Contenido QR" if is_spanish else "QR Content" }}
+            </label>
+
+            <textarea
+                name="qr_text"
+                rows="5"
+                style="
+                    width:100%;
+                    border:1px solid #dbe4f0;
+                    border-radius:14px;
+                    padding:14px;
+                    font-size:14px;
+                    resize:vertical;
+                    font-family:Consolas, 'Courier New', monospace;
+                    color:#0f172a;
+                    background:#ffffff;
+                    outline:none;
+                "
+                placeholder=""
+            >{{ qr_text_value or '' }}</textarea>
+        </div>
+
+        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+            <button
+                type="submit"
+                style="
+                    border:none;
+                    border-radius:12px;
+                    padding:12px 18px;
+                    background:linear-gradient(90deg,#16a34a,#22c55e);
+                    color:white;
+                    font-size:15px;
+                    font-weight:900;
+                    cursor:pointer;
+                    box-shadow:0 10px 24px rgba(34,197,94,0.20);
+                "
+            >
+                {{ "Escanear QR" if is_spanish else "Scan QR" }}
+            </button>
+
+            <a
+                href="/student/access-control/scanner"
+                style="
+                    display:inline-block;
+                    text-decoration:none;
+                    border-radius:12px;
+                    padding:12px 18px;
+                    background:#e2e8f0;
+                    color:#0f172a;
+                    font-size:15px;
+                    font-weight:900;
+                    box-shadow:0 6px 14px rgba(0,0,0,0.08);
+                "
+            >
+                {{ "Limpiar" if is_spanish else "Clear" }}
+            </a>
+        </div>
+    </form>
+</div>
+
+{% if scan_result %}
+    {% if scan_result.success %}
+        <div class="card" style="
+            max-width:900px;
+            background:rgba(34,197,94,0.10);
+            border:1px solid rgba(34,197,94,0.28);
+        ">
+            <h3 style="margin-top:0; color:#166534;">{{ "Escaneo Exitoso" if is_spanish else "Successful Scan" }}</h3>
+
+            <div style="display:grid; grid-template-columns:220px 1fr; gap:12px 14px; align-items:center;">
+                <div style="font-weight:800;">{{ "Mensaje:" if is_spanish else "Message:" }}</div>
+                <div>{{ scan_result.message }}</div>
+
+                <div style="font-weight:800;">{{ "Acción:" if is_spanish else "Action:" }}</div>
+                <div>
+                    {% if scan_result.action == "check_in" %}
+                        <span class="status-badge status-green">{{ "Entrada" if is_spanish else "Check In" }}</span>
+                    {% elif scan_result.action == "check_out" %}
+                        <span class="status-badge status-red">{{ "Salida" if is_spanish else "Check Out" }}</span>
+                    {% else %}
+                        {{ scan_result.action }}
+                    {% endif %}
+                </div>
+
+                <div style="font-weight:800;">{{ "Nombre:" if is_spanish else "Name:" }}</div>
+                <div>
+                    {{
+                        scan_result.student_name
+                        or scan_result.user_name
+                        or scan_result.staff_name
+                        or scan_result.professor_name
+                        or scan_result.name
+                        or "--"
+                    }}
+                </div>
+
+                <div style="font-weight:800;">{{ "Usuario:" if is_spanish else "Username:" }}</div>
+                <div>{{ scan_result.username or "--" }}</div>
+
+                <div style="font-weight:800;">{{ "Estado:" if is_spanish else "Status:" }}</div>
+                <div>{{ scan_result.status or "--" }}</div>
+
+                <div style="font-weight:800;">{{ "Entrada:" if is_spanish else "Check In:" }}</div>
+                <div>{{ scan_result.check_in_time or "--" }}</div>
+
+                <div style="font-weight:800;">{{ "Salida:" if is_spanish else "Check Out:" }}</div>
+                <div>{{ scan_result.check_out_time or "--" }}</div>
+            </div>
+        </div>
+    {% else %}
+        <div class="card" style="
+            max-width:900px;
+            background:rgba(239,68,68,0.10);
+            border:1px solid rgba(239,68,68,0.28);
+        ">
+            <h3 style="margin-top:0; color:#b91c1c;">{{ "Escaneo Fallido" if is_spanish else "Failed Scan" }}</h3>
+
+            <div style="display:grid; grid-template-columns:220px 1fr; gap:12px 14px;">
+                <div style="font-weight:800;">{{ "Mensaje:" if is_spanish else "Message:" }}</div>
+                <div>{{ scan_result.message }}</div>
+
+                <div style="font-weight:800;">{{ "Código de Estado HTTP:" if is_spanish else "HTTP Status Code:" }}</div>
+                <div>{{ scan_result.status_code }}</div>
+            </div>
+        </div>
+    {% endif %}
+{% endif %}
+
+<div class="card" style="max-width:900px;">
+    <h3 style="margin-top:0;">{{ "Ejemplo Rápido" if is_spanish else "Quick Example" }}</h3>
+    <p style="margin-top:0; color:#64748b;">
+        {{ "Pega un valor QR real como uno de estos:" if is_spanish else "Paste a real QR value like one of these:" }}
+    </p>
+
+    <div style="margin-top:16px;">
+        <div style="
+            background:#0f172a;
+            color:#f8fafc;
+            padding:14px 16px;
+            border-radius:14px;
+            font-family:Consolas, monospace;
+            font-size:14px;
+            word-break:break-word;
+            margin-bottom:16px;
+        ">
+            UT-UPBC-0001
+        </div>
+
+        <div style="
+            background:#0f172a;
+            color:#f8fafc;
+            padding:14px 16px;
+            border-radius:14px;
+            font-family:Consolas, monospace;
+            font-size:14px;
+            word-break:break-word;
+        ">
+            07AB43
+        </div>
+    </div>
+</div>
+
+{% endblock %}
