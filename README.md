@@ -22,6 +22,38 @@
 
 ---
 
+## 📸 Screenshots
+
+### 🔐 Login
+
+![Login](app/static/img/Login.png)
+
+### 📊 Dashboard
+
+![Dashboard](app/static/img/Dashboard.png)
+
+### 🎫 Access Control
+
+![Access](app/static/img/Access control.png)
+
+### 📱 QR Scanner
+
+![Scanner](app/static/img/Scanner.png)
+
+### 📜 Attendance History
+
+![History](app/static/img/Attendance History.png)
+
+### ⚙️ Configuration
+
+![Config](app/static/img/Configuration.png)
+
+### 🛠️ Admin Dashboard
+
+![Admin](app/static/img/Admin.png)
+
+---
+
 ## 🏗️ Tech Stack
 
 * **Backend:** Python, Flask
@@ -103,11 +135,11 @@ http://<your-ip>:5000
 
 ## 📌 Roadmap
 
-* [ ] Advanced attendance History 
+* [ ] Advanced attendance History
 * [ ] Mobile app integration
-* [ ] Admin has more futures 
-* [ ] Teachers has more futures
-* [ ] Better Design and structure 
+* [ ] Admin has more features
+* [ ] Teachers have more features
+* [ ] Better design and structure
 
 ---
 
@@ -119,14 +151,15 @@ This project is licensed under the MIT License.
 
 =============================================================================
 👤 Author
-=============================================================================
+=========
+
 Peyman Miyandashti
 🎓 Polytechnic University of Baja California
 💻 Information Technology Engineering & Digital Innovation
 📍 From Mexico
 📅 Year: 2026
 🆔 ID: 250161
-=============================================================================
+=============
 
 ---
 
