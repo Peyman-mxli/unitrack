@@ -6,6 +6,7 @@ import os
 import sys
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
@@ -20,17 +21,24 @@ def main():
 
     with app.app_context():
         rows = db.session.execute(text("""
-            SELECT id, first_name, last_name, username, email, role
-            FROM users
-            ORDER BY id
-        """)).fetchall()
+                SELECT
+                    id,
+                    first_name,
+                    last_name,
+                    username,
+                    email,
+                    role,
+                    password_hash
+                FROM users
+                ORDER BY id
+                """)).fetchall()
 
         if not rows:
             print("No users found.")
             return
 
         print("Users in database:")
-        print("-" * 80)
+        print("-" * 120)
 
         for row in rows:
             print(
@@ -40,6 +48,10 @@ def main():
                 f"Email: {row[4]} | "
                 f"Role: {row[5]}"
             )
+
+            print(f"Password Hash: {row[6]}")
+
+            print("-" * 120)
 
 
 if __name__ == "__main__":
