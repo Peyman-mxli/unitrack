@@ -1362,6 +1362,10 @@ def admin_delete_user_action(user_id):
         ).strip() or safe_user_attribute(user, "username", "Unknown User")
 
         record_admin_action("delete_user", target=user)
+        # Short-lived security state has no historical value; remove it before
+        # deleting an account that has no permanent attendance/audit history.
+        db.session.execute(db.delete(ScanToken).where(ScanToken.user_id == user.id))
+        db.session.execute(db.delete(UserPresence).where(UserPresence.user_id == user.id))
         db.session.delete(user)
         db.session.commit()
         flash(f"User deleted successfully: {deleted_user_name}", "success")
