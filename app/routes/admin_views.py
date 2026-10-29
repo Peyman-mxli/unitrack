@@ -45,6 +45,9 @@ from app.services.access_log_service import (
     create_check_out,
     get_user_current_access_status,
     build_access_table_rows,
+    get_global_access_stats,
+    get_today_access_logs,
+    get_all_active_users,
 )
 from app.routes.student_views import (
     generate_qr_image_data_uri,
@@ -551,65 +554,118 @@ def perform_access_check_out_for_user(user, notes=""):
 
 def build_admin_dashboard_context():
     """
-    Build dashboard context with safe fallback values.
+    Build administrator dashboard using real access logs and registered users.
+    Search filters affect only the history table, not today's global totals.
     """
+    now = datetime.utcnow()
+    today = date.today()
+    stats = get_global_access_stats()
+    today_logs = get_today_access_logs()
+    active_users = get_all_active_users()
 
-    total_validation_codes = safe_scalar(
-        db.select(db.func.count(ValidationCode.id))
-    )
-
+    total_validation_codes = safe_scalar(db.select(db.func.count(ValidationCode.id)))
     used_validation_codes = safe_scalar(
         db.select(db.func.count(ValidationCode.id)).where(ValidationCode.is_used.is_(True))
     )
-
     unused_validation_codes = safe_scalar(
         db.select(db.func.count(ValidationCode.id)).where(ValidationCode.is_used.is_(False))
     )
-
-    total_students_signed_in = safe_scalar(
-        db.select(db.func.count(User.id)).where(User.role == "estudiante")
-    )
-
     recent_validation_codes = safe_all(
-        db.select(ValidationCode)
-        .order_by(ValidationCode.created_at.desc())
-        .limit(10)
+        db.select(ValidationCode).order_by(ValidationCode.created_at.desc()).limit(10)
     )
+
+    by_role = {
+        "estudiante": {"check_ins": 0, "check_outs": 0, "users": set()},
+        "docente": {"check_ins": 0, "check_outs": 0, "users": set()},
+        "personal": {"check_ins": 0, "check_outs": 0, "users": set()},
+    }
+    for record in today_logs:
+        role = str(record.get("role") or "").lower()
+        role = {"student": "estudiante", "professor": "docente", "staff": "personal"}.get(role, role)
+        if role not in by_role:
+            continue
+        if record.get("check_in_time") not in (None, "", "--"):
+            by_role[role]["check_ins"] += 1
+        if record.get("check_out_time") not in (None, "", "--"):
+            by_role[role]["check_outs"] += 1
+        if record.get("user_id") is not None:
+            by_role[role]["users"].add(record["user_id"])
+
+    # The date field is part of a real GET query rather than a decorative control.
+    selected_date = str(request.args.get("access_date", "")).strip()
+    if selected_date:
+        try:
+            search_date = date.fromisoformat(selected_date)
+            history_logs = get_today_access_logs(access_date=search_date)
+        except ValueError:
+            selected_date = ""
+            history_logs = today_logs
+    else:
+        history_logs = today_logs
+
+    search_text = str(request.args.get("access_search", "")).strip().casefold()
+    selected_role = str(request.args.get("access_role", "")).strip().lower()
+    search_time = str(request.args.get("access_time", "")).strip()
+    recent_access_records = []
+    for record in history_logs:
+        if search_text and not any(
+            search_text in str(value or "").casefold()
+            for value in (record.get("name"), record.get("username"), record.get("user_id"), record.get("user_id_code"))
+        ):
+            continue
+        if selected_role and record.get("role") != selected_role:
+            continue
+        # Time is formatted as HH:MM:SS; compare minute precision.
+        if search_time and not str(record.get("check_in_time") or "").startswith(search_time):
+            continue
+        recent_access_records.append({
+            "full_name": record.get("name") or "--",
+            "role": record.get("role") or "",
+            "user_id": record.get("user_id_code") or record.get("user_id"),
+            "check_in_time": record.get("check_in_time"),
+            "check_out_time": record.get("check_out_time"),
+            "total_hours": record.get("hours"),
+            "status": "closed" if record.get("status") == "checked_out" else "active",
+        })
+
+    live_presence_feed = [
+        {
+            "full_name": entry.get("name") or "--",
+            "role": entry.get("role") or "",
+            "user_id": entry.get("user_id_code") or entry.get("user_id"),
+            "last_action": "check_in",
+            "last_time": entry.get("check_in_time") or "--",
+        }
+        for entry in active_users[:20]
+    ]
 
     return {
-        "now": datetime.utcnow(),
-        "today": date.today(),
-
-        # Validation codes
+        "now": now,
+        "today": today,
         "total_validation_codes": total_validation_codes,
         "used_validation_codes": used_validation_codes,
         "unused_validation_codes": unused_validation_codes,
         "recent_validation_codes": recent_validation_codes,
-
-        # User totals
-        "total_students_signed_in": total_students_signed_in,
-
-        # Placeholder live totals for next steps
-        "active_users_today": 0,
-        "today_check_ins": 0,
-        "today_check_outs": 0,
-
-        "students_checked_in_today": 0,
-        "students_checked_out_today": 0,
-        "active_students_today": 0,
-
-        "teachers_checked_in_today": 0,
-        "teachers_checked_out_today": 0,
-        "active_teachers_today": 0,
-
-        "staff_checked_in_today": 0,
-        "staff_checked_out_today": 0,
-        "active_staff_today": 0,
-
-        # Placeholder lists for future backend connection
-        "recent_access_records": [],
-        "live_presence_feed": [],
+        "total_students_signed_in": stats["students"],
+        "active_users_today": len({row["user_id"] for row in today_logs if row.get("user_id") is not None}),
+        "today_check_ins": stats["today_check_ins"],
+        "today_check_outs": stats["today_check_outs"],
+        "students_checked_in_today": by_role["estudiante"]["check_ins"],
+        "students_checked_out_today": by_role["estudiante"]["check_outs"],
+        "active_students_today": len(by_role["estudiante"]["users"]),
+        "teachers_checked_in_today": by_role["docente"]["check_ins"],
+        "teachers_checked_out_today": by_role["docente"]["check_outs"],
+        "active_teachers_today": len(by_role["docente"]["users"]),
+        "staff_checked_in_today": by_role["personal"]["check_ins"],
+        "staff_checked_out_today": by_role["personal"]["check_outs"],
+        "active_staff_today": len(by_role["personal"]["users"]),
+        "recent_access_records": recent_access_records[:100],
+        "live_presence_feed": live_presence_feed,
         "recent_admin_activity": [],
+        "access_search": request.args.get("access_search", ""),
+        "selected_access_role": selected_role,
+        "selected_access_date": selected_date,
+        "selected_access_time": search_time,
     }
 
 
