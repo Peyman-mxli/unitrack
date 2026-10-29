@@ -720,6 +720,13 @@ def create_app():
         from .models.auth_attempt_model import AuthAttempt
 
         route = request.path
+        if app.config.get("ENFORCE_OPERATOR_SCANS") and route in {
+            "/student/access-control/check-in", "/student/access-control/check-out",
+            "/personal/access-control/check-in", "/personal/access-control/check-out",
+            "/professor/access-control/check-in", "/professor/access-control/check-out",
+            "/admin/access-control/check-in", "/admin/access-control/check-out",
+        }:
+            abort(403, description="Campus check-in/out requires an authorized QR scanner.")
         action = None
         limit = None
         period_seconds = 60
