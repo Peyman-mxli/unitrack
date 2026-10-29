@@ -681,33 +681,13 @@ def _build_public_base_url():
 
 
 def build_student_access_mobile_scan_url(student):
-    """
-    Build a real URL that phone cameras can open.
-
-    Now:
-    - role-aware (student/admin/staff/professor)
-    - strips accidental trailing slash from codes
-    - forces real LAN IP when localhost is detected
-    """
+    """QR is a short-lived signed link, not a reusable public user ID."""
+    from app.services.scan_token_service import issue_scan_token
     base_url = _build_public_base_url()
-
-    user_id_code = _clean_scan_code(getattr(student, "user_id_code", ""))
-    qr_id_code = _clean_scan_code(build_student_access_qr_id_code(student))
     route_prefix = _build_access_route_prefix(student)
-
-    query_params = {}
-
-    if user_id_code:
-        query_params["user_code"] = user_id_code
-    else:
-        query_params["qr_id_code"] = qr_id_code
-
+    query_string = urlencode({"scan_token": issue_scan_token(student)})
     route_path = f"/{route_prefix}/access-control/mobile-scan"
-
-    if not base_url:
-        return f"{route_path}?{urlencode(query_params)}"
-
-    return f"{base_url}{route_path}?{urlencode(query_params)}"
+    return f"{base_url}{route_path}?{query_string}" if base_url else f"{route_path}?{query_string}"
 
 
 def build_student_access_qr_payload(student):
