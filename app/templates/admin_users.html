@@ -1,6 +1,6 @@
 {% extends "admin_base.html" %}
 
-{% block title %}Users | UniTrack Admin{% endblock %}
+{% block title %}{{ t('Users | UniTrack Admin') }}{% endblock %}
 
 {% block content %}
 <style>
@@ -746,11 +746,9 @@
 <div class="users-page">
     <section class="users-hero">
         <div class="users-hero-text">
-            <h1>Users Management</h1>
+            <h1>{{ t('Users Management') }}</h1>
             <p>
-                Monitor all registered users, review account status, search by role or activity,
-                and prepare management actions such as edit, role update, user ID update,
-                password change, and delete.
+                {{ t('Monitor all registered users, review account status, search by role or activity, and prepare management actions such as edit, role update, user ID update, password change, and delete.') }}
             </p>
         </div>
     </section>
@@ -759,94 +757,94 @@
         <div class="summary-card students">
             <div class="summary-label">
                 <span class="summary-icon">🎓</span>
-                <span>Students</span>
+                <span>{{ t('Students') }}</span>
             </div>
             <p class="summary-value">{{ total_students or 0 }}</p>
-            <p class="summary-subtext">Total registered student accounts.</p>
+            <p class="summary-subtext">{{ t('Total registered student accounts.') }}</p>
         </div>
 
         <div class="summary-card admins">
             <div class="summary-label">
                 <span class="summary-icon">🛡</span>
-                <span>Admins</span>
+                <span>{{ t('Admins') }}</span>
             </div>
             <p class="summary-value">{{ total_admins or 0 }}</p>
-            <p class="summary-subtext">Administrative users with panel access.</p>
+            <p class="summary-subtext">{{ t('Administrative users with panel access.') }}</p>
         </div>
 
         <div class="summary-card professors">
             <div class="summary-label">
                 <span class="summary-icon">📘</span>
-                <span>Professors</span>
+                <span>{{ t('Professors') }}</span>
             </div>
             <p class="summary-value">{{ total_professors or 0 }}</p>
-            <p class="summary-subtext">Registered professor accounts in the system.</p>
+            <p class="summary-subtext">{{ t('Registered professor accounts in the system.') }}</p>
         </div>
 
         <div class="summary-card staff">
             <div class="summary-label">
                 <span class="summary-icon">🧩</span>
-                <span>Staff</span>
+                <span>{{ t('Staff') }}</span>
             </div>
             <p class="summary-value">{{ total_staff or 0 }}</p>
-            <p class="summary-subtext">Registered staff and support accounts.</p>
+            <p class="summary-subtext">{{ t('Registered staff and support accounts.') }}</p>
         </div>
 
         <div class="summary-card online">
             <div class="summary-label">
                 <span class="summary-icon">🟢</span>
-                <span>Online Now</span>
+                <span>{{ t('Online Now') }}</span>
             </div>
             <p class="summary-value">{{ total_online_now or 0 }}</p>
-            <p class="summary-subtext">Users active in the recent online window.</p>
+            <p class="summary-subtext">{{ t('Users active in the recent online window.') }}</p>
         </div>
     </section>
 
     <section class="users-panel">
         <div class="panel-header">
             <div class="panel-title-wrap">
-                <h2>Users Directory</h2>
-                <p>Search, filter, and review all registered accounts.</p>
+                <h2>{{ t('Users Directory') }}</h2>
+                <p>{{ t('Search, filter, and review all registered accounts.') }}</p>
             </div>
         </div>
 
         <form method="GET" action="/admin/users" class="users-toolbar">
             <div class="field-group">
-                <label for="search">Search</label>
+                <label for="search">{{ t('Search') }}</label>
                 <input
                     id="search"
                     name="search"
                     type="text"
                     class="field-control"
-                    placeholder="Search by name, username, email, or phone"
+                    placeholder="{{ t('Search by name, username, email, or phone') }}"
                     value="{{ search_text or '' }}"
                 >
             </div>
 
             <div class="field-group">
-                <label for="role">Role</label>
+                <label for="role">{{ t('Role') }}</label>
                 <select id="role" name="role" class="field-control">
-                    <option value="">All roles</option>
-                    <option value="estudiante" {% if selected_role == "estudiante" %}selected{% endif %}>Student</option>
-                    <option value="administrativo" {% if selected_role == "administrativo" %}selected{% endif %}>Admin</option>
-                    <option value="docente" {% if selected_role == "docente" %}selected{% endif %}>Professor</option>
-                    <option value="personal" {% if selected_role == "personal" %}selected{% endif %}>Staff</option>
+                    <option value="">{{ t('All roles') }}</option>
+                    <option value="estudiante" {% if selected_role == "estudiante" %}selected{% endif %}>{{ t('Student') }}</option>
+                    <option value="administrativo" {% if selected_role == "administrativo" %}selected{% endif %}>{{ t('Admin') }}</option>
+                    <option value="docente" {% if selected_role == "docente" %}selected{% endif %}>{{ t('Professor') }}</option>
+                    <option value="personal" {% if selected_role == "personal" %}selected{% endif %}>{{ t('Staff') }}</option>
                 </select>
             </div>
 
             <div class="field-group">
-                <label for="status">Status</label>
+                <label for="status">{{ t('Status') }}</label>
                 <select id="status" name="status" class="field-control">
-                    <option value="">All status</option>
-                    <option value="online" {% if selected_status == "online" %}selected{% endif %}>Online</option>
-                    <option value="active" {% if selected_status == "active" %}selected{% endif %}>Active</option>
-                    <option value="inactive" {% if selected_status == "inactive" %}selected{% endif %}>Inactive</option>
+                    <option value="">{{ t('All status') }}</option>
+                    <option value="online" {% if selected_status == "online" %}selected{% endif %}>{{ t('Online') }}</option>
+                    <option value="active" {% if selected_status == "active" %}selected{% endif %}>{{ t('Active') }}</option>
+                    <option value="inactive" {% if selected_status == "inactive" %}selected{% endif %}>{{ t('Inactive') }}</option>
                 </select>
             </div>
 
             <div class="toolbar-actions">
-                <button type="submit" class="btn btn-primary">Apply Filters</button>
-                <a href="/admin/users" class="btn btn-secondary">Reset</a>
+                <button type="submit" class="btn btn-primary">{{ t('Apply Filters') }}</button>
+                <a href="/admin/users" class="btn btn-secondary">{{ t('Reset') }}</a>
             </div>
         </form>
 
@@ -856,15 +854,15 @@
                 <thead>
                     <tr>
                         <th>#</th>
-                        <th>User</th>
-                        <th>Email</th>
-                        <th>Phone</th>
-                        <th>Role</th>
-                        <th>User ID</th>
-                        <th>Status</th>
-                        <th>Password Rule</th>
-                        <th>Last Login</th>
-                        <th>Actions</th>
+                        <th>{{ t('User') }}</th>
+                        <th>{{ t('Email') }}</th>
+                        <th>{{ t('Phone') }}</th>
+                        <th>{{ t('Role') }}</th>
+                        <th>{{ t('User ID') }}</th>
+                        <th>{{ t('Status') }}</th>
+                        <th>{{ t('Password Rule') }}</th>
+                        <th>{{ t('Last Login') }}</th>
+                        <th>{{ t('Actions') }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -889,15 +887,15 @@
 
                         <td>
                             {% if user.role == "estudiante" %}
-                                <span class="badge badge-role-student">{{ user.role_label }}</span>
+                                <span class="badge badge-role-student">{{ t(user.role_label) }}</span>
                             {% elif user.role == "administrativo" %}
-                                <span class="badge badge-role-admin">{{ user.role_label }}</span>
+                                <span class="badge badge-role-admin">{{ t(user.role_label) }}</span>
                             {% elif user.role == "docente" %}
-                                <span class="badge badge-role-professor">{{ user.role_label }}</span>
+                                <span class="badge badge-role-professor">{{ t(user.role_label) }}</span>
                             {% elif user.role == "personal" %}
-                                <span class="badge badge-role-staff">{{ user.role_label }}</span>
+                                <span class="badge badge-role-staff">{{ t(user.role_label) }}</span>
                             {% else %}
-                                <span class="badge">{{ user.role_label }}</span>
+                                <span class="badge">{{ t(user.role_label) }}</span>
                             {% endif %}
                         </td>
 
@@ -905,7 +903,7 @@
                             {% if user.user_id_code %}
                                 {{ user.user_id_code }}
                             {% else %}
-                                <span class="optional-muted">Not assigned</span>
+                                <span class="optional-muted">{{ t('Not assigned') }}</span>
                             {% endif %}
                         </td>
 
@@ -913,26 +911,26 @@
                             {% if user.is_online %}
                                 <span class="badge status-badge status-online">
                                     <span class="status-dot"></span>
-                                    Online
+                                    {{ t('Online') }}
                                 </span>
                             {% elif user.is_active_user %}
                                 <span class="badge status-badge status-active">
                                     <span class="status-dot"></span>
-                                    Active
+                                    {{ t('Active') }}
                                 </span>
                             {% else %}
                                 <span class="badge status-badge status-inactive">
                                     <span class="status-dot"></span>
-                                    Inactive
+                                    {{ t('Inactive') }}
                                 </span>
                             {% endif %}
                         </td>
 
                         <td>
                             {% if user.must_change_password %}
-                                <span class="must-change">Must change password</span>
+                                <span class="must-change">{{ t('Must change password') }}</span>
                             {% else %}
-                                <span class="optional-muted">Normal</span>
+                                <span class="optional-muted">{{ t('Normal') }}</span>
                             {% endif %}
                         </td>
 
@@ -940,21 +938,21 @@
                             {% if user.last_login_at %}
                                 {{ user.last_login_at }}
                             {% else %}
-                                <span class="optional-muted">No login record</span>
+                                <span class="optional-muted">{{ t('No login record') }}</span>
                             {% endif %}
                         </td>
 
                         <td>
                             <div class="row-actions">
-                                <a href="/admin/users/{{ user.id }}/edit" class="action-btn action-edit">Edit</a>
+                                <a href="/admin/users/{{ user.id }}/edit" class="action-btn action-edit">{{ t('Edit') }}</a>
 
-                                <a href="/admin/users/{{ user.id }}/change-role" class="action-btn action-role">Change Role</a>
+                                <a href="/admin/users/{{ user.id }}/change-role" class="action-btn action-role">{{ t('Change Role') }}</a>
 
-                                <a href="/admin/users/{{ user.id }}/update-user-id" class="action-btn action-id">Update ID</a>
+                                <a href="/admin/users/{{ user.id }}/update-user-id" class="action-btn action-id">{{ t('Update ID') }}</a>
 
-                                <a href="/admin/users/{{ user.id }}/change-password" class="action-btn action-password">Change Password</a>
+                                <a href="/admin/users/{{ user.id }}/change-password" class="action-btn action-password">{{ t('Change Password') }}</a>
 
-                                <a href="/admin/users/{{ user.id }}/delete" class="action-btn action-delete">Remove</a>
+                                <a href="/admin/users/{{ user.id }}/delete" class="action-btn action-delete">{{ t('Remove') }}</a>
                             </div>
                         </td>
                     </tr>
@@ -963,26 +961,25 @@
             </table>
             {% else %}
             <div class="empty-state">
-                <h3>No users found</h3>
+                <h3>{{ t('No users found') }}</h3>
                 <p>
-                    No user records match the current filters. Try a different search,
-                    clear the filters, or load more users after registration data is added.
+                    {{ t('No user records match the current filters. Try a different search, clear the filters, or load more users after registration data is added.') }}
                 </p>
             </div>
             {% endif %}
         </div>
 
         <div class="table-footer">
-            <p>Total results: <strong>{{ total_users_found or 0 }}</strong></p>
-            <p class="optional-muted">Action buttons are ready in the UI and connected for edit, role change, user ID update, password change, and delete.</p>
+            <p>{{ t('Total results:') }} <strong>{{ total_users_found or 0 }}</strong></p>
+            <p class="optional-muted">{{ t('Action buttons are ready in the UI and connected for edit, role change, user ID update, password change, and delete.') }}</p>
         </div>
     </section>
 
     <section class="users-panel">
         <div class="panel-header">
             <div class="panel-title-wrap">
-                <h2>Recent Admin Activity</h2>
-                <p>This area will show edits, role changes, password updates, and delete history.</p>
+                <h2>{{ t('Recent Admin Activity') }}</h2>
+                <p>{{ t('This area will show edits, role changes, password updates, and delete history.') }}</p>
             </div>
         </div>
 
@@ -1000,10 +997,9 @@
             </ul>
         {% else %}
             <div class="empty-state">
-                <h3>No recent activity yet</h3>
+                <h3>{{ t('No recent activity yet') }}</h3>
                 <p>
-                    Once admin user actions are connected, this section will display a full
-                    activity log for user edits, role changes, password changes, ID updates, and deletes.
+                    {{ t('Once admin user actions are connected, this section will display a full activity log for user edits, role changes, password changes, ID updates, and deletes.') }}
                 </p>
             </div>
         {% endif %}
