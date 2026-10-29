@@ -146,23 +146,12 @@ def get_allowed_role_values():
 
 
 def is_user_online(user):
-    """
-    Basic online rule for admin panel.
-
-    Current idea:
-    - user is online if last_login_at exists and is within the last 15 minutes
-    - if the field does not exist yet, fallback to False
-
-    This keeps the system safe while the rest of the project is still evolving.
-    """
-    last_login_at = getattr(user, "last_login_at", None)
-    if not last_login_at:
+    """Online means authenticated activity within the last five minutes."""
+    from app.models.user_presence_model import UserPresence
+    if not user:
         return False
-
-    try:
-        return last_login_at >= datetime.utcnow() - timedelta(minutes=15)
-    except Exception:
-        return False
+    record = db.session.get(UserPresence, user.id)
+    return bool(record and record.last_seen_at >= datetime.utcnow() - timedelta(minutes=5))
 
 
 def get_user_by_id_for_admin(user_id):
