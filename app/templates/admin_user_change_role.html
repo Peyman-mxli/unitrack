@@ -268,7 +268,7 @@
                 </div>
 
                 <h2 class="profile-name">
-                    {{ (user.first_name or "") ~ " " ~ (user.last_name or "") }}
+                    {{ display_user_name(user) }}
                 </h2>
 
                 <p class="profile-username">@{{ user.username }}</p>
