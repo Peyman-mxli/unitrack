@@ -221,7 +221,24 @@ class UniTrackTests(unittest.TestCase):
                 client = self._signed_in_client(username)
                 response = client.get(path)
                 self.assertEqual(response.status_code, 200)
-                self.assertIn(b"js/qr-camera.js", response.data)
+                self.assertEqual(response.data.count(b"js/qr-camera.js"), 1)
+                self.assertEqual(response.data.count(b"js/vendor/jsQR.js"), 1)
+                self.assertIn(b"data-qr-start", response.data)
+                self.assertIn(b"data-qr-video", response.data)
+
+    def test_camera_decoding_fallback_is_self_hosted(self):
+        client = self._signed_in_client()
+        library = client.get("/static/js/vendor/jsQR.js")
+        scanner = client.get("/static/js/qr-camera.js")
+        self.assertEqual(library.status_code, 200)
+        self.assertEqual(scanner.status_code, 200)
+        self.assertIn(b"jsQR", library.data)
+        self.assertIn(b"getUserMedia", scanner.data)
+        self.assertIn(b"window.jsQR", scanner.data)
+        self.assertNotIn(b"BarcodeDetector", scanner.data)
+        # QR capture never silently submits an access event.
+        self.assertNotIn(b"form.requestSubmit()", scanner.data)
+        self.assertNotIn(b"form.submit()", scanner.data)
 
     def test_student_cannot_manage_academic_classes(self):
         client = self._signed_in_client("StudentA")
