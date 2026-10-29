@@ -15,7 +15,7 @@ if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
 
 from flask import Flask, redirect, url_for, session, request, abort
-from flask_login import LoginManager, current_user
+from flask_login import LoginManager, current_user, logout_user
 from flask_migrate import Migrate
 
 from config import Config
@@ -695,6 +695,10 @@ def create_app():
         """Refresh active-user heartbeat at most once per 30 seconds."""
         if not current_user.is_authenticated or request.endpoint == "static":
             return
+        # Revoke active sessions immediately when an administrator suspends an account.
+        if not getattr(current_user, "is_active_user", True):
+            logout_user()
+            return redirect(url_for("auth.login_page"))
         from datetime import datetime, timedelta
         from .models.user_presence_model import UserPresence
         now = datetime.utcnow()
