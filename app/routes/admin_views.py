@@ -615,9 +615,16 @@ def build_admin_dashboard_context():
             continue
         if selected_role and record.get("role") != selected_role:
             continue
-        # Time is formatted as HH:MM:SS; compare minute precision.
-        if search_time and not str(record.get("check_in_time") or "").startswith(search_time):
-            continue
+        # HTML time inputs use 24-hour time; access displays 12-hour time.
+        if search_time:
+            try:
+                displayed_time = datetime.strptime(
+                    str(record.get("check_in_time")), "%I:%M %p"
+                ).strftime("%H:%M")
+            except ValueError:
+                displayed_time = ""
+            if displayed_time != search_time:
+                continue
         recent_access_records.append({
             "full_name": record.get("name") or "--",
             "role": record.get("role") or "",
