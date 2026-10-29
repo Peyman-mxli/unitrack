@@ -3,3 +3,10 @@ __pycache__/
 *.pyc
 unitrack.db
 .env
+.venv/
+.unitrack-secret
+*.db
+*.db-shm
+*.db-wal
+app/static/uploads/
+app/static/img/profiles/
