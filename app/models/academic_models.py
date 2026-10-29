@@ -30,6 +30,7 @@ class ClassMeeting(db.Model):
     starts_at = db.Column(db.DateTime, nullable=False, index=True)
     ends_at = db.Column(db.DateTime, nullable=False)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    finalized_at = db.Column(db.DateTime, nullable=True)
     __table_args__ = (db.CheckConstraint("ends_at > starts_at", name="ck_meeting_end_after_start"),)
 
 
