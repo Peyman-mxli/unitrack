@@ -344,89 +344,10 @@ def access_control_check_out():
 # =========================
 @personal_views_bp.route("/access-control/mobile-scan", methods=["GET"])
 def access_control_mobile_scan():
-    qr_text = (
-        _clean_scan_code(request.args.get("qr_text"))
-        or _clean_scan_code(request.args.get("user_code"))
-        or _clean_scan_code(request.args.get("qr_id_code"))
-    )
-
-    response_data, status_code = process_access_scan_qr_text(qr_text)
-    return _build_mobile_scan_result_html(response_data, status_code), status_code
-
-
-# =========================
-# QR SCANNER (REAL GLOBAL)
-# =========================
-@personal_views_bp.route("/access-control/scanner", methods=["GET", "POST"])
-@login_required
-def access_control_scanner():
-    if not _is_personal_user():
-        return _reject()
-
-    _sync_personal_language()
-    language = _current_language()
-    role_label = "Personal" if language == "es" else "Staff"
-
-    qr_text_value = ""
-    scan_result = None
-
-    if request.method == "POST":
-        qr_text_value = (request.form.get("qr_text") or "").strip()
-
-        response_data, status_code = process_access_scan_qr_text(qr_text_value)
-
-        scan_result = {
-            "success": response_data.get("success", False),
-            "message": response_data.get("message", ""),
-            "action": response_data.get("action", ""),
-            "staff_name": (
-                response_data.get("staff_name")
-                or response_data.get("user_name")
-                or response_data.get("student_name")
-                or "--"
-            ),
-            "username": response_data.get("username", ""),
-            "status": response_data.get("status", ""),
-            "check_in_time": response_data.get("check_in_time", ""),
-            "check_out_time": response_data.get("check_out_time", ""),
-            "status_code": status_code,
-        }
-
-    return render_template(
-        "personal_qr_scanner.html",
-        active_page="scanner",
-        staff_name=_staff_name(),
-        role_label=role_label,
-        account_role_label=role_label,
-        account_type_label=role_label,
-        qr_text_value=qr_text_value,
-        scan_result=scan_result,
-    )
-
-
-# =========================
-# CONFIGURATION
-# =========================
-@personal_views_bp.route("/configuration")
-@login_required
-def configuration_page():
-    if not _is_personal_user():
-        return _reject()
-
-    _sync_personal_language()
-    language = _current_language()
-    role_label = "Personal" if language == "es" else "Staff"
-
-    return render_template(
-        "personal_configuration.html",
-        active_page="configuration",
-        staff_name=_staff_name(),
-        role_label=role_label,
-        account_role_label=role_label,
-        account_type_label=role_label,
-        profile_message=request.args.get("success"),
-        profile_error=request.args.get("error"),
-    )
+    """Public QR preview does not modify access records."""
+    return _build_mobile_scan_result_html(
+        {"success": False, "message": "An authorized UniTrack operator must scan this QR code."}, 200
+    ), 200
 
 
 @personal_views_bp.route("/configuration/update", methods=["POST"])
