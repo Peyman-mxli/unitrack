@@ -242,6 +242,7 @@
                       action="{{ url_for('student_views.configuration_update_photo') }}"
                       enctype="multipart/form-data"
                       class="photo-form">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                     <input type="file" name="photo" required class="file-input" accept=".png,.jpg,.jpeg,.webp">
                     <button type="submit" class="primary-button">{{ "Subir Foto" if is_spanish else "Upload Photo" }}</button>
@@ -252,6 +253,7 @@
             <div>
                 <form method="POST"
                       action="{{ url_for('student_views.configuration_update') }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                     <!-- CONTACT -->
                     <div class="config-section">
