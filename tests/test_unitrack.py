@@ -145,6 +145,79 @@ class UniTrackTests(unittest.TestCase):
         response = client.get("/attendance/classes")
         self.assertEqual(response.status_code, 200)
 
+    def test_admin_access_control_contains_camera_and_confirm_button(self):
+        client = self._signed_in_client()
+        page = client.get("/admin/access-control")
+        self.assertEqual(page.status_code, 200)
+        self.assertIn(b'id="adminAccessQrForm"', page.data)
+        self.assertIn(b'data-qr-start', page.data)
+        self.assertIn(b'data-qr-video', page.data)
+        self.assertIn(b'data-qr-photo', page.data)
+        self.assertEqual(page.data.count(b"js/qr-camera.js"), 1)
+        self.assertEqual(page.data.count(b"js/vendor/jsQR.js"), 1)
+        self.assertIn("Confirmar acceso".encode("utf-8"), page.data)
+        csrf = re.search(rb'name="csrf_token" value="([^"]+)"', page.data)
+        self.assertIsNotNone(csrf)
+        rejected = client.post("/admin/access-control", data={
+            "csrf_token": csrf.group(1).decode("utf-8"),
+            "qr_text": "UT-UPBC-0001",
+        })
+        self.assertEqual(rejected.status_code, 200)
+        self.assertIn("Escaneo rechazado".encode("utf-8"), rejected.data)
+
+    def test_admin_access_control_scans_signed_qr_on_same_page(self):
+        from werkzeug.security import generate_password_hash
+        from app.models.user_model import User
+        from app.models.access_log_model import AccessLog
+        from app.services.scan_token_service import issue_scan_token
+        with self.app.app_context():
+            student = User(
+                username="AccessPageUser",
+                email="access-page-user@example.test",
+                first_name="Access", last_name="Page",
+                role="estudiante", phone="0000000000", language="es",
+                password_hash=generate_password_hash("TestingPassword123!"),
+                is_active_user=True,
+            )
+            self.db.session.add(student)
+            self.db.session.commit()
+            signed_qr = issue_scan_token(student)
+            student_id = student.id
+
+        client = self._signed_in_client()
+        page = client.get("/admin/access-control")
+        csrf = re.search(rb'name="csrf_token" value="([^"]+)"', page.data)
+        self.assertIsNotNone(csrf)
+        payload = {
+            "csrf_token": csrf.group(1).decode("utf-8"),
+            "qr_text": signed_qr,
+        }
+        processed = client.post("/admin/access-control", data=payload)
+        self.assertEqual(processed.status_code, 200)
+        self.assertIn("Escaneo correcto".encode("utf-8"), processed.data)
+        self.assertIn(b"Access Page", processed.data)
+        self.assertIn(b'id="adminAccessQrForm"', processed.data)
+        with self.app.app_context():
+            self.assertEqual(
+                self.db.session.execute(
+                    self.db.select(self.db.func.count(AccessLog.id)).where(
+                        AccessLog.student_id == student_id
+                    )
+                ).scalar_one(), 1
+            )
+
+        repeated = client.post("/admin/access-control", data=payload)
+        self.assertEqual(repeated.status_code, 200)
+        self.assertIn("Escaneo rechazado".encode("utf-8"), repeated.data)
+        with self.app.app_context():
+            self.assertEqual(
+                self.db.session.execute(
+                    self.db.select(self.db.func.count(AccessLog.id)).where(
+                        AccessLog.student_id == student_id
+                    )
+                ).scalar_one(), 1
+            )
+
     def test_scanner_rejects_unsigned_identifier(self):
         client = self._signed_in_client()
         page = client.get("/admin/access-control/scanner")
