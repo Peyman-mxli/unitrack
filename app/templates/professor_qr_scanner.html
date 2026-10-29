@@ -7,7 +7,7 @@
 <div class="card">
     <h1 class="section-title">{{ t('Access QR Scanner') }}</h1>
     <p class="section-subtitle">
-        {{ t('Simulate the access reader by pasting the professor QR code content.') }}
+        {{ "Escanea el código QR vigente del usuario con tu cámara o desde una imagen." if current_language == "es" else "Scan the user's current QR using the camera or an image." }}
     </p>
 </div>
 
@@ -134,5 +134,5 @@
     <h3>{{ "Cómo utilizar el QR seguro" if current_language == 'es' else "Using secure QR codes" }}</h3>
     <p>{{ "Escanea el QR firmado y vigente del usuario. Los códigos de identificación estáticos ya no están habilitados." if current_language == 'es' else "Scan the user's current signed QR. Static ID codes are disabled." }}</p>
 </div>
-<script src="{{ url_for('static', filename='js/qr-camera.js') }}" defer></script>
+
 {% endblock %}
