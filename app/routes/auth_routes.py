@@ -250,7 +250,7 @@ def get_login_text(language):
 
     translations = {
         "es": {
-            "page_title": "UniTrack Login",
+            "page_title": "Inicio de sesión | UniTrack",
             "card_title": "Acceso",
             "login_label": "Correo electrónico o nombre de usuario",
             "login_placeholder": "Ingresa tu correo o usuario",
