@@ -634,6 +634,60 @@
     {% endif %}
 </section>
 
+<section class="operator-qr-card" aria-labelledby="operatorPassTitle">
+    <h2 id="operatorPassTitle">{{ "Ingresar código de acceso" if current_language == "es" else "Enter Access Code" }}</h2>
+    <p class="qr-instructions">
+        {{ "Si una persona no puede mostrar su QR, escribe el código temporal de 16 caracteres que aparece en su propia cuenta. No uses el ID permanente ni el código de validación de registro." if current_language == "es" else "If someone cannot show their QR, enter the temporary 16-character code displayed in their own account. Do not use their permanent ID or registration validation code." }}
+    </p>
+    <form method="POST" action="{{ url_for('admin_views.admin_access_control') }}"
+          style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label for="admin_pass_code" class="filter-label" style="width:100%;">
+            {{ "Código temporal" if current_language == "es" else "Temporary access code" }}
+        </label>
+        <input type="text" id="admin_pass_code" name="pass_code"
+               autocomplete="off" spellcheck="false" maxlength="24" required
+               placeholder="XXXX-XXXX-XXXX-XXXX" pattern="[A-Za-z0-9 -]{16,24}"
+               style="flex:1;min-width:210px;padding:13px;border-radius:11px;border:1px solid #cbd5e1;
+                      font-weight:800;font-size:16px;letter-spacing:0.08em;text-transform:uppercase;">
+        <button type="submit" class="operator-qr-submit">
+            {{ "Registrar con código" if current_language == "es" else "Register with code" }}
+        </button>
+    </form>
+</section>
+
+<section class="operator-qr-card" aria-labelledby="operatorOwnQrTitle">
+    <h2 id="operatorOwnQrTitle">{{ "Mi QR personal de acceso" if current_language == "es" else "My Personal Access QR" }}</h2>
+    <p class="qr-instructions">
+        {{ "Cada usuario tiene un QR y un código temporal diferentes. Muestra este QR al encargado de la entrada. Es válido durante 5 minutos y se utiliza una sola vez." if current_language == "es" else "Every user receives a different QR and temporary code. Show yours to an entrance operator. It lasts 5 minutes and works once." }}
+    </p>
+    <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+        {% if access_qr_image %}
+        <img src="{{ access_qr_image }}" alt="{{ 'Mi código QR personal' if current_language == 'es' else 'My personal QR code' }}"
+             style="width:220px;height:220px;max-width:100%;object-fit:contain;background:white;
+                    border:1px solid #dbe4f0;border-radius:16px;padding:10px;">
+        {% else %}
+        <p>{{ "No se pudo generar la imagen QR." if current_language == "es" else "Unable to generate the QR image." }}</p>
+        {% endif %}
+        <div>
+            <div style="font-size:13px;font-weight:800;margin-bottom:8px;">
+                {{ "Mi código de respaldo temporal:" if current_language == "es" else "My temporary backup code:" }}
+            </div>
+            <div style="font:800 20px Consolas,monospace;letter-spacing:0.08em;overflow-wrap:anywhere;">
+                {{ access_qr_id_code }}
+            </div>
+            <p class="qr-instructions" style="margin-top:12px;">
+                {{ "Se renueva al actualizar esta página." if current_language == "es" else "Refresh this page to get a new one." }}
+            </p>
+            <a href="{{ url_for('admin_views.admin_access_control') }}"
+               style="display:inline-block;background:#7c3aed;color:white;border-radius:10px;
+                      padding:11px 16px;text-decoration:none;font-weight:800;">
+                {{ "Generar nuevo QR" if current_language == "es" else "Generate new QR" }}
+            </a>
+        </div>
+    </div>
+</section>
+
 <div class="summary-card">
     <div class="summary-header">
         <div class="summary-avatar">
