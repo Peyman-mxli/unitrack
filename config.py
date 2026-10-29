@@ -32,8 +32,11 @@ class Config:
     # Base project folder path.
     BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
-    # Secret key for sessions and security.
-    SECRET_KEY = os.environ.get("SECRET_KEY", "unitrack_dev_secret_key")
+    # Set SECRET_KEY in the environment for local development and deployment.
+    # Use a long, randomly generated value; never commit it to source control.
+    SECRET_KEY = os.environ.get("SECRET_KEY")
+    if not SECRET_KEY or not SECRET_KEY.strip():
+        raise RuntimeError("Set a non-empty SECRET_KEY environment variable before starting UniTrack.")
 
     # Uploads folder.
     UPLOAD_FOLDER = os.path.join(BASE_DIR, "uploads")
@@ -60,7 +63,7 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # Flask debug mode for development.
-    DEBUG = os.environ.get("FLASK_DEBUG", "True").lower() == "true"
+    DEBUG = os.environ.get("FLASK_DEBUG", "False").lower() == "true"
 
     # ==========================================
     # APPLICATION BASE URL
@@ -76,13 +79,10 @@ class Config:
     MAIL_USE_TLS = os.environ.get("MAIL_USE_TLS", "True").lower() == "true"
     MAIL_USE_SSL = os.environ.get("MAIL_USE_SSL", "False").lower() == "true"
 
-    # MUST be the same Gmail account that has:
-    # - 2-Step Verification enabled
-    # - the App Password generated
-    MAIL_USERNAME = os.environ.get("MAIL_USERNAME", "peyman.mxli@gmail.com")
-
-    # MUST be the App Password generated from peyman.mxli@gmail.com
-    MAIL_PASSWORD = os.environ.get("MAIL_PASSWORD", "xxluaffgobbtjjyl")
+    # Configure email credentials through environment variables only.
+    # Leave empty when email is not configured for local development.
+    MAIL_USERNAME = os.environ.get("MAIL_USERNAME", "")
+    MAIL_PASSWORD = os.environ.get("MAIL_PASSWORD", "")
 
     # Usually same as sender account
     MAIL_DEFAULT_SENDER = os.environ.get("MAIL_DEFAULT_SENDER", MAIL_USERNAME)
