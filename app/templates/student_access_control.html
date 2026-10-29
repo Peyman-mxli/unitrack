@@ -599,10 +599,12 @@
         <div class="qr-actions">
             {% if current_access_status and current_access_status.status == "checked_in" %}
                 <form method="POST" action="{{ url_for('student_views.access_control_check_out') }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="qr-badge qr-checkout">{{ "Registrar Salida" if is_spanish else "Check Out" }}</button>
                 </form>
             {% else %}
                 <form method="POST" action="{{ url_for('student_views.access_control_check_in') }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="qr-badge qr-checkin">{{ "Registrar Entrada" if is_spanish else "Check In" }}</button>
                 </form>
             {% endif %}
