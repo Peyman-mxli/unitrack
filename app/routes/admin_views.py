@@ -52,6 +52,7 @@ from app.services.access_log_service import (
     get_global_access_stats,
     get_today_access_logs,
     get_all_active_users,
+    get_current_system_datetime,
 )
 from app.routes.student_views import (
     generate_qr_image_data_uri,
@@ -567,7 +568,7 @@ def build_admin_dashboard_context():
     Search filters affect only the history table, not today's global totals.
     """
     now = datetime.utcnow()
-    today = date.today()
+    today = get_current_system_datetime().date()
     stats = get_global_access_stats()
     today_logs = get_today_access_logs()
     active_users = get_all_active_users()
