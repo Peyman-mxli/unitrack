@@ -1440,21 +1440,10 @@ def admin_access_control_scanner():
 
 @admin_views_bp.route("/access-control/mobile-scan", methods=["GET"])
 def admin_access_control_mobile_scan():
-    """
-    Public admin mobile scan endpoint.
-
-    This must stay public so a real phone camera can open the admin QR URL
-    without requiring a logged-in browser session first.
-    """
-
-    qr_text_value = (
-        _clean_scan_code(request.args.get("qr_text"))
-        or _clean_scan_code(request.args.get("user_code"))
-        or _clean_scan_code(request.args.get("qr_id_code"))
-    )
-
-    response_data, status_code = process_global_access_scan_qr_text(qr_text_value)
-    return _build_mobile_scan_result_html(response_data, status_code), status_code
+    """Public QR preview does not modify access records."""
+    return _build_mobile_scan_result_html(
+        {"success": False, "message": "An authorized UniTrack operator must scan this QR code."}, 200
+    ), 200
 
 
 @admin_views_bp.route("/attendance-history", methods=["GET"])
