@@ -1,6 +1,6 @@
 {% extends "admin_base.html" %}
 
-{% block title %}Change Role | UniTrack Admin{% endblock %}
+{% block title %}{{ t('Change Role | UniTrack Admin') }}{% endblock %}
 
 {% block content %}
 <style>
@@ -248,15 +248,15 @@
 <div class="change-role-page">
     <section class="change-role-header">
         <div>
-            <h1>Change User Role</h1>
+            <h1>{{ t('Change User Role') }}</h1>
             <p>
-                Update the role assigned to this account. This affects permissions and dashboard access.
+                {{ t('Update the role assigned to this account. This affects permissions and dashboard access.') }}
             </p>
         </div>
 
         <div class="top-actions">
-            <a href="/admin/users" class="btn btn-secondary">Back</a>
-            <a href="/admin/users/{{ user.id }}/edit" class="btn btn-secondary">Edit</a>
+            <a href="/admin/users" class="btn btn-secondary">{{ t('Back') }}</a>
+            <a href="/admin/users/{{ user.id }}/edit" class="btn btn-secondary">{{ t('Edit') }}</a>
         </div>
     </section>
 
@@ -274,55 +274,55 @@
                 <p class="profile-username">@{{ user.username }}</p>
 
                 <div style="margin-top:10px;">
-                    <span class="badge">{{ current_role_label }}</span>
+                    <span class="badge">{{ t(current_role_label) }}</span>
                 </div>
 
                 <div style="margin-top:10px;">
                     {% if is_online %}
-                        <span class="status-badge status-online"><span class="status-dot"></span>Online</span>
+                        <span class="status-badge status-online"><span class="status-dot"></span>{{ t('Online') }}</span>
                     {% elif user.is_active_user %}
-                        <span class="status-badge status-active"><span class="status-dot"></span>Active</span>
+                        <span class="status-badge status-active"><span class="status-dot"></span>{{ t('Active') }}</span>
                     {% else %}
-                        <span class="status-badge status-inactive"><span class="status-dot"></span>Inactive</span>
+                        <span class="status-badge status-inactive"><span class="status-dot"></span>{{ t('Inactive') }}</span>
                     {% endif %}
                 </div>
 
                 <div class="profile-meta">
-                    <div class="meta-row"><span class="meta-label">User ID</span><span class="meta-value">{{ user.id }}</span></div>
-                    <div class="meta-row"><span class="meta-label">Code</span><span class="meta-value">{{ user.user_id_code or '-' }}</span></div>
-                    <div class="meta-row"><span class="meta-label">Email</span><span class="meta-value">{{ user.email or '-' }}</span></div>
+                    <div class="meta-row"><span class="meta-label">{{ t('User ID') }}</span><span class="meta-value">{{ user.id }}</span></div>
+                    <div class="meta-row"><span class="meta-label">{{ t('Code') }}</span><span class="meta-value">{{ user.user_id_code or '-' }}</span></div>
+                    <div class="meta-row"><span class="meta-label">{{ t('Email') }}</span><span class="meta-value">{{ user.email or '-' }}</span></div>
                 </div>
             </div>
         </div>
 
         <div class="panel">
             <div class="panel-inner">
-                <h2 class="form-title">Role Assignment</h2>
-                <p class="form-subtitle">Select a new role and save.</p>
+                <h2 class="form-title">{{ t('Role Assignment') }}</h2>
+                <p class="form-subtitle">{{ t('Select a new role and save.') }}</p>
 
                 <form method="POST" action="/admin/users/{{ user.id }}/change-role">
                     <div class="field-group">
-                        <label>New Role</label>
+                        <label>{{ t('New Role') }}</label>
                         <select name="role" class="field-control">
                             {% for role_value in allowed_roles %}
                                 <option value="{{ role_value }}" {% if role_value == current_role %}selected{% endif %}>
-                                    {{ role_value|title }}
+                                    {{ t({'estudiante': 'Student', 'administrativo': 'Admin', 'docente': 'Professor', 'personal': 'Staff'}.get(role_value, role_value|title)) }}
                                 </option>
                             {% endfor %}
                         </select>
                     </div>
 
                     <div class="info-box info-box-warning">
-                        Changing role modifies permissions and dashboard access.
+                        {{ t('Changing role modifies permissions and dashboard access.') }}
                     </div>
 
                     <div class="info-box info-box-note">
-                        You cannot change your own admin role.
+                        {{ t('You cannot change your own admin role.') }}
                     </div>
 
                     <div class="form-actions">
-                        <button class="btn btn-primary">Save Role</button>
-                        <a href="/admin/users" class="btn btn-secondary">Cancel</a>
+                        <button class="btn btn-primary">{{ t('Save Role') }}</button>
+                        <a href="/admin/users" class="btn btn-secondary">{{ t('Cancel') }}</a>
                     </div>
                 </form>
             </div>
