@@ -246,6 +246,7 @@
             <form method="POST"
                   action="{{ url_for('professor_views.configuration_update_photo') }}"
                   enctype="multipart/form-data">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                 <input
                     type="file"
@@ -273,6 +274,7 @@
         <div style="display:grid; gap:22px;">
 
             <form method="POST" action="{{ url_for('professor_views.configuration_update') }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                 <div class="staff-config-panel">
                     <h3 class="staff-config-title">{{ t('Contact Information') }}</h3>
