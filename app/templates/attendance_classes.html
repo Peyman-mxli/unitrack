@@ -1,0 +1,121 @@
+{% extends "admin_base.html" if is_admin else "professor_base.html" %}
+
+{% block title %}{{ "Clases y asistencia" if current_language == "es" else "Classes and Attendance" }} | UniTrack{% endblock %}
+{% block page_title %}{{ "Clases y asistencia" if current_language == "es" else "Classes and Attendance" }}{% endblock %}
+{% block content %}
+{% set es = current_language == "es" %}
+<style>
+.attendance-wrap { display:grid; gap:20px; color:#142047; }
+.attendance-card { background:#f5f7ff; border:1px solid #dbe4f0; border-radius:17px; padding:20px; }
+.attendance-card h2 { margin:0 0 12px; font-size:21px; }
+.attendance-row { display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin-top:12px; }
+.attendance-row input,.attendance-row select { min-height:43px; flex:1; min-width:160px; padding:10px; border:1px solid #cbd5e1; border-radius:10px; }
+.attendance-row button,.attendance-button { background:#7c3aed; color:white; border:0; border-radius:10px; padding:12px 18px; font-weight:800; cursor:pointer; }
+.attendance-table { width:100%; border-collapse:collapse; background:white; }
+.attendance-table th,.attendance-table td { padding:10px; border:1px solid #e2e8f0; text-align:left; }
+.attendance-table th { background:#e9efff; }
+.attendance-msg { padding:10px; background:#fff4d5; border-radius:10px; margin-bottom:12px; }
+.attendance-meeting { margin-top:18px; border-top:1px solid #ddd; padding-top:16px; }
+.attendance-meeting .attendance-row { margin:0; }
+</style>
+<div class="attendance-wrap">
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% for category, message in messages %}
+<div class="attendance-msg">{{ message }}</div>
+{% endfor %}
+{% endwith %}
+
+{% if not course %}
+<div class="attendance-card">
+  <h2>{{ "Crear clase" if es else "Create Class" }}</h2>
+  <form method="POST" action="{{ url_for('attendance.create_class') }}" class="attendance-row">
+    <input name="code" maxlength="40" placeholder="{{ 'Código, ej. IT101' if es else 'Class code, e.g. IT101' }}" required>
+    <input name="title" maxlength="160" placeholder="{{ 'Nombre de la materia' if es else 'Class title' }}" required>
+    <input name="room" maxlength="80" placeholder="{{ 'Aula' if es else 'Room' }}">
+    {% if is_admin %}<input name="professor_username" placeholder="{{ 'Usuario del profesor' if es else 'Professor username' }}" required>{% endif %}
+    <button type="submit">{{ "Crear" if es else "Create" }}</button>
+  </form>
+</div>
+<div class="attendance-card">
+  <h2>{{ "Clases" if es else "Classes" }}</h2>
+  <div style="overflow-x:auto">
+    <table class="attendance-table">
+      <thead><tr><th>{{ "Código" if es else "Code" }}</th><th>{{ "Materia" if es else "Title" }}</th><th>{{ "Aula" if es else "Room" }}</th><th>{{ "Acciones" if es else "Actions" }}</th></tr></thead>
+      <tbody>
+      {% for item in courses %}
+      <tr><td>{{ item.code }}</td><td>{{ item.title }}</td><td>{{ item.room or '—' }}</td><td><a href="{{ url_for('attendance.class_detail', class_id=item.id) }}">{{ "Administrar" if es else "Manage" }}</a></td></tr>
+      {% else %}
+      <tr><td colspan="4">{{ "Aún no hay clases." if es else "No classes created yet." }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<a href="{{ url_for('attendance.classes') }}">{{ "← Volver a las clases" if es else "← Back to classes" }}</a>
+<div class="attendance-card">
+<h2>{{ course.code }} — {{ course.title }}</h2>
+<p>{{ "Aula" if es else "Room" }}: {{ course.room or "—" }}</p>
+<form class="attendance-row" method="POST" action="{{ url_for('attendance.enroll', class_id=course.id) }}">
+<input name="student_identifier" placeholder="{{ 'Usuario o correo del estudiante' if es else 'Student username or email' }}" required>
+<button type="submit">{{ "Inscribir estudiante" if es else "Enroll Student" }}</button>
+</form>
+</div>
+<div class="attendance-card">
+<h2>{{ "Programar sesión" if es else "Schedule Meeting" }}</h2>
+<form method="POST" action="{{ url_for('attendance.add_meeting', class_id=course.id) }}" class="attendance-row">
+<label>{{ "Inicio" if es else "Start" }} <input type="datetime-local" name="starts_at" required></label>
+<label>{{ "Fin" if es else "End" }} <input type="datetime-local" name="ends_at" required></label>
+<button type="submit">{{ "Programar" if es else "Schedule" }}</button>
+</form>
+</div>
+<div class="attendance-card">
+<h2>{{ "Estudiantes inscritos" if es else "Enrolled Students" }}: {{ enrollment_rows|length }}</h2>
+<ul>{% for enrollment, student in enrollment_rows %}
+<li>{{ student.first_name }} {{ student.last_name }} (@{{ student.username }})</li>
+{% else %}<li>{{ "Todavía no hay estudiantes inscritos." if es else "No students enrolled." }}</li>{% endfor %}</ul>
+</div>
+<div class="attendance-card">
+<h2>{{ "Sesiones y registro de asistencia" if es else "Sessions and Attendance" }}</h2>
+{% for meeting in meetings %}
+<div class="attendance-meeting">
+<h3>{{ meeting.starts_at.strftime('%Y-%m-%d %H:%M') }} — {{ meeting.ends_at.strftime('%H:%M') }}</h3>
+<p>{{ ("Finalizada" if es else "Finalized") if meeting.finalized_at else ("Pendiente" if es else "Open") }}</p>
+<div style="overflow-x:auto">
+<table class="attendance-table">
+<thead><tr><th>{{ "Estudiante" if es else "Student" }}</th><th>{{ "Estado" if es else "Status" }}</th><th>{{ "Marcar asistencia" if es else "Mark Attendance" }}</th></tr></thead>
+<tbody>
+{% for enrollment, student in enrollment_rows %}
+{% set status = attendance_by_meeting.get((meeting.id, student.id), '') %}
+<tr>
+<td>{{ student.first_name }} {{ student.last_name }}</td>
+<td>{{ {'Present':'Presente','Late':'Tarde','Absent':'Ausente'}.get(status, 'Sin marcar') if es else (status or 'Unmarked') }}</td>
+<td>
+{% if not meeting.finalized_at %}
+<form method="POST" action="{{ url_for('attendance.mark_attendance', meeting_id=meeting.id) }}" class="attendance-row">
+<input type="hidden" name="student_id" value="{{ student.id }}">
+<select name="status" required>
+<option value="Present" {% if status=='Present' %}selected{% endif %}>{{ "Presente" if es else "Present" }}</option>
+<option value="Late" {% if status=='Late' %}selected{% endif %}>{{ "Tarde" if es else "Late" }}</option>
+<option value="Absent" {% if status=='Absent' %}selected{% endif %}>{{ "Ausente" if es else "Absent" }}</option>
+</select>
+<button type="submit">{{ "Guardar" if es else "Save" }}</button>
+</form>
+{% else %}—{% endif %}
+</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+{% if not meeting.finalized_at %}
+<form method="POST" action="{{ url_for('attendance.finalize_meeting', meeting_id=meeting.id) }}" class="attendance-row">
+<button type="submit">{{ "Finalizar sesión (los no marcados serán ausentes)" if es else "Finalize Meeting (unmarked become absent)" }}</button>
+</form>
+{% endif %}
+</div>
+{% else %}<p>{{ "Todavía no hay sesiones." if es else "No meetings scheduled." }}</p>{% endfor %}
+</div>
+{% endif %}
+</div>
+{% endblock %}
