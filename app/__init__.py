@@ -13,7 +13,7 @@ BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
 
-from flask import Flask, redirect, url_for, session
+from flask import Flask, redirect, url_for, session, request
 from flask_login import LoginManager, current_user
 from flask_migrate import Migrate
 
@@ -672,11 +672,33 @@ def create_app():
         from .models.admin_audit_model import AdminAuditLog
         from .models.scan_token_model import ScanToken
         from .models.validation_revocation_model import ValidationCodeRevocation
+        from .models.user_presence_model import UserPresence
 
         db.create_all()
 
         # 🔥 CREATE DEFAULT ADMIN
         seed_default_admin()
+
+    @app.before_request
+    def update_recent_user_activity():
+        """Refresh active-user heartbeat at most once per 30 seconds."""
+        if not current_user.is_authenticated or request.endpoint == "static":
+            return
+        from datetime import datetime, timedelta
+        from .models.user_presence_model import UserPresence
+        now = datetime.utcnow()
+        try:
+            presence = db.session.get(UserPresence, current_user.id)
+            if presence is None:
+                db.session.add(UserPresence(user_id=current_user.id, last_seen_at=now))
+            elif presence.last_seen_at > now - timedelta(seconds=30):
+                return
+            else:
+                presence.last_seen_at = now
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            app.logger.exception("Could not update user presence")
 
     # ✅ ROOT → LOGIN PAGE
     @app.route("/")
