@@ -112,7 +112,11 @@ class UniTrackTests(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
 
     def _signed_in_client(self, username="Admin"):
+        # Give each independent integration client a different TEST-NET source IP.
+        # Do not disable or raise the application's real login rate limits.
+        self.__class__._login_ip_counter = getattr(self.__class__, "_login_ip_counter", 0) + 1
         client = self.app.test_client()
+        client.environ_base["REMOTE_ADDR"] = f"198.51.100.{self.__class__._login_ip_counter}"
         response = client.get("/auth/login-page")
         token = re.search(rb'name="csrf_token" value="([^"]+)"', response.data)
         self.assertIsNotNone(token)
