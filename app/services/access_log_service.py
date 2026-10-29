@@ -9,6 +9,7 @@ from urllib.parse import urlparse, parse_qs
 import hashlib
 
 from app.database import db
+from app.utils.local_time import campus_now
 from app.models.access_log_model import AccessLog
 from app.models.user_model import User
 
@@ -26,7 +27,7 @@ def get_current_system_datetime():
     local time. Using datetime.now() keeps check-in/check-out timestamps
     aligned with the real local time used by the app.
     """
-    return datetime.now()
+    return campus_now()
 
 
 def normalize_access_role(role_value):
