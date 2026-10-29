@@ -680,17 +680,17 @@ def _build_public_base_url():
     return ""
 
 
-def build_student_access_mobile_scan_url(student):
+def build_student_access_mobile_scan_url(student, token=None):
     """QR is a short-lived signed link, not a reusable public user ID."""
     from app.services.scan_token_service import issue_scan_token
     base_url = _build_public_base_url()
     route_prefix = _build_access_route_prefix(student)
-    query_string = urlencode({"scan_token": issue_scan_token(student)})
+    query_string = urlencode({"scan_token": token or issue_scan_token(student)})
     route_path = f"/{route_prefix}/access-control/mobile-scan"
     return f"{base_url}{route_path}?{query_string}" if base_url else f"{route_path}?{query_string}"
 
 
-def build_student_access_qr_payload(student):
+def build_student_access_qr_payload(student, token=None):
     """
     Build the raw text payload encoded inside the QR image.
 
@@ -698,7 +698,7 @@ def build_student_access_qr_payload(student):
     The QR now contains a scannable URL instead of plain text,
     so the phone camera can open the app directly.
     """
-    return build_student_access_mobile_scan_url(student)
+    return build_student_access_mobile_scan_url(student, token=token)
 
 
 def build_student_access_qr_id_code(student):
@@ -959,9 +959,9 @@ def process_access_scan_qr_text(qr_text):
             "processed_at": _server_now_iso(),
         }, 403
 
-    from app.services.scan_token_service import resolve_scan_token, consume_scan_token
+    from app.services.scan_token_service import resolve_scan_token, consume_scan_token, is_temporary_access_code
     user = None
-    if "scan_token=" in qr_text or qr_text.startswith("eyJ"):
+    if "scan_token=" in qr_text or qr_text.startswith("eyJ") or is_temporary_access_code(qr_text):
         try:
             user, token_record = resolve_scan_token(qr_text)
             consume_scan_token(token_record)
@@ -1136,9 +1136,12 @@ def access_control_page():
     quick_stats = get_student_access_quick_stats(current_user.id)
     current_access_status = get_student_current_access_status(current_user.id)
 
-    access_qr_payload = build_student_access_qr_payload(current_user)
+    # Each person's access page displays a unique, usable credential.
+    # QR and temporary manual code represent the same 5-minute pass.
+    from app.services.scan_token_service import issue_access_credential
+    access_token, access_qr_id_code = issue_access_credential(current_user)
+    access_qr_payload = build_student_access_qr_payload(current_user, token=access_token)
     access_qr_image = generate_qr_image_data_uri(access_qr_payload)
-    access_qr_id_code = build_student_access_qr_id_code(current_user)
 
     return render_template(
         "student_access_control.html",
