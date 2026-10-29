@@ -1,6 +1,6 @@
 {% extends "admin_base.html" %}
 
-{% block title %}Delete User | UniTrack Admin{% endblock %}
+{% block title %}{{ t('Delete User | UniTrack Admin') }}{% endblock %}
 
 {% block content %}
 <style>
@@ -389,82 +389,80 @@
 <div class="admin-delete-page">
     <section class="delete-hero">
         <div>
-            <h1>Delete User</h1>
+            <h1>{{ t('Delete User') }}</h1>
             <p>
-                Review this account carefully before deletion. This action is intended for
-                permanent removal of a user from the UniTrack system and should only be used
-                when absolutely necessary.
+                {{ t('Review this account carefully before deletion. This action is intended for permanent removal of a user from the UniTrack system and should only be used when absolutely necessary.') }}
             </p>
         </div>
 
         <div class="status-chip {% if is_online %}status-online{% else %}status-offline{% endif %}">
             <span class="status-dot"></span>
-            {% if is_online %}Online{% else %}Offline{% endif %}
+            {% if is_online %}{{ t('Online') }}{% else %}{{ t('Offline') }}{% endif %}
         </div>
     </section>
 
     <div class="content-grid">
         <section class="card">
-            <h2>User Information</h2>
+            <h2>{{ t('User Information') }}</h2>
             <p class="card-text">
-                Confirm the exact user account you are about to remove.
+                {{ t('Confirm the exact user account you are about to remove.') }}
             </p>
 
             <div class="details-grid">
                 <div class="detail-box">
-                    <span class="detail-label">Full Name</span>
+                    <span class="detail-label">{{ t('Full Name') }}</span>
                     <span class="detail-value">
-                        {{ ((user.first_name or '') ~ ' ' ~ (user.last_name or '')).strip() or user.username or 'Unknown User' }}
+                        {{ ((user.first_name or '') ~ ' ' ~ (user.last_name or '')).strip() or user.username or t('Unknown User') }}
                     </span>
                 </div>
 
                 <div class="detail-box">
-                    <span class="detail-label">Username</span>
+                    <span class="detail-label">{{ t('Username') }}</span>
                     <span class="detail-value">@{{ user.username or '-' }}</span>
                 </div>
 
                 <div class="detail-box">
-                    <span class="detail-label">Role</span>
+                    <span class="detail-label">{{ t('Role') }}</span>
                     <span class="detail-value">
-                        <span class="role-badge">{{ role_label or 'User' }}</span>
+                        <span class="role-badge">{{ t(role_label or 'User') }}</span>
                     </span>
                 </div>
 
                 <div class="detail-box">
-                    <span class="detail-label">Email</span>
+                    <span class="detail-label">{{ t('Email') }}</span>
                     <span class="detail-value">{{ user.email or '-' }}</span>
                 </div>
 
                 <div class="detail-box">
-                    <span class="detail-label">Phone</span>
+                    <span class="detail-label">{{ t('Phone') }}</span>
                     <span class="detail-value">{{ user.phone or '-' }}</span>
                 </div>
 
                 <div class="detail-box">
-                    <span class="detail-label">User ID</span>
-                    <span class="detail-value">{{ user.user_id_code or 'Not assigned' }}</span>
+                    <span class="detail-label">{{ t('User ID') }}</span>
+                    <span class="detail-value">{{ user.user_id_code or t('Not assigned') }}</span>
                 </div>
 
                 <div class="detail-box">
-                    <span class="detail-label">Account Status</span>
+                    <span class="detail-label">{{ t('Account Status') }}</span>
                     <span class="detail-value">
                         {% if is_online %}
-                            Online
+                            {{ t('Online') }}
                         {% elif user.is_active_user %}
-                            Active
+                            {{ t('Active') }}
                         {% else %}
-                            Inactive
+                            {{ t('Inactive') }}
                         {% endif %}
                     </span>
                 </div>
 
                 <div class="detail-box">
-                    <span class="detail-label">Password Rule</span>
+                    <span class="detail-label">{{ t('Password Rule') }}</span>
                     <span class="detail-value">
                         {% if user.must_change_password %}
-                            Must change password
+                            {{ t('Must change password') }}
                         {% else %}
-                            Normal
+                            {{ t('Normal') }}
                         {% endif %}
                     </span>
                 </div>
@@ -472,25 +470,25 @@
         </section>
 
         <section class="card">
-            <h2>Delete Confirmation</h2>
+            <h2>{{ t('Delete Confirmation') }}</h2>
             <p class="card-text">
-                This action is protected. Read the warning below before continuing.
+                {{ t('This action is protected. Read the warning below before continuing.') }}
             </p>
 
             {% if can_delete %}
                 <div class="danger-box">
-                    Warning: deleting this user may also affect related records connected to this account.
+                    {{ t('Warning: deleting this user may also affect related records connected to this account.') }}
 
                     <ul class="warning-list">
-                        <li>This action should be treated as permanent.</li>
-                        <li>The user will lose access to UniTrack immediately.</li>
-                        <li>Use this only when you are sure the account must be removed.</li>
+                        <li>{{ t('This action should be treated as permanent.') }}</li>
+                        <li>{{ t('The user will lose access to UniTrack immediately.') }}</li>
+                        <li>{{ t('Use this only when you are sure the account must be removed.') }}</li>
                     </ul>
                 </div>
 
                 <form method="POST" action="/admin/users/{{ user.id }}/delete" class="form-grid">
                     <div class="field-group">
-                        <label for="confirmation_text">Type DELETE to confirm</label>
+                        <label for="confirmation_text">{{ t('Type DELETE to confirm') }}</label>
                         <input
                             id="confirmation_text"
                             name="confirmation_text"
@@ -501,19 +499,19 @@
                             required
                         >
                         <p class="helper-text">
-                            You must type DELETE exactly in uppercase to remove this user.
+                            {{ t('You must type DELETE exactly in uppercase to remove this user.') }}
                         </p>
                     </div>
 
                     <div class="actions-row">
-                        <button type="submit" class="btn btn-danger">Delete User</button>
-                        <a href="/admin/users/{{ user.id }}/edit" class="btn btn-secondary">Back to Edit User</a>
-                        <a href="/admin/users" class="btn btn-dark">Back to Users</a>
+                        <button type="submit" class="btn btn-danger">{{ t('Delete User') }}</button>
+                        <a href="/admin/users/{{ user.id }}/edit" class="btn btn-secondary">{{ t('Back to Edit User') }}</a>
+                        <a href="/admin/users" class="btn btn-dark">{{ t('Back to Users') }}</a>
                     </div>
                 </form>
             {% else %}
                 <div class="protected-box">
-                    This account is protected and cannot be deleted.
+                    {{ t('This account is protected and cannot be deleted.') }}
 
                     {% if protection_message %}
                         <div style="margin-top:10px;">
@@ -523,9 +521,9 @@
                 </div>
 
                 <div class="actions-row" style="margin-top:18px;">
-                    <span class="btn btn-disabled">Delete User</span>
-                    <a href="/admin/users/{{ user.id }}/edit" class="btn btn-secondary">Back to Edit User</a>
-                    <a href="/admin/users" class="btn btn-dark">Back to Users</a>
+                    <span class="btn btn-disabled">{{ t('Delete User') }}</span>
+                    <a href="/admin/users/{{ user.id }}/edit" class="btn btn-secondary">{{ t('Back to Edit User') }}</a>
+                    <a href="/admin/users" class="btn btn-dark">{{ t('Back to Users') }}</a>
                 </div>
             {% endif %}
         </section>
