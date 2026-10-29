@@ -111,6 +111,7 @@
     <h3>{{ t('Create Validation Code') }}</h3>
 
     <form method="POST" action="/admin/validation-codes/create">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="form-grid">
             <select name="role" class="select-field" required>
                 <option value="" selected disabled>{{ t('Select Role') }}</option>
@@ -182,6 +183,7 @@
                         <td>
                           {% if not code.is_used and code.id not in revoked_code_ids %}
                           <form method="POST" action="{{ url_for('admin_views.admin_revoke_validation_code', code_id=code.id) }}" onsubmit="return confirm({{ ('¿Revocar este código? No se podrá usar.' if current_language == 'es' else 'Revoke this code? It cannot be used afterwards.')|tojson }});">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-secondary">{{ t('Revoke') }}</button>
                           </form>
                           {% else %}—{% endif %}
