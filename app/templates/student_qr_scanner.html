@@ -15,6 +15,7 @@
 
 <div class="card" style="max-width:900px;">
     <form method="POST" action="/student/access-control/scanner">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div style="margin-bottom:14px;">
             <label style="display:block; font-weight:800; margin-bottom:8px;">
                 {{ "Contenido QR" if is_spanish else "QR Content" }}
