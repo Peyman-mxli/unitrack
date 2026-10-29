@@ -600,6 +600,7 @@ body{
         {% endif %}
 
         <form method="POST" action="/auth/register-page" enctype="multipart/form-data">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
             <div class="form-grid">
 
