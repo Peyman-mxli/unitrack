@@ -25,7 +25,7 @@ class UniTrackTests(unittest.TestCase):
         cls.db = db
         with cls.app.app_context():
             for username, role in [("Admin", "administrativo"), ("StudentA", "estudiante"),
-                                   ("TeacherA", "docente")]:
+                                   ("TeacherA", "docente"), ("StaffA", "personal")]:
                 db.session.add(User(
                     username=username, email=username.lower() + "@example.test",
                     first_name=username, last_name="Test", phone="0000000000",
@@ -210,7 +210,8 @@ class UniTrackTests(unittest.TestCase):
     def test_admin_and_teacher_camera_script_present(self):
         for username, path in (
             ("Admin", "/admin/access-control/scanner"),
-            ("TeacherA", "/professor/access-control/scanner")
+            ("TeacherA", "/professor/access-control/scanner"),
+            ("StaffA", "/personal/access-control/scanner")
         ):
             with self.subTest(username=username):
                 client = self._signed_in_client(username)
