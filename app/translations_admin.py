@@ -278,5 +278,14 @@ ADMIN_SPANISH = {
     "Attendance saved.": "Asistencia guardada correctamente.",
     "A meeting can only be finalized after it ends.": "La sesión solo se puede finalizar después de su hora de término.",
     "Meeting finalized; unmarked enrolled students count as absent.": "Sesión finalizada; los estudiantes inscritos sin registro se consideran ausentes.",
-    "An active account is required for QR creation.": "Se necesita una cuenta activa para generar el código QR."
+    "An active account is required for QR creation.": "Se necesita una cuenta activa para generar el código QR.",
+    "Deactivate Account": "Desactivar cuenta",
+    "Reactivate Account": "Reactivar cuenta",
+    "You cannot deactivate your own account.": "No puedes desactivar tu propia cuenta.",
+    "The main administrator account cannot be deactivated.": "No se puede desactivar la cuenta del administrador principal.",
+    "The last active administrator cannot be deactivated.": "No se puede desactivar al último administrador activo.",
+    "User account activated.": "Cuenta de usuario activada.",
+    "User account deactivated.": "Cuenta de usuario desactivada.",
+    "Could not update the account status.": "No se pudo actualizar el estado de la cuenta.",
+    "Cannot permanently delete a user with attendance, access or audit history. Deactivate the account instead.": "No se puede eliminar permanentemente una cuenta con historial de asistencia, acceso o auditoría. Desactiva la cuenta."
 }
