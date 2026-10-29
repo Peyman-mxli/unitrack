@@ -301,6 +301,7 @@
                 <p class="form-subtitle">{{ t('Select a new role and save.') }}</p>
 
                 <form method="POST" action="/admin/users/{{ user.id }}/change-role">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="field-group">
                         <label>{{ t('New Role') }}</label>
                         <select name="role" class="field-control">
