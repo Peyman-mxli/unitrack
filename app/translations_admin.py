@@ -219,5 +219,9 @@ ADMIN_SPANISH = {
     "No message returned.": "No se recibió ningún mensaje.",
     "Action": "Acción",
     "HTTP Status": "Estado HTTP",
-    "No scan has been processed yet. Paste a QR payload or backup access code and click": "Aún no se ha procesado ningún escaneo. Pega el contenido QR o el código de respaldo y pulsa"
+    "No scan has been processed yet. Paste a QR payload or backup access code and click": "Aún no se ha procesado ningún escaneo. Pega el contenido QR o el código de respaldo y pulsa",
+    "User not found": "No se encontró el usuario.",
+    "Invalid password": "Contraseña incorrecta.",
+    "User account is inactive": "La cuenta del usuario está inactiva.",
+    "login and password are required": "El usuario y la contraseña son obligatorios."
 }
