@@ -637,7 +637,7 @@
 <section class="operator-qr-card" aria-labelledby="operatorPassTitle">
     <h2 id="operatorPassTitle">{{ "Ingresar código de acceso" if current_language == "es" else "Enter Access Code" }}</h2>
     <p class="qr-instructions">
-        {{ "Si una persona no puede mostrar su QR, escribe el código temporal de 16 caracteres que aparece en su propia cuenta. No uses el ID permanente ni el código de validación de registro." if current_language == "es" else "If someone cannot show their QR, enter the temporary 16-character code displayed in their own account. Do not use their permanent ID or registration validation code." }}
+        {{ "Si una persona no puede mostrar su QR, escribe su código temporal único. Prefijos: EST = estudiante, DOC = docente, PER = personal, ADM = administrador. No uses el ID permanente ni el código de validación de registro." if current_language == "es" else "If someone cannot show their QR, enter their unique temporary code. Prefixes: EST = student, DOC = professor, PER = staff, ADM = administrator. Do not use the permanent ID or registration validation code." }}
     </p>
     <form method="POST" action="{{ url_for('admin_views.admin_access_control') }}"
           style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
@@ -647,7 +647,7 @@
         </label>
         <input type="text" id="admin_pass_code" name="pass_code"
                autocomplete="off" spellcheck="false" maxlength="24" required
-               placeholder="XXXX-XXXX-XXXX-XXXX" pattern="[A-Za-z0-9 -]{16,24}"
+               placeholder="EST-XXXX-XXXX-XXXX-XXXX" pattern="[A-Za-z0-9 -]{16,24}"
                style="flex:1;min-width:210px;padding:13px;border-radius:11px;border:1px solid #cbd5e1;
                       font-weight:800;font-size:16px;letter-spacing:0.08em;text-transform:uppercase;">
         <button type="submit" class="operator-qr-submit">
