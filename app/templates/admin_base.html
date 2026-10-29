@@ -983,7 +983,7 @@
                                 {% for category, message in messages %}
                                     <div class="flash-message
                                         {% if category == 'success' %}flash-success{% elif category == 'warning' %}flash-warning{% elif category == 'danger' or category == 'error' %}flash-danger{% endif %}">
-                                        {{ message }}
+                                        {{ t(message) }}
                                     </div>
                                 {% endfor %}
                             </div>
