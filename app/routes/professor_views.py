@@ -338,6 +338,75 @@ def access_control_mobile_scan():
     ), 200
 
 
+@professor_views_bp.route("/access-control/scanner", methods=["GET", "POST"])
+@login_required
+def access_control_scanner():
+    if not _is_professor_user():
+        return _reject()
+
+    _sync_professor_language()
+
+    qr_text_value = ""
+    scan_result = None
+
+    if request.method == "POST":
+        qr_text_value = (request.form.get("qr_text") or "").strip()
+
+        # 🔥 FIX: use SAME global processor as student
+        response_data, status_code = process_access_scan_qr_text(qr_text_value)
+
+        scan_result = {
+            "success": response_data.get("success", False),
+            "message": response_data.get("message", ""),
+            "action": response_data.get("action", ""),
+            "professor_name": (
+                response_data.get("professor_name")
+                or response_data.get("user_name")
+                or response_data.get("student_name")
+                or "--"
+            ),
+            "username": response_data.get("username", ""),
+            "status": response_data.get("status", ""),
+            "check_in_time": response_data.get("check_in_time", ""),
+            "check_out_time": response_data.get("check_out_time", ""),
+            "status_code": status_code,
+        }
+
+    return render_template(
+        "professor_qr_scanner.html",
+        active_page="scanner",
+        professor_name=_professor_name(),
+        role_label="Professor",
+        account_role_label="Professor",
+        account_type_label="Professor",
+        qr_text_value=qr_text_value,
+        scan_result=scan_result,
+    )
+
+
+# =========================
+# CONFIGURATION
+# =========================
+@professor_views_bp.route("/configuration")
+@login_required
+def configuration_page():
+    if not _is_professor_user():
+        return _reject()
+
+    _sync_professor_language()
+
+    return render_template(
+        "professor_configuration.html",
+        active_page="configuration",
+        professor_name=_professor_name(),
+        role_label="Professor",
+        account_role_label="Professor",
+        account_type_label="Professor",
+        profile_message=request.args.get("success"),
+        profile_error=request.args.get("error"),
+    )
+
+
 @professor_views_bp.route("/configuration/update", methods=["POST"])
 @login_required
 def configuration_update():
