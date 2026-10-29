@@ -290,5 +290,67 @@ class UniTrackTests(unittest.TestCase):
             self.assertEqual(report["attendance_percentage"], 100.0)
 
 
+    def test_admin_can_deactivate_and_reactivate_without_deleting_user(self):
+        from app.models.user_model import User
+        from werkzeug.security import generate_password_hash
+        with self.app.app_context():
+            user = User(
+                username="SuspendTest", email="suspend@example.test",
+                first_name="Suspend", last_name="Test",
+                phone="0000000000", role="estudiante", language="es",
+                password_hash=generate_password_hash("TestingPassword123!"),
+                is_active_user=True
+            )
+            self.db.session.add(user)
+            self.db.session.commit()
+            user_id = user.id
+
+        client = self._signed_in_client()
+        page = client.get(f"/admin/users/{user_id}/edit")
+        self.assertEqual(page.status_code, 200)
+        match = re.search(rb'name="csrf_token" value="([^"]+)"', page.data)
+        self.assertIsNotNone(match)
+        token = match.group(1).decode("utf-8")
+        response = client.post(f"/admin/users/{user_id}/toggle-active",
+                               data={"csrf_token": token})
+        self.assertEqual(response.status_code, 302)
+        with self.app.app_context():
+            self.assertFalse(self.db.session.get(User, user_id).is_active_user)
+        response = client.post(f"/admin/users/{user_id}/toggle-active",
+                               data={"csrf_token": token})
+        self.assertEqual(response.status_code, 302)
+        with self.app.app_context():
+            self.assertTrue(self.db.session.get(User, user_id).is_active_user)
+
+    def test_attendance_history_blocks_permanent_user_deletion(self):
+        from app.models.user_model import User
+        from app.models.access_log_model import AccessLog
+        from app.routes.admin_views import can_delete_user
+        from app.utils.local_time import campus_now
+        from werkzeug.security import generate_password_hash
+        with self.app.app_context():
+            user = User(
+                username="HistoryTest", email="history@example.test",
+                first_name="History", last_name="Test",
+                phone="0000000000", role="estudiante", language="es",
+                password_hash=generate_password_hash("TestingPassword123!"),
+                is_active_user=True
+            )
+            self.db.session.add(user)
+            self.db.session.flush()
+            now = campus_now()
+            self.db.session.add(AccessLog(
+                student_id=user.id, access_date=now.date(),
+                check_in_time=now, access_status="checked_in", access_method="qr"
+            ))
+            self.db.session.commit()
+            admin = self.db.session.execute(
+                self.db.select(User).where(User.username == "Admin")
+            ).scalar_one()
+            allowed, reason = can_delete_user(user, admin)
+            self.assertFalse(allowed)
+            self.assertIn("history", reason.lower())
+
+
 if __name__ == "__main__":
     unittest.main()
