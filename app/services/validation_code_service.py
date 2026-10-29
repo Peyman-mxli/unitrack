@@ -17,6 +17,7 @@ import secrets
 import string
 
 from app.database import db
+from app.models.validation_revocation_model import ValidationCodeRevocation
 from app.models.validation_code_model import ValidationCode
 
 
@@ -129,6 +130,13 @@ def validate_code_for_use(code, selected_role=None):
 
     if not validation_code:
         return False, None, "Validation code not found"
+
+    if db.session.execute(
+        db.select(ValidationCodeRevocation.id).where(
+            ValidationCodeRevocation.code_id == validation_code.id
+        )
+    ).scalar_one_or_none() is not None:
+        return False, None, "Validation code has been revoked"
 
     if validation_code.is_used:
         return False, None, "Validation code has already been used"
