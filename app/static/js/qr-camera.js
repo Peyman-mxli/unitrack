@@ -1,120 +1,244 @@
-/* UniTrack camera QR scanner. Uses the browser's native BarcodeDetector API.
-   Only the authenticated form POST records an access event. */
+/* UniTrack camera QR reader. Local jsQR library works without BarcodeDetector.
+ * Camera access requires HTTPS or localhost. Never automatically register access. */
 (() => {
   "use strict";
-  const forms = document.querySelectorAll('form[method="POST"], form[method="post"]');
-  const form = Array.from(forms).find(item => item.querySelector('textarea[name="qr_text"]'));
-  if (!form) return;
-  const textArea = form.querySelector('textarea[name="qr_text"]');
-  const isSpanish = document.documentElement.lang.toLowerCase().startsWith("es");
-  const words = isSpanish ? {
-    start: "Escanear con cámara",
-    stop: "Detener cámara",
-    unavailable: "La cámara QR no está disponible en este navegador. Usa Chrome actualizado o pega el código.",
-    insecure: "La cámara requiere HTTPS o localhost.",
-    error: "No se pudo abrir la cámara. Revisa los permisos del navegador.",
-    scanning: "Apunta la cámara al código QR del usuario.",
-    detected: "Código detectado. Verificando..."
-  } : {
-    start: "Scan with camera",
-    stop: "Stop camera",
-    unavailable: "Camera QR scanning is unavailable in this browser. Use updated Chrome or paste the code.",
-    insecure: "Camera access requires HTTPS or localhost.",
-    error: "Could not open the camera. Check your browser permissions.",
-    scanning: "Point the camera at the user's QR code.",
-    detected: "Code detected. Verifying..."
-  };
-  const wrap = document.createElement("div");
-  wrap.style.cssText = "display:flex;flex-direction:column;align-items:flex-start;gap:10px;margin:12px 0;";
-  const button = document.createElement("button");
-  button.type = "button";
-  button.textContent = words.start;
-  button.style.cssText = "background:#5433bf;color:#fff;padding:11px 17px;border:0;border-radius:10px;font-weight:800;cursor:pointer;";
-  const status = document.createElement("p");
-  status.setAttribute("role", "status");
-  status.setAttribute("aria-live", "polite");
-  status.style.cssText = "font-size:13px;color:#334155;margin:0;";
-  const video = document.createElement("video");
-  video.autoplay = true;
-  video.muted = true;
-  video.playsInline = true;
-  video.setAttribute("aria-label", isSpanish ? "Vista de la cámara" : "Camera preview");
-  video.style.cssText = "display:none;max-width:100%;width:380px;aspect-ratio:4/3;object-fit:cover;border-radius:12px;background:#111827;";
-  wrap.append(button, video, status);
-  textArea.insertAdjacentElement("afterend", wrap);
-  let stream = null;
-  let active = false;
-  let frame = null;
-  let detector = null;
-  let pending = false;
-  const stop = () => {
-    active = false;
-    if (frame !== null) cancelAnimationFrame(frame);
-    frame = null;
-    if (stream) stream.getTracks().forEach(track => track.stop());
-    stream = null;
-    video.srcObject = null;
-    video.style.display = "none";
-    button.textContent = words.start;
-  };
-  const detect = async () => {
-    if (!active || pending || !detector) return;
-    pending = true;
-    try {
-      const found = await detector.detect(video);
-      if (!active) return;
-      if (found.length && typeof found[0].rawValue === "string") {
-        const value = found[0].rawValue.trim();
-        if (value) {
-          textArea.value = value;
-          status.textContent = words.detected;
-          stop();
-          form.requestSubmit();
+
+  const init = () => {
+    const widget = document.getElementById("unitrackQrCamera");
+    if (!widget) return;
+    const form = widget.closest("form");
+    const field = form?.querySelector('[name="qr_text"]');
+    if (!form || !field) return;
+
+    const startButton = widget.querySelector("[data-qr-start]");
+    const stopButton = widget.querySelector("[data-qr-stop]");
+    const photoButton = widget.querySelector("[data-qr-photo]");
+    const video = widget.querySelector("[data-qr-video]");
+    const status = widget.querySelector("[data-qr-status]");
+    const cameraChoice = widget.querySelector("[data-qr-camera-choice]");
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    const spanish = document.documentElement.lang.toLowerCase().startsWith("es");
+    const messages = spanish ? {
+      start: "Escanear con cámara", stop: "Detener cámara",
+      help: "La cámara requiere HTTPS o localhost.",
+      unsupported: "Este navegador no permite acceder a la cámara. Puedes escanear una imagen.",
+      library: "No se pudo cargar el lector QR. Actualiza la página.",
+      request: "Solicitando permiso para usar la cámara...",
+      ready: "Apunta la cámara hacia un código QR válido.",
+      noCamera: "No hay una cámara disponible. Usa una imagen QR.",
+      denied: "Permiso de cámara denegado. Permite el acceso desde el icono de la cámara del navegador.",
+      busy: "Otra aplicación está usando la cámara. Ciérrala e inténtalo de nuevo.",
+      error: "No se pudo iniciar la cámara. Revisa la configuración del navegador.",
+      detected: "Código detectado. Revisa el contenido y pulsa «Escanear QR» para confirmar.",
+      imageError: "No se pudo leer la imagen seleccionada.",
+      imageMissing: "No se detectó un código QR en esta imagen.",
+      selectCamera: "Seleccionar cámara"
+    } : {
+      start: "Scan with camera", stop: "Stop camera",
+      help: "Camera access requires HTTPS or localhost.",
+      unsupported: "This browser cannot access the camera. You can scan an image instead.",
+      library: "QR decoder could not load. Refresh the page.",
+      request: "Requesting camera permission...",
+      ready: "Point the camera at a valid QR code.",
+      noCamera: "No camera was found. Use a QR image instead.",
+      denied: "Camera permission denied. Allow access in your browser's camera settings.",
+      busy: "Another application is using the camera. Close it and try again.",
+      error: "Could not start the camera. Check browser settings.",
+      detected: "QR found. Review the code and click Scan QR to confirm.",
+      imageError: "Could not read the selected image.",
+      imageMissing: "No QR code was detected in this image.",
+      selectCamera: "Select camera"
+    };
+
+    let stream = null;
+    let scanning = false;
+    let timeoutId = null;
+    let inFlight = false;
+    let lastDevice = "";
+
+    const announce = (message) => { status.textContent = message; };
+
+    const stop = () => {
+      scanning = false;
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
+      timeoutId = null;
+      if (stream) stream.getTracks().forEach((track) => track.stop());
+      stream = null;
+      video.pause();
+      video.srcObject = null;
+      video.hidden = true;
+      startButton.hidden = false;
+      stopButton.hidden = true;
+      startButton.disabled = false;
+    };
+
+    const drawFrame = (source, naturalWidth, naturalHeight) => {
+      if (!context || !naturalWidth || !naturalHeight) return null;
+      const factor = Math.min(1, 960 / Math.max(naturalWidth, naturalHeight));
+      canvas.width = Math.max(1, Math.floor(naturalWidth * factor));
+      canvas.height = Math.max(1, Math.floor(naturalHeight * factor));
+      context.drawImage(source, 0, 0, canvas.width, canvas.height);
+      const pixels = context.getImageData(0, 0, canvas.width, canvas.height);
+      return window.jsQR(pixels.data, pixels.width, pixels.height, {
+        inversionAttempts: "attemptBoth"
+      });
+    };
+
+    const foundQr = (value) => {
+      if (!value || !value.trim()) return;
+      field.value = value.trim();
+      stop();
+      field.focus();
+      announce(messages.detected);
+      // An actual campus check-in/out is only created when the operator
+      // submits the existing CSRF-protected form. Never auto-submit here.
+    };
+
+    const tick = () => {
+      if (!scanning || inFlight) return;
+      inFlight = true;
+      try {
+        if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+          const result = drawFrame(video, video.videoWidth, video.videoHeight);
+          if (result?.data) {
+            foundQr(result.data);
+            return;
+          }
+        }
+      } catch (_) {
+        // Frames can occasionally be unavailable while focusing the camera.
+      } finally {
+        inFlight = false;
+        if (scanning) timeoutId = window.setTimeout(tick, 160);
+      }
+    };
+
+    const listCameras = async () => {
+      if (!navigator.mediaDevices?.enumerateDevices) return;
+      try {
+        const devices = (await navigator.mediaDevices.enumerateDevices())
+          .filter((device) => device.kind === "videoinput");
+        cameraChoice.replaceChildren();
+        if (devices.length < 2) {
+          cameraChoice.hidden = true;
           return;
         }
+        devices.forEach((device, i) => {
+          const option = document.createElement("option");
+          option.value = device.deviceId;
+          option.textContent = device.label || `${messages.selectCamera} ${i + 1}`;
+          cameraChoice.appendChild(option);
+        });
+        cameraChoice.hidden = false;
+        if (lastDevice && devices.some(d => d.deviceId === lastDevice)) {
+          cameraChoice.value = lastDevice;
+        }
+      } catch (_) {
+        cameraChoice.hidden = true;
       }
-    } catch (error) {
-      // The camera may still be focusing; keep reading on the next frame.
-    } finally {
-      pending = false;
-      if (active) frame = requestAnimationFrame(detect);
-    }
+    };
+
+    const start = async () => {
+      if (scanning) return;
+      if (!window.isSecureContext) {
+        announce(messages.help);
+        return;
+      }
+      if (!navigator.mediaDevices?.getUserMedia) {
+        announce(messages.unsupported);
+        return;
+      }
+      if (typeof window.jsQR !== "function" || !context) {
+        announce(messages.library);
+        return;
+      }
+
+      startButton.disabled = true;
+      announce(messages.request);
+      try {
+        const selected = cameraChoice.value || lastDevice;
+        const videoOptions = selected
+          ? { deviceId: { ideal: selected } }
+          : { facingMode: { ideal: "environment" } };
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: videoOptions, audio: false
+        });
+        video.srcObject = stream;
+        await video.play();
+        scanning = true;
+        video.hidden = false;
+        startButton.hidden = true;
+        stopButton.hidden = false;
+        announce(messages.ready);
+        await listCameras();
+        timeoutId = window.setTimeout(tick, 160);
+      } catch (error) {
+        stop();
+        announce(error?.name === "NotAllowedError" || error?.name === "SecurityError"
+          ? messages.denied
+          : error?.name === "NotFoundError" ? messages.noCamera
+          : error?.name === "NotReadableError" ? messages.busy
+          : messages.error);
+      } finally {
+        startButton.disabled = false;
+      }
+    };
+
+    startButton.addEventListener("click", start);
+    stopButton.addEventListener("click", () => {
+      stop();
+      announce("");
+    });
+
+    cameraChoice.addEventListener("change", async () => {
+      lastDevice = cameraChoice.value;
+      if (scanning) {
+        stop();
+        await start();
+      }
+    });
+
+    photoButton.addEventListener("change", () => {
+      const file = photoButton.files?.[0];
+      if (!file) return;
+      if (typeof window.jsQR !== "function" || !context) {
+        announce(messages.library);
+        photoButton.value = "";
+        return;
+      }
+      stop();
+      const url = URL.createObjectURL(file);
+      const image = new Image();
+      image.onload = () => {
+        try {
+          const result = drawFrame(image, image.naturalWidth, image.naturalHeight);
+          if (result?.data) foundQr(result.data);
+          else announce(messages.imageMissing);
+        } catch (_) {
+          announce(messages.imageError);
+        } finally {
+          URL.revokeObjectURL(url);
+          photoButton.value = "";
+        }
+      };
+      image.onerror = () => {
+        announce(messages.imageError);
+        URL.revokeObjectURL(url);
+        photoButton.value = "";
+      };
+      image.src = url;
+    });
+
+    window.addEventListener("pagehide", stop);
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) stop();
+    });
   };
-  button.addEventListener("click", async () => {
-    if (active) {
-      stop();
-      return;
-    }
-    if (!window.isSecureContext) {
-      status.textContent = words.insecure;
-      return;
-    }
-    if (!("BarcodeDetector" in window) || !navigator.mediaDevices?.getUserMedia) {
-      status.textContent = words.unavailable;
-      return;
-    }
-    button.disabled = true;
-    try {
-      detector = new BarcodeDetector({formats:["qr_code"]});
-      stream = await navigator.mediaDevices.getUserMedia({
-        video:{facingMode:{ideal:"environment"}}, audio:false
-      });
-      video.srcObject = stream;
-      await video.play();
-      active = true;
-      video.style.display = "block";
-      button.textContent = words.stop;
-      status.textContent = words.scanning;
-      frame = requestAnimationFrame(detect);
-    } catch (error) {
-      stop();
-      status.textContent = words.error;
-    } finally {
-      button.disabled = false;
-    }
-  });
-  window.addEventListener("pagehide", stop);
-  document.addEventListener("visibilitychange", () => {
-    if (document.hidden) stop();
-  });
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init, { once: true });
+  } else {
+    init();
+  }
 })();
