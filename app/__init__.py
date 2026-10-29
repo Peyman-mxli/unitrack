@@ -670,6 +670,7 @@ def create_app():
         from .models.validation_code_model import ValidationCode
         from .models.academic_models import UniversityClass, ClassEnrollment, ClassMeeting, ClassAttendance
         from .models.admin_audit_model import AdminAuditLog
+        from .models.scan_token_model import ScanToken
 
         db.create_all()
 
