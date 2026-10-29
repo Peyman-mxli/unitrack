@@ -223,5 +223,6 @@ ADMIN_SPANISH = {
     "User not found": "No se encontró el usuario.",
     "Invalid password": "Contraseña incorrecta.",
     "User account is inactive": "La cuenta del usuario está inactiva.",
-    "login and password are required": "El usuario y la contraseña son obligatorios."
+    "login and password are required": "El usuario y la contraseña son obligatorios.",
+    "System Administrator": "Administrador del Sistema"
 }
