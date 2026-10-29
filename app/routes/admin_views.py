@@ -31,7 +31,7 @@ import os
 import socket
 from urllib.parse import urlencode
 
-from flask import Blueprint, render_template, request, redirect, flash, url_for, current_app
+from flask import Blueprint, render_template, request, redirect, flash, url_for, current_app, session
 from flask_login import login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
@@ -1490,6 +1490,7 @@ def admin_configuration():
                     current_user.must_change_password = False
 
             db.session.commit()
+            session["language"] = language
 
             if password_change_requested:
                 flash("Admin configuration and password updated successfully.", "success")
