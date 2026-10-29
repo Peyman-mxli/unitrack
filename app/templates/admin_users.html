@@ -873,10 +873,10 @@
                         <td>
                             <div class="user-main">
                                 <div class="user-avatar">
-                                    {{ (user.full_name or "U")[0]|upper }}
+                                    {{ (display_user_name(user) or "U")[0]|upper }}
                                 </div>
                                 <div class="user-name-block">
-                                    <span class="user-name">{{ user.full_name }}</span>
+                                    <span class="user-name">{{ display_user_name(user) }}</span>
                                     <span class="user-username">@{{ user.username }}</span>
                                 </div>
                             </div>
