@@ -309,9 +309,87 @@ class UniTrackTests(unittest.TestCase):
         self.assertIn(b"getUserMedia", scanner.data)
         self.assertIn(b"window.jsQR", scanner.data)
         self.assertNotIn(b"BarcodeDetector", scanner.data)
-        # QR capture never silently submits an access event.
-        self.assertNotIn(b"form.requestSubmit()", scanner.data)
+        # Authorized camera capture submits the CSRF-protected form once.
+        self.assertIn(b"form.requestSubmit", scanner.data)
+        self.assertIn(b"foundQr(result.data, true)", scanner.data)
         self.assertNotIn(b"form.submit()", scanner.data)
+
+    def test_each_role_displays_own_secure_qr_and_temporary_code(self):
+        from app.services.scan_token_service import resolve_scan_token
+        from app.models.user_model import User
+        paths = [
+            ("Admin", "/admin/access-control"),
+            ("StudentA", "/student/access-control"),
+            ("TeacherA", "/professor/access-control"),
+            ("StaffA", "/personal/access-control"),
+        ]
+        issued = set()
+        for username, path in paths:
+            with self.subTest(username=username):
+                client = self._signed_in_client(username)
+                page = client.get(path)
+                self.assertEqual(page.status_code, 200)
+                self.assertIn(b"data:image/png;base64,", page.data)
+                matches = re.findall(rb"(?:[A-HJ-NP-Z2-9]{4}-){3}[A-HJ-NP-Z2-9]{4}", page.data)
+                self.assertTrue(matches, f"No temporary code on {path}")
+                code = matches[0].decode("ascii")
+                self.assertNotIn(code, issued)
+                issued.add(code)
+                with self.app.app_context():
+                    user, record = resolve_scan_token(code)
+                    self.assertEqual(user.username, username)
+                    self.assertIsNone(record.consumed_at)
+
+    def test_manual_access_code_registers_once_and_invalidates_matching_qr(self):
+        from app.models.user_model import User
+        from app.models.access_log_model import AccessLog
+        from app.services.scan_token_service import issue_access_credential, resolve_scan_token
+        from werkzeug.security import generate_password_hash
+        with self.app.app_context():
+            person = User(
+                username="PasscodeMember", email="passcode.member@example.test",
+                first_name="Passcode", last_name="Member",
+                phone="0000000000", role="estudiante", language="es",
+                password_hash=generate_password_hash("TestingPassword123!"),
+                is_active_user=True,
+            )
+            self.db.session.add(person)
+            self.db.session.commit()
+            signed_qr, manual_code = issue_access_credential(person)
+            user_id = person.id
+            self.assertEqual(len(manual_code.replace("-", "")), 16)
+            identified, _ = resolve_scan_token(manual_code.replace("-", "").lower())
+            self.assertEqual(identified.id, user_id)
+
+        admin = self._signed_in_client()
+        access = admin.get("/admin/access-control")
+        csrf_match = re.search(rb'name="csrf_token" value="([^"]+)"', access.data)
+        self.assertIsNotNone(csrf_match)
+        data = {"csrf_token": csrf_match.group(1).decode("utf-8"), "pass_code": manual_code}
+        first = admin.post("/admin/access-control", data=data)
+        self.assertEqual(first.status_code, 200)
+        self.assertIn("Escaneo correcto".encode("utf-8"), first.data)
+        with self.app.app_context():
+            self.assertEqual(self.db.session.execute(
+                self.db.select(self.db.func.count(AccessLog.id)).where(
+                    AccessLog.student_id == user_id
+                )
+            ).scalar_one(), 1)
+
+        repeated = admin.post("/admin/access-control", data=data)
+        self.assertEqual(repeated.status_code, 200)
+        self.assertIn("Escaneo rechazado".encode("utf-8"), repeated.data)
+        by_qr = admin.post("/admin/access-control", data={
+            "csrf_token": data["csrf_token"], "qr_text": signed_qr
+        })
+        self.assertEqual(by_qr.status_code, 200)
+        self.assertIn("Escaneo rechazado".encode("utf-8"), by_qr.data)
+        with self.app.app_context():
+            self.assertEqual(self.db.session.execute(
+                self.db.select(self.db.func.count(AccessLog.id)).where(
+                    AccessLog.student_id == user_id
+                )
+            ).scalar_one(), 1)
 
     def test_student_cannot_manage_academic_classes(self):
         client = self._signed_in_client("StudentA")
