@@ -1,6 +1,6 @@
 {% extends "admin_base.html" %}
 
-{% block title %}Update User ID | UniTrack Admin{% endblock %}
+{% block title %}{{ t('Update User ID | UniTrack Admin') }}{% endblock %}
 
 {% block content %}
 <style>
@@ -360,65 +360,64 @@
 <div class="admin-form-page">
     <section class="form-hero">
         <div>
-            <h1>Update User ID</h1>
+            <h1>{{ t('Update User ID') }}</h1>
             <p>
-                Update the permanent UniTrack user identification code for this account.
-                This value should remain unique for each user and should only be changed carefully.
+                {{ t('Update the permanent UniTrack user identification code for this account. This value should remain unique for each user and should only be changed carefully.') }}
             </p>
         </div>
 
         <div class="status-chip {% if is_online %}status-online{% else %}status-offline{% endif %}">
             <span class="status-dot"></span>
-            {% if is_online %}Online{% else %}Offline{% endif %}
+            {% if is_online %}{{ t('Online') }}{% else %}{{ t('Offline') }}{% endif %}
         </div>
     </section>
 
     <div class="content-grid">
         <section class="card">
-            <h2>User Information</h2>
+            <h2>{{ t('User Information') }}</h2>
             <p class="card-text">
-                Review the current account details before saving the new User ID.
+                {{ t('Review the current account details before saving the new User ID.') }}
             </p>
 
             <div class="details-grid">
                 <div class="detail-box">
-                    <span class="detail-label">Full Name</span>
+                    <span class="detail-label">{{ t('Full Name') }}</span>
                     <span class="detail-value">
-                        {{ ((user.first_name or '') ~ ' ' ~ (user.last_name or '')).strip() or user.username or 'Unknown User' }}
+                        {{ ((user.first_name or '') ~ ' ' ~ (user.last_name or '')).strip() or user.username or t('Unknown User') }}
                     </span>
                 </div>
 
                 <div class="detail-box">
-                    <span class="detail-label">Username</span>
+                    <span class="detail-label">{{ t('Username') }}</span>
                     <span class="detail-value">@{{ user.username or '-' }}</span>
                 </div>
 
                 <div class="detail-box">
-                    <span class="detail-label">Role</span>
+                    <span class="detail-label">{{ t('Role') }}</span>
                     <span class="detail-value">
-                        <span class="role-badge">{{ role_label or 'User' }}</span>
+                        <span class="role-badge">{{ t(role_label or 'User') }}</span>
                     </span>
                 </div>
 
                 <div class="detail-box">
-                    <span class="detail-label">Email</span>
+                    <span class="detail-label">{{ t('Email') }}</span>
                     <span class="detail-value">{{ user.email or '-' }}</span>
                 </div>
 
                 <div class="detail-box">
-                    <span class="detail-label">Current User ID</span>
-                    <span class="detail-value">{{ current_user_id_code or 'Not assigned' }}</span>
+                    <span class="detail-label">{{ t('Current User ID') }}</span>
+                    <span class="detail-value">{{ current_user_id_code or t('Not assigned') }}</span>
                 </div>
 
                 <div class="detail-box">
-                    <span class="detail-label">Account Status</span>
+                    <span class="detail-label">{{ t('Account Status') }}</span>
                     <span class="detail-value">
                         {% if is_online %}
-                            Online
+                            {{ t('Online') }}
                         {% elif user.is_active_user %}
-                            Active
+                            {{ t('Active') }}
                         {% else %}
-                            Inactive
+                            {{ t('Inactive') }}
                         {% endif %}
                     </span>
                 </div>
@@ -426,37 +425,37 @@
         </section>
 
         <section class="card">
-            <h2>New User ID</h2>
+            <h2>{{ t('New User ID') }}</h2>
             <p class="card-text">
-                Enter the new permanent User ID code for this account.
+                {{ t('Enter the new permanent User ID code for this account.') }}
             </p>
 
             <form method="POST" action="/admin/users/{{ user.id }}/update-user-id" class="form-grid">
                 <div class="field-group">
-                    <label for="user_id_code">User ID</label>
+                    <label for="user_id_code">{{ t('User ID') }}</label>
                     <input
                         id="user_id_code"
                         name="user_id_code"
                         type="text"
                         class="field-control"
                         value="{{ current_user_id_code or '' }}"
-                        placeholder="Example: UT-UPBC-0001"
+                        placeholder="{{ t('Example: UT-UPBC-0001') }}"
                         autocomplete="off"
                         required
                     >
                     <p class="helper-text">
-                        Allowed characters: letters, numbers, and hyphens only.
+                        {{ t('Allowed characters: letters, numbers, and hyphens only.') }}
                     </p>
                 </div>
 
                 <div class="important-note">
-                    Recommended format: UT-UPBC-0001. Make sure the new User ID is unique before saving.
+                    {{ t('Recommended format: UT-UPBC-0001. Make sure the new User ID is unique before saving.') }}
                 </div>
 
                 <div class="actions-row">
-                    <button type="submit" class="btn btn-primary">Save User ID</button>
-                    <a href="/admin/users/{{ user.id }}/edit" class="btn btn-secondary">Back to Edit User</a>
-                    <a href="/admin/users" class="btn btn-dark">Back to Users</a>
+                    <button type="submit" class="btn btn-primary">{{ t('Save User ID') }}</button>
+                    <a href="/admin/users/{{ user.id }}/edit" class="btn btn-secondary">{{ t('Back to Edit User') }}</a>
+                    <a href="/admin/users" class="btn btn-dark">{{ t('Back to Users') }}</a>
                 </div>
             </form>
         </section>
