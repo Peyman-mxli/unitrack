@@ -385,5 +385,33 @@ class UniTrackTests(unittest.TestCase):
             self.assertIsNone(second_user)
 
 
+    def test_private_response_security_headers(self):
+        response = self.app.test_client().get("/auth/login-page")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers.get("X-Content-Type-Options"), "nosniff")
+        self.assertEqual(response.headers.get("X-Frame-Options"), "DENY")
+        self.assertEqual(response.headers.get("Referrer-Policy"), "no-referrer")
+        self.assertIn("no-store", response.headers.get("Cache-Control", ""))
+
+    def test_production_rejects_weak_session_secret(self):
+        from app import create_app
+        previous_env = os.environ.get("UNITRACK_ENV")
+        previous_secret = os.environ.get("SECRET_KEY")
+        try:
+            os.environ["UNITRACK_ENV"] = "production"
+            os.environ["SECRET_KEY"] = "weak"
+            with self.assertRaises(RuntimeError):
+                create_app()
+        finally:
+            if previous_env is None:
+                os.environ.pop("UNITRACK_ENV", None)
+            else:
+                os.environ["UNITRACK_ENV"] = previous_env
+            if previous_secret is None:
+                os.environ.pop("SECRET_KEY", None)
+            else:
+                os.environ["SECRET_KEY"] = previous_secret
+
+
 if __name__ == "__main__":
     unittest.main()
