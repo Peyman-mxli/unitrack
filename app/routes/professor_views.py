@@ -221,17 +221,17 @@ def _build_professor_base_url():
     return ""
 
 
-def build_professor_access_mobile_scan_url(user):
+def build_professor_access_mobile_scan_url(user, token=None):
     """Role-specific QR includes a short-lived, one-use signed token."""
     from app.services.scan_token_service import issue_scan_token
     base_url = _build_professor_base_url()
-    query_string = urlencode({"scan_token": issue_scan_token(user)})
+    query_string = urlencode({"scan_token": token or issue_scan_token(user)})
     route_path = "/professor/access-control/mobile-scan"
     return f"{base_url}{route_path}?{query_string}" if base_url else f"{route_path}?{query_string}"
 
 
-def build_professor_access_qr_payload(user):
-    return build_professor_access_mobile_scan_url(user)
+def build_professor_access_qr_payload(user, token=None):
+    return build_professor_access_mobile_scan_url(user, token=token)
 
 
 # =========================
@@ -269,9 +269,10 @@ def access_control_page():
     status = get_user_current_access_status(current_user.id)
     records = build_access_table_rows(current_user)
 
-    access_qr_payload = build_professor_access_qr_payload(current_user)
+    from app.services.scan_token_service import issue_access_credential
+    access_token, access_qr_id_code = issue_access_credential(current_user)
+    access_qr_payload = build_professor_access_qr_payload(current_user, token=access_token)
     access_qr_image = generate_qr_image_data_uri(access_qr_payload)
-    access_qr_id_code = build_student_access_qr_id_code(current_user)
 
     return render_template(
         "professor_access_control.html",
