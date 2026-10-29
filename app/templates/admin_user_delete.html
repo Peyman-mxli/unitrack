@@ -412,7 +412,7 @@
                 <div class="detail-box">
                     <span class="detail-label">{{ t('Full Name') }}</span>
                     <span class="detail-value">
-                        {{ ((user.first_name or '') ~ ' ' ~ (user.last_name or '')).strip() or user.username or t('Unknown User') }}
+                        {{ display_user_name(user) or user.username or t('Unknown User') }}
                     </span>
                 </div>
 
