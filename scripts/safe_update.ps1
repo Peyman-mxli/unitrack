@@ -87,7 +87,10 @@ foreach ($relativePath in @('app/static/uploads', 'app/static/img/profiles', 'ap
     if (Test-Path -LiteralPath $source -PathType Container) {
         $destination = Join-Path $photoBackup ($relativePath -replace '/', '\\')
         New-Item -ItemType Directory -Path $destination -Force | Out-Null
-        Copy-Item -LiteralPath (Join-Path $source '*') -Destination $destination -Recurse -Force
+        $items = @(Get-ChildItem -LiteralPath $source -Force)
+        foreach ($item in $items) {
+            Copy-Item -LiteralPath $item.FullName -Destination $destination -Recurse -Force -ErrorAction Stop
+        }
         Write-Host "Photo backup: $relativePath" -ForegroundColor Cyan
     }
 }
