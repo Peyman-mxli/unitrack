@@ -317,13 +317,13 @@
         </div>
 
         <div class="result-message {% if is_success %}success{% else %}error{% endif %}">
-            {{ result_message or t('No message returned.') }}
+            {{ t(result_message) if result_message else t('No message returned.') }}
         </div>
 
         <div class="result-grid">
             <div class="result-item">
                 <div class="result-label">{{ t('Name') }}</div>
-                <div class="result-value">{{ result_name or "--" }}</div>
+                <div class="result-value">{{ display_user_name(result_name, result_username) or "--" }}</div>
             </div>
 
             <div class="result-item">
@@ -333,12 +333,12 @@
 
             <div class="result-item">
                 <div class="result-label">{{ t('Action') }}</div>
-                <div class="result-value">{{ result_action or "--" }}</div>
+                <div class="result-value">{{ t(result_action) if result_action else "--" }}</div>
             </div>
 
             <div class="result-item">
                 <div class="result-label">{{ t('Status') }}</div>
-                <div class="result-value">{{ result_status or "--" }}</div>
+                <div class="result-value">{{ t(result_status) if result_status else "--" }}</div>
             </div>
 
             <div class="result-item">
