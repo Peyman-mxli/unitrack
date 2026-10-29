@@ -194,6 +194,9 @@ def mark_attendance(meeting_id):
     ).scalar_one_or_none()
     if not enrollment or meeting.finalized_at:
         abort(400)
+    # Do not mark a future class or a student who joined after the meeting.
+    if campus_now() < meeting.starts_at or enrollment.enrolled_at > meeting.starts_at:
+        abort(400)
     record = db.session.execute(
         db.select(ClassAttendance).where(
             ClassAttendance.meeting_id == meeting.id,
