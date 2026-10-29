@@ -283,6 +283,7 @@ color:var(--danger);
 <a href="{{ url_for('professor_views.configuration_page') }}" class="{% if active_page == 'configuration' %}active{% endif %}">{{ t('configuration') }}</a>
 
 <form method="POST" action="{{ url_for('auth.logout') }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 <button style="margin-top:12px;width:100%;padding:12px;border-radius:12px;background:#7c3aed;color:#fff;font-weight:800;border:none;">
 {{ t('logout') }}
 </button>
