@@ -30,7 +30,8 @@
       denied: "Permiso de cámara denegado. Permite el acceso desde el icono de la cámara del navegador.",
       busy: "Otra aplicación está usando la cámara. Ciérrala e inténtalo de nuevo.",
       error: "No se pudo iniciar la cámara. Revisa la configuración del navegador.",
-      detected: "Código detectado. Revisa el contenido y pulsa «Escanear QR» para confirmar.",
+      detected: "Código detectado. Pulsa el botón de confirmación para registrar el acceso.",
+      detectedAuto: "Código QR detectado. Registrando acceso automáticamente...",
       imageError: "No se pudo leer la imagen seleccionada.",
       imageMissing: "No se detectó un código QR en esta imagen.",
       selectCamera: "Seleccionar cámara"
@@ -45,7 +46,8 @@
       denied: "Camera permission denied. Allow access in your browser's camera settings.",
       busy: "Another application is using the camera. Close it and try again.",
       error: "Could not start the camera. Check browser settings.",
-      detected: "QR found. Review the code and click Scan QR to confirm.",
+      detected: "QR found. Click the confirmation button to register access.",
+      detectedAuto: "QR detected. Registering access automatically...",
       imageError: "Could not read the selected image.",
       imageMissing: "No QR code was detected in this image.",
       selectCamera: "Select camera"
@@ -90,7 +92,7 @@
       field.value = value.trim();
       stop();
       field.focus();
-      announce(messages.detected);
+      announce(automatic ? messages.detectedAuto : messages.detected);
       // An authorized operator has deliberately started the camera.
       // Successful detection now submits the existing CSRF-protected form
       // automatically, recording one entry or exit. File uploads still
