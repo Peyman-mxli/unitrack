@@ -78,6 +78,20 @@ print("Verified backup:", target)
 Write-Host 'Backing up and checking SQLite database...' -ForegroundColor Cyan
 RunNative $python @('-c', $backupCode)
 
+# Copy local account images before git updates. Some old repository
+# revisions tracked uploaded photos, so a pull may alter tracked paths.
+# These are private local backups, never checked in to Git.
+$photoBackup = Join-Path $root ('backups\\photos-before-update-' + (Get-Date -Format 'yyyyMMdd-HHmmss-fff'))
+foreach ($relativePath in @('app/static/uploads', 'app/static/img/profiles', 'app/routes/static/uploads')) {
+    $source = Join-Path $root $relativePath
+    if (Test-Path -LiteralPath $source -PathType Container) {
+        $destination = Join-Path $photoBackup ($relativePath -replace '/', '\\')
+        New-Item -ItemType Directory -Path $destination -Force | Out-Null
+        Copy-Item -LiteralPath (Join-Path $source '*') -Destination $destination -Recurse -Force
+        Write-Host "Photo backup: $relativePath" -ForegroundColor Cyan
+    }
+}
+
 # --ff-only prevents accidental merges, rebases, or overwriting local work.
 Write-Host 'Pulling the latest verified main branch...' -ForegroundColor Cyan
 RunNative 'git' @('pull', '--ff-only', 'origin', 'main')
