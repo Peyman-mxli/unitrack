@@ -308,6 +308,7 @@
                 <p class="form-subtitle">{{ t('Edit and save user data.') }}</p>
 
                 <form method="POST" action="/admin/users/{{ user.id }}/update">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="form-grid">
                         <div class="field-group">
                             <label>{{ t('First Name') }}</label>
