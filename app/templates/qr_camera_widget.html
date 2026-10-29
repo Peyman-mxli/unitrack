@@ -1,0 +1,74 @@
+{# Camera scanning is optional; manual QR paste remains available to authorized operators. #}
+<div style="margin:12px 0;">
+  <button type="button" id="unitrackCameraStart"
+          style="border:0;border-radius:12px;padding:12px 18px;background:#086c80;color:white;font-weight:800;cursor:pointer;">
+    {{ "Escanear con cámara" if current_language == 'es' else "Scan with Camera" }}
+  </button>
+  <button type="button" id="unitrackCameraStop"
+          style="display:none;border:0;border-radius:12px;padding:12px 18px;background:#6b7280;color:white;font-weight:800;cursor:pointer;">
+    {{ "Detener cámara" if current_language == 'es' else "Stop Camera" }}
+  </button>
+  <p id="unitrackCameraStatus" aria-live="polite" style="margin:8px 0;color:#475569"></p>
+  <video id="unitrackCameraVideo" autoplay muted playsinline
+         style="display:none;max-width:100%;width:450px;border-radius:12px;background:#000"></video>
+</div>
+<script>
+(() => {
+  const start = document.getElementById("unitrackCameraStart");
+  const stop = document.getElementById("unitrackCameraStop");
+  const video = document.getElementById("unitrackCameraVideo");
+  const status = document.getElementById("unitrackCameraStatus");
+  const textbox = document.querySelector("textarea[name='qr_text'], input[name='qr_text']");
+  if (!start || !stop || !video || !textbox) return;
+  let stream = null, scanning = false;
+  const spanish = {{ 'true' if current_language == 'es' else 'false' }};
+  function message(es, en) { status.textContent = spanish ? es : en; }
+  function release() {
+    scanning = false;
+    if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+    video.srcObject = null;
+    video.style.display = "none";
+    start.style.display = "";
+    stop.style.display = "none";
+  }
+  stop.addEventListener("click", release);
+  window.addEventListener("pagehide", release);
+  start.addEventListener("click", async () => {
+    if (!navigator.mediaDevices?.getUserMedia || !("BarcodeDetector" in window)) {
+      message("Este navegador no admite el lector QR de cámara. Pega el código manualmente.",
+              "Camera QR detection is not available in this browser. Paste the code manually.");
+      return;
+    }
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({video: {facingMode: "environment"}, audio: false});
+      video.srcObject = stream;
+      await video.play();
+      const detector = new BarcodeDetector({formats: ["qr_code"]});
+      video.style.display = "block";
+      start.style.display = "none";
+      stop.style.display = "";
+      scanning = true;
+      message("Apunta la cámara al código QR.", "Point the camera at a QR code.");
+      const scan = async () => {
+        if (!scanning) return;
+        try {
+          const codes = await detector.detect(video);
+          if (codes.length && codes[0].rawValue) {
+            textbox.value = codes[0].rawValue;
+            release();
+            message("Código detectado. Procesando…", "QR detected. Processing…");
+            textbox.form.requestSubmit();
+            return;
+          }
+        } catch (_) {}
+        if (scanning) requestAnimationFrame(scan);
+      };
+      requestAnimationFrame(scan);
+    } catch (err) {
+      release();
+      message("No se pudo abrir la cámara. Comprueba los permisos y utiliza HTTPS.",
+              "Cannot open camera. Check permissions and use HTTPS.");
+    }
+  });
+})();
+</script>
