@@ -261,6 +261,13 @@
             <a href="/admin/users/{{ user.id }}/change-role" class="btn btn-secondary">{{ t('Change Role') }}</a>
             <a href="/admin/users/{{ user.id }}/update-user-id" class="btn btn-secondary">{{ t('Update ID') }}</a>
             <a href="/admin/users/{{ user.id }}/change-password" class="btn btn-secondary">{{ t('Change Password') }}</a>
+            <form method="POST" action="{{ url_for('admin_views.admin_toggle_user_active', user_id=user.id) }}" style="display:inline-flex;align-items:center;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-secondary"
+                    {% if user.id == current_user.id or (user.username|lower == 'admin' and user.is_active_user) %}disabled{% endif %}>
+                    {% if user.is_active_user %}{{ t('Deactivate Account') }}{% else %}{{ t('Reactivate Account') }}{% endif %}
+                </button>
+            </form>
             <a href="/admin/users/{{ user.id }}/delete" class="btn btn-secondary">{{ t('Remove') }}</a>
             <a href="/admin/users" class="btn btn-secondary">{{ t('Back') }}</a>
         </div>
