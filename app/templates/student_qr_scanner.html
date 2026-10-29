@@ -89,7 +89,7 @@
 
             <div style="display:grid; grid-template-columns:220px 1fr; gap:12px 14px; align-items:center;">
                 <div style="font-weight:800;">{{ "Mensaje:" if is_spanish else "Message:" }}</div>
-                <div>{{ scan_result.message }}</div>
+                <div>{{ t(scan_result.message) }}</div>
 
                 <div style="font-weight:800;">{{ "Acción:" if is_spanish else "Action:" }}</div>
                 <div>
@@ -137,7 +137,7 @@
 
             <div style="display:grid; grid-template-columns:220px 1fr; gap:12px 14px;">
                 <div style="font-weight:800;">{{ "Mensaje:" if is_spanish else "Message:" }}</div>
-                <div>{{ scan_result.message }}</div>
+                <div>{{ t(scan_result.message) }}</div>
 
                 <div style="font-weight:800;">{{ "Código de Estado HTTP:" if is_spanish else "HTTP Status Code:" }}</div>
                 <div>{{ scan_result.status_code }}</div>
