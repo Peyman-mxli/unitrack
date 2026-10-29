@@ -6,6 +6,7 @@ Minimal working version for UniTrack
 
 import sys
 import os
+import secrets
 
 # 🔥 FIX: ensure project root is always available
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -48,7 +49,28 @@ def create_app():
 
     app.config["SQLALCHEMY_DATABASE_URI"] = Config.SQLALCHEMY_DATABASE_URI
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = Config.SQLALCHEMY_TRACK_MODIFICATIONS
-    app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", Config.SECRET_KEY)
+    # Production must supply its own SECRET_KEY. Local development receives
+    # a persistent random key, stored outside Git so sessions survive restarts.
+    configured_key = os.environ.get("SECRET_KEY")
+    environment = os.environ.get("UNITRACK_ENV", "").strip().lower()
+    if environment == "production" and not configured_key:
+        raise RuntimeError("Set a strong SECRET_KEY in production.")
+    if not configured_key:
+        local_key_path = os.path.join(BASE_DIR, ".unitrack-secret")
+        try:
+            with open(local_key_path, "r", encoding="utf-8") as key_file:
+                configured_key = key_file.read().strip()
+        except FileNotFoundError:
+            configured_key = secrets.token_urlsafe(48)
+            try:
+                with open(local_key_path, "x", encoding="utf-8") as key_file:
+                    key_file.write(configured_key)
+            except FileExistsError:
+                with open(local_key_path, "r", encoding="utf-8") as key_file:
+                    configured_key = key_file.read().strip()
+        if not configured_key:
+            raise RuntimeError("Local secret key file is empty.")
+    app.config["SECRET_KEY"] = configured_key
 
     db.init_app(app)
     migrate.init_app(app, db)
