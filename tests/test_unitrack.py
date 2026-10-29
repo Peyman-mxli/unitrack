@@ -318,13 +318,13 @@ class UniTrackTests(unittest.TestCase):
         from app.services.scan_token_service import resolve_scan_token
         from app.models.user_model import User
         paths = [
-            ("Admin", "/admin/access-control"),
-            ("StudentA", "/student/access-control"),
-            ("TeacherA", "/professor/access-control"),
-            ("StaffA", "/personal/access-control"),
+            ("Admin", "/admin/access-control", "ADM"),
+            ("StudentA", "/student/access-control", "EST"),
+            ("TeacherA", "/professor/access-control", "DOC"),
+            ("StaffA", "/personal/access-control", "PER"),
         ]
         issued = set()
-        for username, path in paths:
+        for username, path, expected_prefix in paths:
             with self.subTest(username=username):
                 client = self._signed_in_client(username)
                 page = client.get(path)
@@ -332,18 +332,48 @@ class UniTrackTests(unittest.TestCase):
                 self.assertIn(b"data:image/png;base64,", page.data)
                 matches = [
                     value for value in re.findall(
-                        rb"(?:[A-HJ-NP-Z2-9]{4}-){3}[A-HJ-NP-Z2-9]{4}", page.data
+                        rb"(?:EST|DOC|PER|ADM)-(?:[A-HJ-NP-Z2-9]{4}-){3}[A-HJ-NP-Z2-9]{4}", page.data
                     )
                     if value != b"XXXX-XXXX-XXXX-XXXX"
                 ]
                 self.assertTrue(matches, f"No generated temporary code on {path}")
                 code = matches[0].decode("ascii")
+                self.assertTrue(code.startswith(expected_prefix + "-"), code)
                 self.assertNotIn(code, issued)
                 issued.add(code)
                 with self.app.app_context():
                     user, record = resolve_scan_token(code)
                     self.assertEqual(user.username, username)
                     self.assertIsNone(record.consumed_at)
+
+    def test_two_people_in_same_role_get_independent_codes(self):
+        from app.models.user_model import User
+        from app.services.scan_token_service import issue_access_credential, resolve_scan_token
+        from werkzeug.security import generate_password_hash
+        with self.app.app_context():
+            existing = self.db.session.execute(
+                self.db.select(User).where(User.username == "StudentA")
+            ).scalar_one()
+            second = User(
+                username="StudentBUniqueCode", email="student-b-unique@example.test",
+                first_name="Second", last_name="Student", phone="0000000000",
+                role="estudiante", language="es",
+                password_hash=generate_password_hash("TestingPassword123!"),
+                is_active_user=True
+            )
+            self.db.session.add(second)
+            self.db.session.commit()
+            qr1, code1 = issue_access_credential(existing)
+            qr2, code2 = issue_access_credential(second)
+            self.assertTrue(code1.startswith("EST-"))
+            self.assertTrue(code2.startswith("EST-"))
+            self.assertNotEqual(code1, code2)
+            self.assertNotEqual(qr1, qr2)
+            user1, _ = resolve_scan_token(code1)
+            user2, _ = resolve_scan_token(code2)
+            self.assertEqual(user1.id, existing.id)
+            self.assertEqual(user2.id, second.id)
+
 
     def test_manual_access_code_registers_once_and_invalidates_matching_qr(self):
         from app.models.user_model import User
@@ -362,7 +392,12 @@ class UniTrackTests(unittest.TestCase):
             self.db.session.commit()
             signed_qr, manual_code = issue_access_credential(person)
             user_id = person.id
-            self.assertEqual(len(manual_code.replace("-", "")), 16)
+            self.assertTrue(manual_code.startswith("EST-"), manual_code)
+            self.assertEqual(len(manual_code.split("-", 1)[1].replace("-", "")), 16)
+            with self.assertRaises(ValueError):
+                resolve_scan_token("DOC-" + manual_code.split("-", 1)[1])
+            with self.assertRaises(ValueError):
+                resolve_scan_token(manual_code.split("-", 1)[1])
             identified, _ = resolve_scan_token(manual_code.replace("-", "").lower())
             self.assertEqual(identified.id, user_id)
 
