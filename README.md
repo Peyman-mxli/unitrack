@@ -50,7 +50,7 @@
 
 ### 📜 Attendance History
 
-![History](app/static/img/Attendance%20History.png)
+![History](app/static/img/attendance-history.png)
 
 ### ⚙️ Configuration
 
@@ -137,7 +137,7 @@ http://<your-ip>:5000
 
 ## 🔑 Default Admin
 
-> Admin is automatically created on startup (if not exists)
+> For a NEW database, Admin is created only when UNITRACK_INITIAL_ADMIN_PASSWORD is set to a unique password of at least 12 characters. Existing admin accounts are never overwritten.
 
 ---
 
@@ -203,7 +203,7 @@ The first-run password is never stored in source code. The local Flask session k
 
 ### Production settings
 
-Configure environment variables through your hosting platform, not through committed files. See `.env.example` for variable names. Set `UNITRACK_ENV=production`, a strong `SECRET_KEY`, `FLASK_DEBUG=False`, `APP_BASE_URL` to the HTTPS host, `DATABASE_URL` to a persistent PostgreSQL instance, and a newly generated `MAIL_PASSWORD` if email recovery is needed. Enforce HTTPS and secure cookies. This project is not ready for real-gate deployment until operator/scanner hardware and security have been tested on site.
+Configure environment variables through your hosting platform, not through committed files. See `.env.example` for variable names. Set `UNITRACK_ENV=production`, `UNITRACK_TIMEZONE=America/Tijuana`, a strong `SECRET_KEY`, `FLASK_DEBUG=False`, `APP_BASE_URL` to the HTTPS host, `DATABASE_URL` to a persistent PostgreSQL instance, and a newly generated `MAIL_PASSWORD` if email recovery is needed. Enforce HTTPS and secure cookies. This project is not ready for real-gate deployment until operator/scanner hardware and security have been tested on site.
 
 **Security incident action:** historical Git commits contained an email application password. Immediately revoke that old app password in the email provider's security settings, generate a new one, and supply it only via your host's secret settings. Removing it from the current file does **not** erase repository history. Review previously committed profile photos before exposing the public repository; ignored files remain in Git history until separately remediated.
 
@@ -220,7 +220,7 @@ This writes a timestamped, integrity-checked copy to `backups/` (ignored by Git)
 - Professors and admins can manage classes at `/attendance/classes`: enroll students, schedule meetings, record Present/Late/Absent, and finalize attendance.
 - Student academic attendance history displays scheduled **class** meetings, not campus gate access logs. Unmarked sessions are not counted absent until the teacher finalizes them.
 - Role-approved scanners (admin, staff and professor) can read signed QR codes via the browser camera where `BarcodeDetector` and `getUserMedia` are supported; HTTPS or localhost is required for camera permission. Manual paste remains available for signed QR values.
-- Generated QR codes expire after five minutes and can be consumed once. Public mobile QR landing URLs only show instructions; they do not perform check-in or check-out. The old predictable access-code mode is disabled by default; `UNITRACK_ALLOW_LEGACY_QR=True` enables a temporary **admin-only** migration fallback and should not be enabled in production.
+- Generated QR codes expire after five minutes and can be consumed once. Attendance and access times use the campus timezone (`America/Tijuana` by default); change it through `UNITRACK_TIMEZONE` if the campus moves. Public mobile QR landing URLs only show instructions; they do not perform check-in or check-out. The old predictable access-code mode is disabled by default; `UNITRACK_ALLOW_LEGACY_QR=True` enables a temporary **admin-only** migration fallback and should not be enabled in production.
 - Browser forms now use session CSRF tokens. Login and registration are rate-limited per IP. Staff/admin updates are auditable.
 
 ### Automated tests
