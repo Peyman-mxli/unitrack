@@ -165,5 +165,63 @@ class UniTrackTests(unittest.TestCase):
         self.assertIn(response.status_code, (302, 303))
 
 
+    def test_get_logout_is_not_allowed(self):
+        client = self._signed_in_client()
+        self.assertEqual(client.get("/auth/logout").status_code, 405)
+        dashboard = client.get("/admin/dashboard")
+        token = re.search(rb'name="csrf_token" value="([^"]+)"', dashboard.data)
+        self.assertIsNotNone(token)
+        response = client.post("/auth/logout", data={
+            "csrf_token": token.group(1).decode("utf-8")
+        })
+        self.assertIn(response.status_code, (302, 303))
+
+    def test_valid_signed_qr_operator_scan_creates_one_access_event(self):
+        from app.models.user_model import User
+        from app.models.access_log_model import AccessLog
+        from app.services.scan_token_service import issue_scan_token
+
+        client = self._signed_in_client()
+        with self.app.app_context():
+            student = self.db.session.execute(
+                self.db.select(User).where(User.username == "StudentA")
+            ).scalar_one()
+            signed = issue_scan_token(student)
+            student_id = student.id
+        page = client.get("/admin/access-control/scanner")
+        csrf = re.search(rb'name="csrf_token" value="([^"]+)"', page.data)
+        self.assertIsNotNone(csrf)
+        data = {"qr_text": signed, "csrf_token": csrf.group(1).decode("utf-8")}
+        first = client.post("/admin/access-control/scanner", data=data)
+        self.assertEqual(first.status_code, 200)
+        with self.app.app_context():
+            logs = self.db.session.execute(self.db.select(AccessLog).where(
+                AccessLog.student_id == student_id
+            )).scalars().all()
+            self.assertEqual(len(logs), 1)
+        second = client.post("/admin/access-control/scanner", data=data)
+        self.assertEqual(second.status_code, 200)
+        with self.app.app_context():
+            count = self.db.session.execute(self.db.select(self.db.func.count(AccessLog.id)).where(
+                AccessLog.student_id == student_id
+            )).scalar_one()
+            self.assertEqual(count, 1)
+
+    def test_admin_and_teacher_camera_script_present(self):
+        for username, path in (
+            ("Admin", "/admin/access-control/scanner"),
+            ("TeacherA", "/professor/access-control/scanner")
+        ):
+            with self.subTest(username=username):
+                client = self._signed_in_client(username)
+                response = client.get(path)
+                self.assertEqual(response.status_code, 200)
+                self.assertIn(b"js/qr-camera.js", response.data)
+
+    def test_student_cannot_manage_academic_classes(self):
+        client = self._signed_in_client("StudentA")
+        self.assertEqual(client.get("/attendance/classes").status_code, 403)
+
+
 if __name__ == "__main__":
     unittest.main()
