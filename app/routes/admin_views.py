@@ -507,25 +507,12 @@ def _save_admin_profile_photo(uploaded_file):
 
 
 def build_access_qr_payload_for_user(user):
-    """
-    Build admin QR payload using a real LAN/mobile-safe URL.
-    """
+    """Administrator's QR uses a short-lived one-time signed token."""
+    from app.services.scan_token_service import issue_scan_token
     base_url = _build_admin_base_url()
-    user_id_code = _clean_scan_code(getattr(user, "user_id_code", ""))
-    qr_id_code = _clean_scan_code(build_student_access_qr_id_code(user))
-
-    query_params = {}
-    if user_id_code:
-        query_params["user_code"] = user_id_code
-    else:
-        query_params["qr_id_code"] = qr_id_code
-
-    query_string = urlencode(query_params)
-
-    if base_url:
-        return f"{base_url}/admin/access-control/mobile-scan?{query_string}"
-
-    return f"/admin/access-control/mobile-scan?{query_string}"
+    query_string = urlencode({"scan_token": issue_scan_token(user)})
+    route_path = "/admin/access-control/mobile-scan"
+    return f"{base_url}{route_path}?{query_string}" if base_url else f"{route_path}?{query_string}"
 
 
 def build_access_qr_id_code_for_user(user):
