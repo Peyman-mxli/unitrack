@@ -283,6 +283,7 @@
         <h2 class="scanner-section-title">{{ t('QR Content') }}</h2>
 
         <form method="POST" action="{{ url_for('admin_views.admin_access_control_scanner') }}" class="scanner-form">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <textarea
                 id="qr_text"
                 name="qr_text"
