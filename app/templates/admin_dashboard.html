@@ -714,19 +714,20 @@
             {{ t('Search by name, ID, role, and date to review access records.') }}
         </p>
 
-        <div class="search-row">
-            <input type="text" class="input-field" placeholder="{{ t('Search by full name or ID') }}">
-            <select class="select-field">
-                <option>{{ t('All Roles') }}</option>
-                <option>{{ t('Student') }}</option>
-                <option>{{ t('Teacher') }}</option>
-                <option>{{ t('Staff') }}</option>
-                <option>{{ t('Admin') }}</option>
+        <form method="GET" action="{{ url_for('admin_views.admin_dashboard') }}" class="search-row">
+            <input type="text" class="input-field" name="access_search" value="{{ access_search }}"
+                   placeholder="{{ t('Search by full name or ID') }}">
+            <select class="select-field" name="access_role">
+                <option value="">{{ t('All Roles') }}</option>
+                <option value="estudiante" {% if selected_access_role == 'estudiante' %}selected{% endif %}>{{ t('Student') }}</option>
+                <option value="docente" {% if selected_access_role == 'docente' %}selected{% endif %}>{{ t('Teacher') }}</option>
+                <option value="personal" {% if selected_access_role == 'personal' %}selected{% endif %}>{{ t('Staff') }}</option>
+                <option value="administrativo" {% if selected_access_role == 'administrativo' %}selected{% endif %}>{{ t('Admin') }}</option>
             </select>
-            <input type="date" class="input-field">
-            <input type="time" class="input-field">
-            <button type="button" class="btn btn-primary">{{ t('Search') }}</button>
-        </div>
+            <input type="date" class="input-field" name="access_date" value="{{ selected_access_date }}">
+            <input type="time" class="input-field" name="access_time" value="{{ selected_access_time }}">
+            <button type="submit" class="btn btn-primary">{{ t('Search') }}</button>
+        </form>
 
         <div class="table-wrap">
             <table class="dashboard-table">
