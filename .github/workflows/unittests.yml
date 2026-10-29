@@ -30,3 +30,33 @@ jobs:
         env:
           FLASK_DEBUG: "False"
         run: python -m unittest discover -s tests -v
+
+  windows-updater:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Exercise updater with Windows PowerShell 5.1 against a temporary database
+        shell: powershell
+        run: |
+          python -m venv .venv
+          if ($LASTEXITCODE -ne 0) { throw "Could not create test venv" }
+          & .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+          if ($LASTEXITCODE -ne 0) { throw "Could not install packages" }
+          $createDb = Join-Path $env:TEMP 'unitrack-ci-createdb.py'
+          [System.IO.File]::WriteAllText($createDb, 'import sqlite3; c = sqlite3.connect("unitrack.db"); c.execute("CREATE TABLE safety_test (id INTEGER PRIMARY KEY)"); c.execute("INSERT INTO safety_test VALUES (1)"); c.commit(); c.close()', (New-Object System.Text.UTF8Encoding($false)))
+          & .\.venv\Scripts\python.exe $createDb
+          if ($LASTEXITCODE -ne 0) { throw "Could not create isolated test DB" }
+          git switch -C main
+          if ($LASTEXITCODE -ne 0) { throw "Could not create test branch" }
+          & powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\safe_update.ps1 -SkipStart
+          if ($LASTEXITCODE -ne 0) { throw "The real Windows PowerShell updater failed" }
+          $backups = @(Get-ChildItem -Path .\backups\unitrack-before-update-*.db -ErrorAction Stop)
+          if ($backups.Count -lt 1) { throw "The updater did not save the SQLite backup" }
+          $verify = Join-Path $env:TEMP 'unitrack-ci-verifydb.py'
+          [System.IO.File]::WriteAllText($verify, 'import sqlite3; assert sqlite3.connect("unitrack.db").execute("SELECT COUNT(*) FROM safety_test").fetchone()[0] == 1', (New-Object System.Text.UTF8Encoding($false)))
+          & .\.venv\Scripts\python.exe $verify
+          if ($LASTEXITCODE -ne 0) { throw "The updater changed the original test database" }
