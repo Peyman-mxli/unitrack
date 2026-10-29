@@ -295,7 +295,8 @@
                 <a href="{{ url_for('admin_views.admin_access_control_scanner') }}" class="btn-clear">{{ t('Clear') }}</a>
                 <a href="{{ url_for('admin_views.admin_access_control') }}" class="btn-back">{{ t('Back') }}</a>
             </div>
-        </form>
+            {% include "qr_camera_widget.html" %}
+</form>
     </div>
 
     <div class="scanner-card">
