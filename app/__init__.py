@@ -26,6 +26,7 @@ from .routes.admin_views import admin_views_bp
 from .routes.student_views import student_views_bp
 from .routes.personal_views import personal_views_bp
 from .routes.professor_views import professor_views_bp
+from .routes.attendance_views import attendance_bp
 
 # ✅ ADMIN SEED
 from .services.admin_seed_service import seed_default_admin
@@ -661,11 +662,14 @@ def create_app():
     app.register_blueprint(student_views_bp)
     app.register_blueprint(personal_views_bp)
     app.register_blueprint(professor_views_bp)
+    app.register_blueprint(attendance_bp)
 
     with app.app_context():
         # minimal models load
         from .models.user_model import User
         from .models.validation_code_model import ValidationCode
+        from .models.academic_models import UniversityClass, ClassEnrollment, ClassMeeting, ClassAttendance
+        from .models.admin_audit_model import AdminAuditLog
 
         db.create_all()
 
