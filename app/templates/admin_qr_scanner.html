@@ -333,12 +333,12 @@
 
             <div class="result-item">
                 <div class="result-label">{{ t('Action') }}</div>
-                <div class="result-value">{{ t(result_action) if result_action else "--" }}</div>
+                <div class="result-value">{{ t({'check_in': 'Check In', 'check_out': 'Check Out'}.get(result_action, result_action)) if result_action else "--" }}</div>
             </div>
 
             <div class="result-item">
                 <div class="result-label">{{ t('Status') }}</div>
-                <div class="result-value">{{ t(result_status) if result_status else "--" }}</div>
+                <div class="result-value">{{ t({'checked_in': 'Inside Campus', 'checked_out': 'Outside Campus'}.get(result_status, result_status)) if result_status else "--" }}</div>
             </div>
 
             <div class="result-item">
