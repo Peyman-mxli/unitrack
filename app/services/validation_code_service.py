@@ -156,24 +156,39 @@ def validate_code_for_use(code, selected_role=None):
     return True, validation_code, None
 
 
-def mark_validation_code_as_used(validation_code, used_by_user_id):
-    """
-    Mark a validation code as consumed.
+def mark_validation_code_as_used(validation_code, used_by_user_id, commit=True):
+    """Consume a code exactly once using a conditional database update.
 
-    Why this matters:
-    - one code should not be reused many times
-    - we keep audit history
-    - admin can later track who used which code
+    With commit=False, a caller can commit this update together with the
+    new account, preventing partially completed registration.
     """
-    if not validation_code:
-        return None
+    if validation_code is None or used_by_user_id is None:
+        raise ValueError("A validation code and registered user are required.")
 
+    now = datetime.utcnow()
     try:
-        validation_code.is_used = True
-        validation_code.used_at = datetime.utcnow()
-        validation_code.used_by_user_id = used_by_user_id
-
-        db.session.commit()
+        result = db.session.execute(
+            db.update(ValidationCode)
+            .where(
+                ValidationCode.id == validation_code.id,
+                ValidationCode.is_used.is_(False),
+                db.or_(ValidationCode.expires_at.is_(None), ValidationCode.expires_at > now),
+                ~db.select(ValidationCodeRevocation.id).where(
+                    ValidationCodeRevocation.code_id == validation_code.id
+                ).exists(),
+            )
+            .values(
+                is_used=True,
+                used_at=now,
+                used_by_user_id=used_by_user_id,
+            )
+        )
+        if result.rowcount != 1:
+            raise ValueError("Validation code has already been used, expired or revoked")
+        if commit:
+            db.session.commit()
+        else:
+            db.session.flush()
         return validation_code
     except Exception:
         db.session.rollback()
