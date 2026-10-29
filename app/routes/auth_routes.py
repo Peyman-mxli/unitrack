@@ -1227,15 +1227,13 @@ def login():
     }), 200
 
 
-@auth_bp.route("/logout", methods=["GET", "POST"])
+@auth_bp.route("/logout", methods=["POST"])
 @login_required
 def logout():
     """
     Log out the current user.
 
-    FIX:
-    - supports GET for browser logout link/button
-    - supports POST for API and form logout
+    Logout is POST-only and protected by the CSRF middleware.
     """
 
     # A logged-out account should disappear from online counts immediately.
