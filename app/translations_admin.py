@@ -1,5 +1,5 @@
-# Supplemental UI translations for legacy admin templates and flash messages.
-# Keys are the original English text, preserving the English fallback.
+# Supplemental UI translations for legacy admin and authentication templates.
+# Keys are original English text; English remains the fallback.
 ADMIN_SPANISH = {
     "Users Management": "Administración de Usuarios",
     "Monitor all registered users, review account status, search by role or activity, and prepare management actions such as edit, role update, user ID update, password change, and delete.": "Supervisa los usuarios registrados, revisa el estado de sus cuentas, filtra por rol o actividad y realiza acciones como editar, cambiar roles, actualizar IDs, cambiar contraseñas y eliminar cuentas.",
@@ -180,5 +180,32 @@ ADMIN_SPANISH = {
     "New password must be different from current password.": "La nueva contraseña debe ser distinta de la actual.",
     "Admin configuration and password updated successfully.": "La configuración y la contraseña se actualizaron correctamente.",
     "Admin configuration updated successfully.": "La configuración del administrador se actualizó correctamente.",
-    "Failed to update admin configuration.": "No se pudo actualizar la configuración del administrador."
+    "Failed to update admin configuration.": "No se pudo actualizar la configuración del administrador.",
+    "Forgot Password": "¿Olvidaste tu contraseña?",
+    "Polytechnic University of Baja California": "Universidad Politécnica de Baja California",
+    "Forgot your password? Enter your registered email and phone number.": "¿Olvidaste tu contraseña? Introduce el correo y el teléfono registrados.",
+    "Registered Email": "Correo electrónico registrado",
+    "Registered Phone Number": "Número de teléfono registrado",
+    "Send Reset Email": "Enviar correo de recuperación",
+    "Return to Login": "Volver a iniciar sesión",
+    "For security reasons, the reset request only works when both email and phone number match the same UniTrack account.": "Por seguridad, solo se podrá restablecer la contraseña si el correo y el teléfono pertenecen a la misma cuenta de UniTrack.",
+    "Plutarco Elías Calles Neighborhood, Mexicali, Baja California, Mexico CP. 21376": "Colonia Plutarco Elías Calles, Mexicali, Baja California, México C. P. 21376",
+    "Main phone: (52) 686-104-2727": "Tel. Conmutador: (52) 686-104-2727",
+    "© All rights reserved by the Polytechnic University of Baja California": "© Todos los derechos reservados de la Universidad Politécnica de Baja California",
+    "Enter your registered email": "Introduce tu correo electrónico registrado",
+    "Enter your registered phone number": "Introduce tu número de teléfono registrado",
+    "Reset Password": "Restablecer contraseña",
+    "Enter your new password": "Introduce tu nueva contraseña",
+    "Update Password": "Actualizar contraseña",
+    "Email and phone number are required": "El correo y el teléfono son obligatorios.",
+    "The provided email and phone number do not match any account": "El correo y el teléfono no coinciden con ninguna cuenta.",
+    "This account is inactive": "Esta cuenta está inactiva.",
+    "Password reset email sent successfully. Please check your inbox.": "Se envió el correo para restablecer la contraseña. Revisa tu bandeja de entrada.",
+    "Missing reset token": "Falta el código de restablecimiento.",
+    "Password and confirm password are required": "La contraseña y su confirmación son obligatorias.",
+    "Password and confirm password do not match": "La contraseña y su confirmación no coinciden.",
+    "Unexpected error while updating password": "Error inesperado al actualizar la contraseña.",
+    "Email error: ": "Error de correo: ",
+    "UniTrack": "UniTrack",
+    "Unitrack": "UniTrack"
 }
