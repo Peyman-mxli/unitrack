@@ -520,11 +520,11 @@ def _save_admin_profile_photo(uploaded_file):
         current_user.image = final_relative_path
 
 
-def build_access_qr_payload_for_user(user):
+def build_access_qr_payload_for_user(user, token=None):
     """Administrator's QR uses a short-lived one-time signed token."""
     from app.services.scan_token_service import issue_scan_token
     base_url = _build_admin_base_url()
-    query_string = urlencode({"scan_token": issue_scan_token(user)})
+    query_string = urlencode({"scan_token": token or issue_scan_token(user)})
     route_path = "/admin/access-control/mobile-scan"
     return f"{base_url}{route_path}?{query_string}" if base_url else f"{route_path}?{query_string}"
 
@@ -1457,9 +1457,10 @@ def admin_access_control():
     current_access_status = get_user_current_access_status(current_user.id)
     access_records = build_user_access_records(current_user, selected_date)
 
-    access_qr_payload = build_access_qr_payload_for_user(current_user)
+    from app.services.scan_token_service import issue_access_credential
+    access_token, access_qr_id_code = issue_access_credential(current_user)
+    access_qr_payload = build_access_qr_payload_for_user(current_user, token=access_token)
     access_qr_image = generate_qr_image_data_uri(access_qr_payload)
-    access_qr_id_code = build_access_qr_id_code_for_user(current_user)
 
     return render_template(
         "admin_access_control.html",
