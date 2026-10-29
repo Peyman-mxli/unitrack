@@ -1,6 +1,6 @@
 {% extends "admin_base.html" %}
 
-{% block title %}{{ t('Admin QR Scanner') }}<script src="{{ url_for('static', filename='js/qr-camera.js') }}" defer></script>
+{% block title %}{{ t('Admin QR Scanner') }}
 {% endblock %}
 
 {% block content %}
@@ -359,7 +359,7 @@
     <div class="scanner-card">
         <h2 class="scanner-section-title">{{ t('Scan Result') }}</h2>
         <div class="empty-state">
-            {{ t('No scan has been processed yet. Paste a QR payload or backup access code and click') }}
+            {{ "Todavía no se ha confirmado ningún escaneo. Utiliza la cámara o pega un código QR firmado y pulsa" if current_language == "es" else "No scan confirmed yet. Use the camera or paste a signed QR and click" }}
             <strong>{{ t('Scan QR') }}</strong>.
         </div>
     </div>
