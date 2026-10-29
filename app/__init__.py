@@ -576,6 +576,10 @@ def create_app():
         },
     }
 
+    # Add translations for legacy admin pages and system notifications.
+    from .translations_admin import ADMIN_SPANISH
+    TRANSLATIONS["es"].update(ADMIN_SPANISH)
+
     def get_current_language():
         if current_user.is_authenticated:
             user_language = getattr(current_user, "language", None)
@@ -592,7 +596,14 @@ def create_app():
 
     def t(key):
         language = get_current_language()
-        return TRANSLATIONS.get(language, TRANSLATIONS["en"]).get(key, key)
+        dictionary = TRANSLATIONS.get(language, TRANSLATIONS["en"])
+        if key in dictionary:
+            return dictionary[key]
+        if language == "es":
+            for prefix in ("Validation code created successfully: ", "User deleted successfully: "):
+                if str(key).startswith(prefix):
+                    return ADMIN_SPANISH[prefix] + str(key)[len(prefix):]
+        return key
 
     @app.context_processor
     def inject_global_translations():
