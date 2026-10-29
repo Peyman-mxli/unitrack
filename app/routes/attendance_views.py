@@ -5,6 +5,7 @@ from flask_login import current_user, login_required
 from sqlalchemy import func
 
 from app.database import db
+from app.utils.local_time import campus_now
 from app.models.user_model import User
 from app.models.academic_models import (
     UniversityClass, ClassEnrollment, ClassMeeting, ClassAttendance,
@@ -206,7 +207,7 @@ def mark_attendance(meeting_id):
     else:
         record.status = status
         record.recorded_by = current_user.id
-        record.recorded_at = datetime.utcnow()
+        record.recorded_at = campus_now()
     db.session.commit()
     flash("Attendance saved.", "success")
     return redirect(url_for("attendance.class_detail", class_id=course.id))
@@ -223,7 +224,7 @@ def finalize_meeting(meeting_id):
     if not _can_manage(course):
         abort(403)
     if not meeting.finalized_at:
-        if datetime.utcnow() < meeting.ends_at:
+        if campus_now() < meeting.ends_at:
             flash("A meeting can only be finalized after it ends.", "error")
         else:
             # Materialize absences so student, professor and admin reports agree.
@@ -244,7 +245,7 @@ def finalize_meeting(meeting_id):
                         meeting_id=meeting.id, student_id=row.student_id,
                         status="Absent", recorded_by=current_user.id
                     ))
-            meeting.finalized_at = datetime.utcnow()
+            meeting.finalized_at = campus_now()
             db.session.commit()
             flash("Meeting finalized; unmarked enrolled students count as absent.", "success")
     return redirect(url_for("attendance.class_detail", class_id=course.id))
