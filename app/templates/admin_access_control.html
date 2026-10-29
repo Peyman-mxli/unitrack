@@ -551,7 +551,7 @@
         </div>
 
         <div>
-            <h2 class="summary-name">{{ admin_name if admin_name else t('admin') }}</h2>
+            <h2 class="summary-name">{{ display_user_name(admin_name, current_user.username) if admin_name else t('admin') }}</h2>
             <div class="summary-sub">{{ t('Admin ID / Username:') }} {{ current_user.username if current_user.username else "--" }}</div>
         </div>
 
@@ -641,7 +641,7 @@
                 {% for record in records %}
                 <tr>
                     <td>{{ loop.index }}</td>
-                    <td>{{ admin_name }}</td>
+                    <td>{{ display_user_name(admin_name, current_user.username) }}</td>
                     <td>{{ current_user.username }}</td>
                     <td>{{ record.date }}</td>
                     <td>{{ record.check_in }}</td>
