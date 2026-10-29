@@ -487,6 +487,7 @@
                 </div>
 
                 <form method="POST" action="/admin/users/{{ user.id }}/delete" class="form-grid">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="field-group">
                         <label for="confirmation_text">{{ t('Type DELETE to confirm') }}</label>
                         <input
