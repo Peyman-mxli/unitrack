@@ -720,14 +720,15 @@ def register():
             email=str(data["email"]).strip().lower(),
             phone=str(data["phone"]).strip(),
             password_hash=password_hash,
-            role=role
+            role=role,
+            commit=False
         )
 
         if hasattr(user, "ensure_user_id_code"):
             user.ensure_user_id_code()
-            db.session.commit()
 
-        mark_validation_code_as_used(validation_code_object, user.id)
+        mark_validation_code_as_used(validation_code_object, user.id, commit=False)
+        db.session.commit()
 
         return jsonify({
             "success": True,
@@ -871,14 +872,15 @@ def register_page():
             phone=str(form_data["phone"]).strip(),
             password_hash=password_hash,
             role=role,
-            photo_path=photo_path
+            photo_path=photo_path,
+            commit=False
         )
 
         if hasattr(user, "ensure_user_id_code"):
             user.ensure_user_id_code()
-            db.session.commit()
 
-        mark_validation_code_as_used(validation_code_object, user.id)
+        mark_validation_code_as_used(validation_code_object, user.id, commit=False)
+        db.session.commit()
 
         return render_template(
             "auth_login.html",
