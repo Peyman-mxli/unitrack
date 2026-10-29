@@ -26,6 +26,31 @@ jobs:
             $parseErrors | ForEach-Object { Write-Error $_ }
             exit 1
           }
+      - name: Verify camera JavaScript syntax and QR decoding fallback
+        shell: bash
+        run: |
+          node --check app/static/js/qr-camera.js
+          node --check app/static/js/vendor/jsQR.js
+          python - <<'PY'
+          import qrcode
+          from PIL import Image
+          image = qrcode.make("unitrack-camera-decoder-test").convert("RGBA")
+          image = image.resize((400, 400), Image.Resampling.NEAREST)
+          with open("/tmp/unitrack-test-qr.rgba", "wb") as stream:
+              stream.write(image.tobytes())
+          PY
+          node - <<'JS'
+          const fs = require("node:fs");
+          const jsQR = require("./app/static/js/vendor/jsQR.js");
+          const pixels = fs.readFileSync("/tmp/unitrack-test-qr.rgba");
+          const decoded = jsQR(new Uint8ClampedArray(pixels), 400, 400, {
+            inversionAttempts: "attemptBoth"
+          });
+          if (!decoded || decoded.data !== "unitrack-camera-decoder-test") {
+            throw new Error("Bundled jsQR failed to decode a real QR image");
+          }
+          console.log("Local jsQR successfully decoded QR image");
+          JS
       - name: Run isolated integration tests
         env:
           FLASK_DEBUG: "False"
