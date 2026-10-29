@@ -131,33 +131,8 @@
 {% endif %}
 
 <div class="card" style="max-width:900px;">
-    <h3 style="margin-top:0;">{{ t('Quick Example') }}</h3>
-    <p style="margin-top:0; color:#64748b;">
-        {{ t('Paste a real QR value like one of these:') }}
-    </p>
-
-    <div style="margin-top:16px;">
-        <div style="
-            background:#0f172a;
-            color:#f8fafc;
-            padding:14px;
-            border-radius:14px;
-            font-family:Consolas, monospace;
-            margin-bottom:18px;
-        ">
-            UT-UPBC-0001
-        </div>
-
-        <div style="
-            background:#0f172a;
-            color:#f8fafc;
-            padding:14px;
-            border-radius:14px;
-            font-family:Consolas, monospace;
-        ">
-            07AB43
-        </div>
-    </div>
+    <h3>{{ "Cómo utilizar el QR seguro" if current_language == 'es' else "Using secure QR codes" }}</h3>
+    <p>{{ "Escanea el QR firmado y vigente del usuario. Los códigos de identificación estáticos ya no están habilitados." if current_language == 'es' else "Scan the user's current signed QR. Static ID codes are disabled." }}</p>
 </div>
-
+<script src="{{ url_for('static', filename='js/qr-camera.js') }}" defer></script>
 {% endblock %}
