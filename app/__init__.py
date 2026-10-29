@@ -427,7 +427,7 @@ def create_app():
             "Paste a real QR value like one of these:": "Pega un valor QR real como uno de estos:",
 
             "Staff Configuration": "Configuración del Personal",
-            "Staff tablero": "Área del Personal",
+            "Staff Panel": "Área del Personal",
             "Manage your personal information and account settings.": "Administra tu información personal y la configuración de tu cuenta.",
             "Update your personal information, security, preferences, and profile image.": "Actualiza tu información personal, seguridad, preferencias e imagen de perfil.",
             "Profile Photo": "Foto de Perfil",
@@ -447,11 +447,11 @@ def create_app():
             "Professor:": "Profesor:",
             "Simulate the access reader by pasting the professor QR code content.": "Simula el lector de acceso pegando el contenido del código QR del profesor.",
             "Professor Configuration": "Configuración del Profesor",
-            "Professor tablero": "Área del Profesor",
+            "Professor Panel": "Área del Profesor",
             "Manage your professor information and account settings.": "Administra tu información de profesor y la configuración de tu cuenta.",
             "Update your professor information, security, preferences, and profile image.": "Actualiza tu información de profesor, seguridad, preferencias e imagen de perfil.",
 
-            "Admin tablero": "Área de Administración",
+            "Admin Panel": "Área de Administración",
             "Admin Configuration": "Configuración del Administrador",
             "Manage your administrator information and account settings.": "Administra la información de tu administrador y la configuración de tu cuenta.",
             "Update your administrator information, security, preferences, and profile image.": "Actualiza la información de tu administrador, seguridad, preferencias e imagen de perfil.",
