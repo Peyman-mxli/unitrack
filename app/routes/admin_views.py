@@ -1430,7 +1430,7 @@ def admin_access_control():
 
     scan_result = None
     if request.method == "POST":
-        qr_text = str(request.form.get("qr_text", "")).strip()
+        qr_text = str(request.form.get("pass_code") or request.form.get("qr_text") or "").strip()
         response_data, status_code = process_global_access_scan_qr_text(qr_text)
         scan_result = {
             "success": bool(response_data.get("success")),
