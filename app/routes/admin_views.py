@@ -40,6 +40,7 @@ from app.database import db
 from app.models.user_model import User
 from app.models.admin_audit_model import AdminAuditLog
 from app.models.validation_code_model import ValidationCode
+from app.models.validation_revocation_model import ValidationCodeRevocation
 from app.services.validation_code_service import create_validation_code
 from app.services.access_log_service import (
     create_check_in,
@@ -694,19 +695,39 @@ def build_admin_dashboard_context():
 
 
 def build_validation_codes_context():
-    """
-    Build context for validation codes page.
-    """
+    """Search and filter code history, including revoked codes."""
+    search_text = str(request.args.get("code_search", "")).strip()
+    selected_role = str(request.args.get("code_role", "")).strip().lower()
+    selected_status = str(request.args.get("code_status", "")).strip().lower()
+    query = db.select(ValidationCode).order_by(ValidationCode.created_at.desc())
+    if search_text:
+        query = query.where(ValidationCode.code.ilike(f"%{search_text}%"))
+    if selected_role in get_allowed_role_values():
+        query = query.where(ValidationCode.role == selected_role)
+    all_codes = db.session.execute(query.limit(250)).scalars().all()
+    revoked_ids = set(db.session.execute(
+        db.select(ValidationCodeRevocation.code_id)
+    ).scalars().all())
+    now = datetime.utcnow()
 
-    codes = safe_all(
-        db.select(ValidationCode)
-        .order_by(ValidationCode.created_at.desc())
-        .limit(50)
-    )
+    def status_for(code):
+        if code.id in revoked_ids:
+            return "revoked"
+        if code.is_used:
+            return "used"
+        if code.expires_at and code.expires_at < now:
+            return "expired"
+        return "active"
 
+    codes = [code for code in all_codes
+             if not selected_status or status_for(code) == selected_status]
     return {
-        "now": datetime.utcnow(),
+        "now": now,
         "codes": codes,
+        "revoked_code_ids": revoked_ids,
+        "code_search": search_text,
+        "selected_code_role": selected_role,
+        "selected_code_status": selected_status,
     }
 
 
@@ -905,6 +926,38 @@ def admin_create_validation_code():
         db.session.rollback()
         flash("Unexpected error while creating validation code.", "error")
 
+    return redirect("/admin/validation-codes")
+
+
+@admin_views_bp.route("/validation-codes/<int:code_id>/revoke", methods=["POST"])
+@login_required
+def admin_revoke_validation_code(code_id):
+    if not _is_admin_user():
+        return _reject_non_admin()
+    code = db.session.get(ValidationCode, code_id)
+    if not code:
+        flash("Validation code not found", "error")
+        return redirect("/admin/validation-codes")
+    if code.is_used:
+        flash("Used validation codes cannot be revoked.", "warning")
+        return redirect("/admin/validation-codes")
+    if db.session.execute(db.select(ValidationCodeRevocation.id).where(
+        ValidationCodeRevocation.code_id == code.id
+    )).scalar_one_or_none() is not None:
+        flash("Validation code already revoked.", "warning")
+        return redirect("/admin/validation-codes")
+    try:
+        db.session.add(ValidationCodeRevocation(
+            code_id=code.id,
+            revoked_by=current_user.id,
+            reason=str(request.form.get("reason", "")).strip()[:250],
+        ))
+        record_admin_action("revoke_validation_code", details=f"code_id={code.id}; role={code.role}")
+        db.session.commit()
+        flash("Validation code revoked successfully.", "success")
+    except Exception:
+        db.session.rollback()
+        flash("Could not revoke validation code.", "error")
     return redirect("/admin/validation-codes")
 
 
