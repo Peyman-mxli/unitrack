@@ -1415,15 +1415,40 @@ def admin_delete_user_action(user_id):
     return redirect("/admin/users")
 
 
-@admin_views_bp.route("/access-control", methods=["GET"])
+@admin_views_bp.route("/access-control", methods=["GET", "POST"])
 @login_required
 def admin_access_control():
     """
-    Real admin access control page using the same global UniTrack access control
-    flow already used by student, professor, and staff.
+    Admin campus access overview AND authorized QR scanner on one page.
+
+    Camera capture only fills the field. A CSRF-protected POST verifies the
+    signed, short-lived QR and records the access event through the existing
+    security-checked service.
     """
     if not _is_admin_user():
         return _reject_non_admin()
+
+    scan_result = None
+    if request.method == "POST":
+        qr_text = str(request.form.get("qr_text", "")).strip()
+        response_data, status_code = process_global_access_scan_qr_text(qr_text)
+        scan_result = {
+            "success": bool(response_data.get("success")),
+            "message": response_data.get("message", ""),
+            "action": response_data.get("action", ""),
+            "name": (
+                response_data.get("user_name")
+                or response_data.get("student_name")
+                or response_data.get("admin_name")
+                or response_data.get("staff_name")
+                or response_data.get("professor_name")
+                or ""
+            ),
+            "username": response_data.get("username", ""),
+            "check_in_time": response_data.get("check_in_time", ""),
+            "check_out_time": response_data.get("check_out_time", ""),
+            "status_code": status_code,
+        }
 
     selected_date = str(request.args.get("date", "")).strip()
     access_message = str(request.args.get("success", "")).strip()
@@ -1444,6 +1469,7 @@ def admin_access_control():
         selected_date=selected_date,
         access_message=access_message,
         access_error=access_error,
+        scan_result=scan_result,
         access_qr_payload=access_qr_payload,
         access_qr_image=access_qr_image,
         access_qr_id_code=access_qr_id_code,
