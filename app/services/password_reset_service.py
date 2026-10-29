@@ -4,6 +4,8 @@ password_reset_service.py
 This service handles secure password reset tokens for UniTrack.
 """
 
+import hashlib
+
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from flask import current_app
 
@@ -37,7 +39,7 @@ def generate_password_reset_token(user):
         raise RuntimeError("Password reset cannot run without SECRET_KEY.")
 
     token = serializer.dumps(
-        {"email": user.email},
+        {"email": user.email, "password_fingerprint": hashlib.sha256(user.password_hash.encode("utf-8")).hexdigest()[:16]},
         salt="unitrack-password-reset"
     )
 
@@ -92,5 +94,9 @@ def verify_password_reset_token(token):
 
     if not user.is_active_user:
         return None, "This account is inactive"
+
+    expected = hashlib.sha256(user.password_hash.encode("utf-8")).hexdigest()[:16]
+    if payload.get("password_fingerprint") != expected:
+        return None, "This reset link is no longer valid"
 
     return user, None
