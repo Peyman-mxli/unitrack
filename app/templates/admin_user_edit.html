@@ -1,6 +1,6 @@
 {% extends "admin_base.html" %}
 
-{% block title %}Edit User | UniTrack Admin{% endblock %}
+{% block title %}{{ t('Edit User | UniTrack Admin') }}{% endblock %}
 
 {% block content %}
 <style>
@@ -251,19 +251,18 @@
 <div class="edit-user-page">
     <section class="edit-user-header">
         <div>
-            <h1>Edit User</h1>
+            <h1>{{ t('Edit User') }}</h1>
             <p>
-                Update the basic account information for this user. Role change, user ID update,
-                password change, and remove actions are available.
+                {{ t('Update the basic account information for this user. Role change, user ID update, password change, and remove actions are available.') }}
             </p>
         </div>
 
         <div class="top-actions">
-            <a href="/admin/users/{{ user.id }}/change-role" class="btn btn-secondary">Change Role</a>
-            <a href="/admin/users/{{ user.id }}/update-user-id" class="btn btn-secondary">Update ID</a>
-            <a href="/admin/users/{{ user.id }}/change-password" class="btn btn-secondary">Change Password</a>
-            <a href="/admin/users/{{ user.id }}/delete" class="btn btn-secondary">Remove</a>
-            <a href="/admin/users" class="btn btn-secondary">Back</a>
+            <a href="/admin/users/{{ user.id }}/change-role" class="btn btn-secondary">{{ t('Change Role') }}</a>
+            <a href="/admin/users/{{ user.id }}/update-user-id" class="btn btn-secondary">{{ t('Update ID') }}</a>
+            <a href="/admin/users/{{ user.id }}/change-password" class="btn btn-secondary">{{ t('Change Password') }}</a>
+            <a href="/admin/users/{{ user.id }}/delete" class="btn btn-secondary">{{ t('Remove') }}</a>
+            <a href="/admin/users" class="btn btn-secondary">{{ t('Back') }}</a>
         </div>
     </section>
 
@@ -281,78 +280,78 @@
                 <p class="profile-username">@{{ user.username }}</p>
 
                 <div style="margin-top:12px;">
-                    <span class="badge">{{ role_label }}</span>
+                    <span class="badge">{{ t(role_label) }}</span>
                 </div>
 
                 <div style="margin-top:10px;">
                     {% if is_online %}
-                        <span class="status-badge status-online"><span class="status-dot"></span>Online</span>
+                        <span class="status-badge status-online"><span class="status-dot"></span>{{ t('Online') }}</span>
                     {% elif user.is_active_user %}
-                        <span class="status-badge status-active"><span class="status-dot"></span>Active</span>
+                        <span class="status-badge status-active"><span class="status-dot"></span>{{ t('Active') }}</span>
                     {% else %}
-                        <span class="status-badge status-inactive"><span class="status-dot"></span>Inactive</span>
+                        <span class="status-badge status-inactive"><span class="status-dot"></span>{{ t('Inactive') }}</span>
                     {% endif %}
                 </div>
 
                 <div class="profile-meta">
-                    <div class="meta-row"><span class="meta-label">User ID</span><span class="meta-value">{{ user.id }}</span></div>
-                    <div class="meta-row"><span class="meta-label">System Code</span><span class="meta-value">{{ user.user_id_code or '-' }}</span></div>
-                    <div class="meta-row"><span class="meta-label">Email</span><span class="meta-value">{{ user.email or '-' }}</span></div>
-                    <div class="meta-row"><span class="meta-label">Phone</span><span class="meta-value">{{ user.phone or '-' }}</span></div>
+                    <div class="meta-row"><span class="meta-label">{{ t('User ID') }}</span><span class="meta-value">{{ user.id }}</span></div>
+                    <div class="meta-row"><span class="meta-label">{{ t('System Code') }}</span><span class="meta-value">{{ user.user_id_code or '-' }}</span></div>
+                    <div class="meta-row"><span class="meta-label">{{ t('Email') }}</span><span class="meta-value">{{ user.email or '-' }}</span></div>
+                    <div class="meta-row"><span class="meta-label">{{ t('Phone') }}</span><span class="meta-value">{{ user.phone or '-' }}</span></div>
                 </div>
             </div>
         </div>
 
         <div class="panel">
             <div class="panel-inner">
-                <h2 class="form-title">Basic Information</h2>
-                <p class="form-subtitle">Edit and save user data.</p>
+                <h2 class="form-title">{{ t('Basic Information') }}</h2>
+                <p class="form-subtitle">{{ t('Edit and save user data.') }}</p>
 
                 <form method="POST" action="/admin/users/{{ user.id }}/update">
                     <div class="form-grid">
                         <div class="field-group">
-                            <label>First Name</label>
+                            <label>{{ t('First Name') }}</label>
                             <input name="first_name" class="field-control" value="{{ user.first_name }}">
                         </div>
 
                         <div class="field-group">
-                            <label>Last Name</label>
+                            <label>{{ t('Last Name') }}</label>
                             <input name="last_name" class="field-control" value="{{ user.last_name }}">
                         </div>
 
                         <div class="field-group">
-                            <label>Username</label>
+                            <label>{{ t('Username') }}</label>
                             <input name="username" class="field-control" value="{{ user.username }}">
                         </div>
 
                         <div class="field-group">
-                            <label>Email</label>
+                            <label>{{ t('Email') }}</label>
                             <input name="email" class="field-control" value="{{ user.email }}">
                         </div>
 
                         <div class="field-group">
-                            <label>Phone</label>
+                            <label>{{ t('Phone') }}</label>
                             <input name="phone" class="field-control" value="{{ user.phone }}">
                         </div>
 
                         <div class="field-group">
-                            <label>Role</label>
-                            <input class="field-control" value="{{ role_label }}" readonly>
+                            <label>{{ t('Role') }}</label>
+                            <input class="field-control" value="{{ t(role_label) }}" readonly>
                         </div>
 
                         <div class="field-group full">
-                            <label>User Code</label>
+                            <label>{{ t('User Code') }}</label>
                             <input class="field-control" value="{{ user.user_id_code or '-' }}" readonly>
                         </div>
                     </div>
 
                     <div class="read-only-note">
-                        Only basic info is editable here.
+                        {{ t('Only basic info is editable here.') }}
                     </div>
 
                     <div class="form-actions">
-                        <button class="btn btn-primary">Save Changes</button>
-                        <a href="/admin/users" class="btn btn-secondary">Cancel</a>
+                        <button class="btn btn-primary">{{ t('Save Changes') }}</button>
+                        <a href="/admin/users" class="btn btn-secondary">{{ t('Cancel') }}</a>
                     </div>
                 </form>
             </div>
