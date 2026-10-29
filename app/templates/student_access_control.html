@@ -518,7 +518,9 @@
 <div class="access-grid">
 
     <div class="qr-card">
-        <h3 style="margin:0; color:#081a43;">{{ "Tu Código QR de Acceso" if is_spanish else "Your Access QR Code" }}</h3>
+        <h3 style="margin:0; color:#081a43;">{{ "Tu Código QR de Acceso" if is_spanish else "Your Access QR Code" }}
+        <p style="margin:10px 0;color:#475569;font-size:13px;">{{ "Tu QR y este código son únicos, se crean automáticamente y vencen en 5 minutos. Después de usarlos, actualiza la página para obtener otros." if is_spanish else "Your QR and code are unique, generated automatically, and expire after 5 minutes. Refresh this page to get new ones after use." }}</p>
+        <a href="{{ url_for('student_views.access_control_page') }}" style="display:inline-block;margin:5px 0 12px;padding:9px 13px;border-radius:9px;background:#7c3aed;color:white;text-decoration:none;font-weight:800;">{{ "Generar nuevo QR" if is_spanish else "Get new QR" }}</a></h3>
 
         <div class="qr-box">
             {% if access_qr_image %}
@@ -568,7 +570,7 @@
 
         <div class="card">
             <div style="font-size:13px; font-weight:900; margin-bottom:8px; color:#081a43;">
-                {{ "Código de Respaldo QR" if is_spanish else "Backup QR ID Code" }}
+                {{ "Código temporal para entrar" if is_spanish else "Temporary Access Code" }}
             </div>
 
             <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
