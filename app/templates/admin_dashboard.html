@@ -658,7 +658,7 @@
                         {% for code in recent_validation_codes %}
                             <tr>
                                 <td>{{ code.code }}</td>
-                                <td>{{ code.role }}</td>
+                                <td>{{ t({'estudiante':'Student', 'docente':'Professor', 'personal':'Staff', 'administrativo':'Admin'}.get(code.role, code.role)) }}</td>
                                 <td>
                                     {% if code.is_used %}
                                         <span class="badge badge-danger">{{ t('Used') }}</span>
@@ -745,8 +745,8 @@
                     {% if recent_access_records %}
                         {% for record in recent_access_records %}
                             <tr>
-                                <td>{{ record.full_name }}</td>
-                                <td>{{ record.role }}</td>
+                                <td>{{ t(record.full_name) if record.full_name == 'System Administrator' else record.full_name }}</td>
+                                <td>{{ t({'estudiante':'Student', 'docente':'Professor', 'personal':'Staff', 'administrativo':'Admin'}.get(record.role, record.role)) }}</td>
                                 <td>{{ record.user_id }}</td>
                                 <td>{{ record.check_in_time or "-" }}</td>
                                 <td>{{ record.check_out_time or "-" }}</td>
@@ -783,12 +783,12 @@
                 {% for item in live_presence_feed %}
                     <div class="activity-card">
                         <div class="activity-top">
-                            <h4 class="activity-name">{{ item.full_name }}</h4>
-                            <span class="badge badge-success">{{ item.role }}</span>
+                            <h4 class="activity-name">{{ t(item.full_name) if item.full_name == 'System Administrator' else item.full_name }}</h4>
+                            <span class="badge badge-success">{{ t({'estudiante':'Student', 'docente':'Professor', 'personal':'Staff', 'administrativo':'Admin'}.get(item.role, item.role)) }}</span>
                         </div>
                         <p class="activity-meta">
                             {{ t('ID:') }} {{ item.user_id }}<br>
-                            {{ t('Last Action:') }} {{ item.last_action }}<br>
+                            {{ t('Last Action:') }} {{ t({'check_in': 'Check In', 'check_out': 'Check Out'}.get(item.last_action, item.last_action)) }}<br>
                             {{ t('Time:') }} {{ item.last_time }}
                         </p>
                     </div>
