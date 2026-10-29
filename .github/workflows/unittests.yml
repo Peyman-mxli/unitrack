@@ -17,6 +17,15 @@ jobs:
           python-version: "3.11"
       - name: Install Python packages
         run: python -m pip install -r requirements.txt
+      - name: Validate Windows safe updater syntax
+        shell: pwsh
+        run: |
+          $parseErrors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path 'scripts/safe_update.ps1').Path, [ref]$null, [ref]$parseErrors) | Out-Null
+          if ($parseErrors.Count -gt 0) {
+            $parseErrors | ForEach-Object { Write-Error $_ }
+            exit 1
+          }
       - name: Run isolated integration tests
         env:
           FLASK_DEBUG: "False"
