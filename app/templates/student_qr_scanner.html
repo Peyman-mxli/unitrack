@@ -147,37 +147,6 @@
 {% endif %}
 
 <div class="card" style="max-width:900px;">
-    <h3 style="margin-top:0;">{{ "Ejemplo Rápido" if is_spanish else "Quick Example" }}</h3>
-    <p style="margin-top:0; color:#64748b;">
-        {{ "Pega un valor QR real como uno de estos:" if is_spanish else "Paste a real QR value like one of these:" }}
-    </p>
-
-    <div style="margin-top:16px;">
-        <div style="
-            background:#0f172a;
-            color:#f8fafc;
-            padding:14px 16px;
-            border-radius:14px;
-            font-family:Consolas, monospace;
-            font-size:14px;
-            word-break:break-word;
-            margin-bottom:16px;
-        ">
-            UT-UPBC-0001
-        </div>
-
-        <div style="
-            background:#0f172a;
-            color:#f8fafc;
-            padding:14px 16px;
-            border-radius:14px;
-            font-family:Consolas, monospace;
-            font-size:14px;
-            word-break:break-word;
-        ">
-            07AB43
-        </div>
-    </div>
+    <p>{{ "Para ingresar al campus, presenta tu QR actualizado al personal autorizado. Los estudiantes no pueden autorregistrar entradas desde esta página." if is_spanish else "For campus entry, show your updated QR to an authorized operator. Students cannot register their own entry from this page." }}</p>
 </div>
-
 {% endblock %}
