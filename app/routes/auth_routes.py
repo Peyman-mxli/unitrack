@@ -319,7 +319,7 @@ def get_register_text(language):
 
     translations = {
         "es": {
-            "page_title": "UniTrack Register",
+            "page_title": "Registro | UniTrack",
             "card_title": "Registro",
             "first_name_label": "Nombre",
             "first_name_placeholder": "Nombre",
@@ -333,10 +333,10 @@ def get_register_text(language):
             "phone_placeholder": "Teléfono",
             "role_label": "Rol",
             "role_placeholder": "Selecciona tu rol",
-            "role_student": "Student",
-            "role_teacher": "Teacher",
-            "role_staff": "Staff",
-            "role_admin": "Admin",
+            "role_student": "Estudiante",
+            "role_teacher": "Docente",
+            "role_staff": "Personal",
+            "role_admin": "Administrador",
             "validation_code_label": "Código de validación",
             "validation_code_placeholder": "Código de validación",
             "password_label": "Crear contraseña",
@@ -346,10 +346,10 @@ def get_register_text(language):
             "show_password": "Mostrar contraseña",
             "photo_label": "Foto de perfil",
             "photo_help": "Sube una imagen clara de perfil. Formatos permitidos: JPG, JPEG, PNG, WEBP.",
-            "create_account_button": "Create Account",
+            "create_account_button": "Crear cuenta",
             "already_have_account": "¿Ya tienes una cuenta?",
-            "sign_in": "Sign in",
-            "helper_note": "Every registration requires a valid university-issued validation code.",
+            "sign_in": "Iniciar sesión",
+            "helper_note": "Cada registro requiere un código de validación válido emitido por la universidad.",
 
             "header_upbc_short": "UPBC",
             "header_university": "Universidad Politécnica de Baja California",
