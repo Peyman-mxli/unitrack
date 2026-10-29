@@ -413,6 +413,7 @@
                     enctype="multipart/form-data"
                     class="photo-form"
                 >
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input
                         type="file"
                         id="avatarInput"
@@ -427,6 +428,7 @@
 
             <div>
                 <form method="POST" action="{{ url_for('personal_views.configuration_update') }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                     <div class="config-section">
                         <h3 class="config-subtitle">{{ t('Contact Information') if t else 'Contact Information' }}</h3>
