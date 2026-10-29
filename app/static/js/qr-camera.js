@@ -85,14 +85,21 @@
       });
     };
 
-    const foundQr = (value) => {
+    const foundQr = (value, automatic = false) => {
       if (!value || !value.trim()) return;
       field.value = value.trim();
       stop();
       field.focus();
       announce(messages.detected);
-      // An actual campus check-in/out is only created when the operator
-      // submits the existing CSRF-protected form. Never auto-submit here.
+      // An authorized operator has deliberately started the camera.
+      // Successful detection now submits the existing CSRF-protected form
+      // automatically, recording one entry or exit. File uploads still
+      // require explicit confirmation.
+      if (automatic) {
+        const submit = form.querySelector('button[type="submit"]');
+        if (typeof form.requestSubmit === "function") form.requestSubmit(submit || undefined);
+        else if (submit) submit.click();
+      }
     };
 
     const tick = () => {
@@ -102,7 +109,7 @@
         if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
           const result = drawFrame(video, video.videoWidth, video.videoHeight);
           if (result?.data) {
-            foundQr(result.data);
+            foundQr(result.data, true);
             return;
           }
         }
