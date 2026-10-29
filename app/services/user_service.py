@@ -12,6 +12,7 @@ Professional responsibilities:
 """
 
 from datetime import datetime
+from sqlalchemy import func
 
 from app.database import db
 from app.models.user_model import User
@@ -89,9 +90,17 @@ def get_user_by_username(username):
     if not normalized_username:
         return None
 
-    return db.session.execute(
+    # Prefer the exact username when legacy accounts differ only by letter case.
+    exact_user = db.session.execute(
         db.select(User).filter_by(username=normalized_username)
     ).scalar_one_or_none()
+    if exact_user:
+        return exact_user
+
+    # Make username login and duplicate checks case-insensitive.
+    return db.session.execute(
+        db.select(User).where(func.lower(User.username) == normalized_username.lower())
+    ).scalars().first()
 
 
 def get_user_by_email(email):
