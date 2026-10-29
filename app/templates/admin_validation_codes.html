@@ -1,16 +1,16 @@
 {% extends "admin_base.html" %}
 
-{% block title %}Validation Codes{% endblock %}
+{% block title %}{{ t('Validation Codes') }}{% endblock %}
 {% block nav_validation_codes %}active{% endblock %}
 
-{% block page_eyebrow %}Admin Control{% endblock %}
-{% block page_title %}Validation Codes{% endblock %}
+{% block page_eyebrow %}{{ t('Admin Control') }}{% endblock %}
+{% block page_title %}{{ t('Validation Codes') }}{% endblock %}
 {% block page_subtitle %}
-Create role-based validation codes with expiration control and monitor their usage status.
+{{ t('Create role-based validation codes with expiration control and monitor their usage status.') }}
 {% endblock %}
 
 {% block page_actions %}
-<button class="btn btn-primary" onclick="toggleCreateForm()">New Code</button>
+<button class="btn btn-primary" onclick="toggleCreateForm()">{{ t('New Code') }}</button>
 {% endblock %}
 
 {% block extra_css %}
@@ -108,40 +108,40 @@ Create role-based validation codes with expiration control and monitor their usa
 {% block content %}
 
 <div class="content-card form-card" id="createForm">
-    <h3>Create Validation Code</h3>
+    <h3>{{ t('Create Validation Code') }}</h3>
 
     <form method="POST" action="/admin/validation-codes/create">
         <div class="form-grid">
             <select name="role" class="select-field" required>
-                <option value="" selected disabled>Select Role</option>
-                <option value="estudiante">Student</option>
-                <option value="docente">Teacher</option>
-                <option value="personal">Staff</option>
-                <option value="administrativo">Admin</option>
+                <option value="" selected disabled>{{ t('Select Role') }}</option>
+                <option value="estudiante">{{ t('Student') }}</option>
+                <option value="docente">{{ t('Teacher') }}</option>
+                <option value="personal">{{ t('Staff') }}</option>
+                <option value="administrativo">{{ t('Admin') }}</option>
             </select>
 
             <select name="hours" class="select-field">
-                <option value="24">24 Hours</option>
-                <option value="48">48 Hours</option>
-                <option value="72">72 Hours</option>
+                <option value="24">{{ t('24 Hours') }}</option>
+                <option value="48">{{ t('48 Hours') }}</option>
+                <option value="72">{{ t('72 Hours') }}</option>
             </select>
 
-            <button type="submit" class="btn btn-primary">Create Code</button>
+            <button type="submit" class="btn btn-primary">{{ t('Create Code') }}</button>
         </div>
     </form>
 </div>
 
 <div class="content-card">
-    <h3>Recent Validation Codes</h3>
+    <h3>{{ t('Recent Validation Codes') }}</h3>
 
     <div class="table-wrap">
         <table>
             <thead>
                 <tr>
-                    <th>Code</th>
-                    <th>Role</th>
-                    <th>Status</th>
-                    <th>Expires</th>
+                    <th>{{ t('Code') }}</th>
+                    <th>{{ t('Role') }}</th>
+                    <th>{{ t('Status') }}</th>
+                    <th>{{ t('Expires') }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -149,14 +149,14 @@ Create role-based validation codes with expiration control and monitor their usa
                     {% for code in codes %}
                     <tr>
                         <td>{{ code.code }}</td>
-                        <td>{{ code.role }}</td>
+                        <td>{{ t({'estudiante': 'Student', 'administrativo': 'Admin', 'docente': 'Professor', 'personal': 'Staff'}.get(code.role, code.role)) }}</td>
                         <td>
                             {% if code.is_used %}
-                                <span class="badge badge-danger">Used</span>
+                                <span class="badge badge-danger">{{ t('Used') }}</span>
                             {% elif code.expires_at and code.expires_at < now %}
-                                <span class="badge badge-warning">Expired</span>
+                                <span class="badge badge-warning">{{ t('Expired') }}</span>
                             {% else %}
-                                <span class="badge badge-success">Active</span>
+                                <span class="badge badge-success">{{ t('Active') }}</span>
                             {% endif %}
                         </td>
                         <td>{{ code.expires_at or "No limit" }}</td>
@@ -164,7 +164,7 @@ Create role-based validation codes with expiration control and monitor their usa
                     {% endfor %}
                 {% else %}
                     <tr>
-                        <td colspan="4">No codes yet</td>
+                        <td colspan="4">{{ t('No codes yet') }}</td>
                     </tr>
                 {% endif %}
             </tbody>
