@@ -431,6 +431,7 @@
             </p>
 
             <form method="POST" action="/admin/users/{{ user.id }}/update-user-id" class="form-grid">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="field-group">
                     <label for="user_id_code">{{ t('User ID') }}</label>
                     <input
