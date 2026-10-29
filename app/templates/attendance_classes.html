@@ -29,6 +29,7 @@
 <div class="attendance-card">
   <h2>{{ "Crear clase" if es else "Create Class" }}</h2>
   <form method="POST" action="{{ url_for('attendance.create_class') }}" class="attendance-row">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input name="code" maxlength="40" placeholder="{{ 'Código, ej. IT101' if es else 'Class code, e.g. IT101' }}" required>
     <input name="title" maxlength="160" placeholder="{{ 'Nombre de la materia' if es else 'Class title' }}" required>
     <input name="room" maxlength="80" placeholder="{{ 'Aula' if es else 'Room' }}">
@@ -57,6 +58,7 @@
 <h2>{{ course.code }} — {{ course.title }}</h2>
 <p>{{ "Aula" if es else "Room" }}: {{ course.room or "—" }}</p>
 <form class="attendance-row" method="POST" action="{{ url_for('attendance.enroll', class_id=course.id) }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 <input name="student_identifier" placeholder="{{ 'Usuario o correo del estudiante' if es else 'Student username or email' }}" required>
 <button type="submit">{{ "Inscribir estudiante" if es else "Enroll Student" }}</button>
 </form>
@@ -64,6 +66,7 @@
 <div class="attendance-card">
 <h2>{{ "Programar sesión" if es else "Schedule Meeting" }}</h2>
 <form method="POST" action="{{ url_for('attendance.add_meeting', class_id=course.id) }}" class="attendance-row">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 <label>{{ "Inicio" if es else "Start" }} <input type="datetime-local" name="starts_at" required></label>
 <label>{{ "Fin" if es else "End" }} <input type="datetime-local" name="ends_at" required></label>
 <button type="submit">{{ "Programar" if es else "Schedule" }}</button>
@@ -93,6 +96,7 @@
 <td>
 {% if not meeting.finalized_at %}
 <form method="POST" action="{{ url_for('attendance.mark_attendance', meeting_id=meeting.id) }}" class="attendance-row">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 <input type="hidden" name="student_id" value="{{ student.id }}">
 <select name="status" required>
 <option value="Present" {% if status=='Present' %}selected{% endif %}>{{ "Presente" if es else "Present" }}</option>
@@ -110,6 +114,7 @@
 </div>
 {% if not meeting.finalized_at %}
 <form method="POST" action="{{ url_for('attendance.finalize_meeting', meeting_id=meeting.id) }}" class="attendance-row">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 <button type="submit">{{ "Finalizar sesión (los no marcados serán ausentes)" if es else "Finalize Meeting (unmarked become absent)" }}</button>
 </form>
 {% endif %}
