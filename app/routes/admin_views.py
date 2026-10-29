@@ -1014,7 +1014,7 @@ def admin_update_user(user_id):
         return redirect(f"/admin/users/{user_id}/edit")
 
     existing_username_user = db.session.execute(
-        db.select(User).where(User.username == username, User.id != user.id)
+        db.select(User).where(db.func.lower(User.username) == username.lower(), User.id != user.id)
     ).scalar_one_or_none()
 
     if existing_username_user:
@@ -1023,7 +1023,7 @@ def admin_update_user(user_id):
 
     if email:
         existing_email_user = db.session.execute(
-            db.select(User).where(User.email == email, User.id != user.id)
+            db.select(User).where(db.func.lower(User.email) == email.lower(), User.id != user.id)
         ).scalar_one_or_none()
 
         if existing_email_user:
