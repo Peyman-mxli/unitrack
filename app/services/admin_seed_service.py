@@ -4,6 +4,8 @@ admin_seed_service.py
 Seed service for creating the default UniTrack administrator.
 """
 
+import os
+
 from sqlalchemy import text
 
 from app.database import db
@@ -18,7 +20,8 @@ DEFAULT_ADMIN_DATA = {
     "phone": "0000000000",
     "role": "administrativo",
     "language": "en",
-    "password": "Admin123!",
+    # Password is supplied through UNITRACK_INITIAL_ADMIN_PASSWORD, never Git.
+    "password": None,
 }
 
 
@@ -32,7 +35,7 @@ def seed_default_admin():
         text("""
             SELECT id
             FROM users
-            WHERE username = :username
+            WHERE lower(username) = lower(:username)
             LIMIT 1
         """),
         {"username": DEFAULT_ADMIN_DATA["username"]}
@@ -41,7 +44,15 @@ def seed_default_admin():
     if existing_admin:
         return existing_admin[0]
 
-    password_hash = hash_password(DEFAULT_ADMIN_DATA["password"])
+    # An existing database is always left intact. On a fresh install the
+    # administrator is only created with an explicitly configured password.
+    initial_password = os.environ.get("UNITRACK_INITIAL_ADMIN_PASSWORD", "")
+    if not initial_password:
+        return None
+    if len(initial_password) < 12:
+        raise ValueError("UNITRACK_INITIAL_ADMIN_PASSWORD must be at least 12 characters.")
+
+    password_hash = hash_password(initial_password)
 
     db.session.execute(
         text("""
