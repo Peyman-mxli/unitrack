@@ -855,7 +855,7 @@
 
                         <div class="topbar-user-name">
                             {% if current_user.is_authenticated %}
-                                {{ current_user.first_name }} {{ current_user.last_name }}
+                                {{ display_user_name(current_user) }}
                             {% else %}
                                 {{ t('admin') }}
                             {% endif %}
@@ -903,7 +903,7 @@
 
                     <h2 class="admin-profile-name">
                         {% if current_user.is_authenticated %}
-                            {{ current_user.first_name }} {{ current_user.last_name }}
+                            {{ display_user_name(current_user) }}
                         {% else %}
                             {{ t('admin') }}
                         {% endif %}
