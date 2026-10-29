@@ -948,63 +948,91 @@ def process_access_scan_qr_text(qr_text):
             "processed_at": _server_now_iso(),
         }, 400
 
+    # Only authenticated campus operators may register a QR check-in/out.
+    # Public QR URLs are display-only and may never change access records.
+    if not current_user.is_authenticated or getattr(current_user, "role", "") not in {
+        "administrativo", "personal", "docente"
+    }:
+        return {
+            "success": False,
+            "message": "An authorized campus operator must scan the QR code.",
+            "processed_at": _server_now_iso(),
+        }, 403
+
+    from app.services.scan_token_service import resolve_scan_token, consume_scan_token
     user = None
-    parsed_payload = parse_student_access_qr_payload(qr_text)
-
-    if parsed_payload:
-        if parsed_payload["type"] == "legacy_payload":
-            student_id = parsed_payload["student_id"]
-            qr_username = parsed_payload["username"]
-
-            user = get_user_by_id(student_id)
-
+    if "scan_token=" in qr_text or qr_text.startswith("eyJ"):
+        try:
+            user, token_record = resolve_scan_token(qr_text)
+            consume_scan_token(token_record)
+        except ValueError as exc:
+            return {"success": False, "message": str(exc),
+                    "processed_at": _server_now_iso()}, 403
+    elif current_app.config.get("ALLOW_LEGACY_QR", False) and current_user.role == "administrativo":
+        # Opt-in migration mode for legacy manual IDs; disabled by default.
+        user = None
+        parsed_payload = parse_student_access_qr_payload(qr_text)
+    
+        if parsed_payload:
+            if parsed_payload["type"] == "legacy_payload":
+                student_id = parsed_payload["student_id"]
+                qr_username = parsed_payload["username"]
+    
+                user = get_user_by_id(student_id)
+    
+                if not user:
+                    return {
+                        "success": False,
+                        "message": "User not found.",
+                        "processed_at": _server_now_iso(),
+                    }, 404
+    
+                if _clean_text(getattr(user, "username", "")) != qr_username:
+                    return {
+                        "success": False,
+                        "message": "QR validation failed. User data mismatch.",
+                        "processed_at": _server_now_iso(),
+                    }, 400
+    
+            elif parsed_payload["type"] == "user_code":
+                user = find_user_by_user_id_code(parsed_payload["user_code"])
+    
+                if not user:
+                    return {
+                        "success": False,
+                        "message": "User not found for that User ID code.",
+                        "processed_at": _server_now_iso(),
+                    }, 404
+    
+            elif parsed_payload["type"] == "qr_id_code":
+                user = find_user_by_access_qr_id_code(parsed_payload["qr_id_code"])
+    
+                if not user:
+                    return {
+                        "success": False,
+                        "message": "User not found for that QR ID code.",
+                        "processed_at": _server_now_iso(),
+                    }, 404
+    
+        else:
+            user = find_user_by_user_id_code(qr_text)
+    
+            if not user:
+                user = find_user_by_access_qr_id_code(qr_text)
+    
             if not user:
                 return {
                     "success": False,
-                    "message": "User not found.",
-                    "processed_at": _server_now_iso(),
-                }, 404
-
-            if _clean_text(getattr(user, "username", "")) != qr_username:
-                return {
-                    "success": False,
-                    "message": "QR validation failed. User data mismatch.",
+                    "message": "Invalid UniTrack QR payload, User ID code, or QR ID code.",
                     "processed_at": _server_now_iso(),
                 }, 400
-
-        elif parsed_payload["type"] == "user_code":
-            user = find_user_by_user_id_code(parsed_payload["user_code"])
-
-            if not user:
-                return {
-                    "success": False,
-                    "message": "User not found for that User ID code.",
-                    "processed_at": _server_now_iso(),
-                }, 404
-
-        elif parsed_payload["type"] == "qr_id_code":
-            user = find_user_by_access_qr_id_code(parsed_payload["qr_id_code"])
-
-            if not user:
-                return {
-                    "success": False,
-                    "message": "User not found for that QR ID code.",
-                    "processed_at": _server_now_iso(),
-                }, 404
-
+    
     else:
-        user = find_user_by_user_id_code(qr_text)
-
-        if not user:
-            user = find_user_by_access_qr_id_code(qr_text)
-
-        if not user:
-            return {
-                "success": False,
-                "message": "Invalid UniTrack QR payload, User ID code, or QR ID code.",
-                "processed_at": _server_now_iso(),
-            }, 400
-
+        return {
+            "success": False,
+            "message": "Use a newly generated signed UniTrack QR code.",
+            "processed_at": _server_now_iso(),
+        }, 403
     if not ACCESS_LOG_SERVICE_AVAILABLE:
         return {
             "success": False,
