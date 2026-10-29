@@ -84,6 +84,10 @@ def issue_scan_token(user):
     return token
 
 
+def is_temporary_access_code(value):
+    return bool(_normalize_code(value))
+
+
 def resolve_scan_token(qr_text):
     """Identify and verify a signed QR OR its matching temporary backup code."""
     supplied = str(qr_text or "").strip()
