@@ -33,9 +33,8 @@ def generate_password_reset_token(user):
 
     serializer = _get_serializer()
 
-    # 🔥 SAFE fallback (no crash if config not ready)
     if not serializer:
-        return f"fallback-token-{user.id}"
+        raise RuntimeError("Password reset cannot run without SECRET_KEY.")
 
     token = serializer.dumps(
         {"email": user.email},
