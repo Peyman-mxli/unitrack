@@ -332,86 +332,10 @@ def access_control_check_out():
 # =========================
 @professor_views_bp.route("/access-control/mobile-scan", methods=["GET"])
 def access_control_mobile_scan():
-    qr_text = (
-        _clean_scan_code(request.args.get("qr_text"))
-        or _clean_scan_code(request.args.get("user_code"))
-        or _clean_scan_code(request.args.get("qr_id_code"))
-    )
-
-    response_data, status_code = process_access_scan_qr_text(qr_text)
-    return _build_mobile_scan_result_html(response_data, status_code), status_code
-
-
-# =========================
-# QR SCANNER (GLOBAL) ✅ FIXED
-# =========================
-@professor_views_bp.route("/access-control/scanner", methods=["GET", "POST"])
-@login_required
-def access_control_scanner():
-    if not _is_professor_user():
-        return _reject()
-
-    _sync_professor_language()
-
-    qr_text_value = ""
-    scan_result = None
-
-    if request.method == "POST":
-        qr_text_value = (request.form.get("qr_text") or "").strip()
-
-        # 🔥 FIX: use SAME global processor as student
-        response_data, status_code = process_access_scan_qr_text(qr_text_value)
-
-        scan_result = {
-            "success": response_data.get("success", False),
-            "message": response_data.get("message", ""),
-            "action": response_data.get("action", ""),
-            "professor_name": (
-                response_data.get("professor_name")
-                or response_data.get("user_name")
-                or response_data.get("student_name")
-                or "--"
-            ),
-            "username": response_data.get("username", ""),
-            "status": response_data.get("status", ""),
-            "check_in_time": response_data.get("check_in_time", ""),
-            "check_out_time": response_data.get("check_out_time", ""),
-            "status_code": status_code,
-        }
-
-    return render_template(
-        "professor_qr_scanner.html",
-        active_page="scanner",
-        professor_name=_professor_name(),
-        role_label="Professor",
-        account_role_label="Professor",
-        account_type_label="Professor",
-        qr_text_value=qr_text_value,
-        scan_result=scan_result,
-    )
-
-
-# =========================
-# CONFIGURATION
-# =========================
-@professor_views_bp.route("/configuration")
-@login_required
-def configuration_page():
-    if not _is_professor_user():
-        return _reject()
-
-    _sync_professor_language()
-
-    return render_template(
-        "professor_configuration.html",
-        active_page="configuration",
-        professor_name=_professor_name(),
-        role_label="Professor",
-        account_role_label="Professor",
-        account_type_label="Professor",
-        profile_message=request.args.get("success"),
-        profile_error=request.args.get("error"),
-    )
+    """Public QR preview does not modify access records."""
+    return _build_mobile_scan_result_html(
+        {"success": False, "message": "An authorized UniTrack operator must scan this QR code."}, 200
+    ), 200
 
 
 @professor_views_bp.route("/configuration/update", methods=["POST"])
