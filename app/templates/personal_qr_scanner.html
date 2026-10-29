@@ -82,7 +82,7 @@
 
             <div style="display:grid; grid-template-columns:220px 1fr; gap:12px 14px; align-items:center;">
                 <div style="font-weight:800;">{{ t('Message:') if t else 'Message:' }}</div>
-                <div>{{ scan_result.message }}</div>
+                <div>{{ t(scan_result.message) }}</div>
 
                 <div style="font-weight:800;">{{ t('Action:') if t else 'Action:' }}</div>
                 <div>
@@ -121,7 +121,7 @@
 
             <div style="display:grid; grid-template-columns:220px 1fr; gap:12px 14px;">
                 <div style="font-weight:800;">{{ t('Message:') if t else 'Message:' }}</div>
-                <div>{{ scan_result.message }}</div>
+                <div>{{ t(scan_result.message) }}</div>
 
                 <div style="font-weight:800;">{{ t('HTTP Status Code:') if t else 'HTTP Status Code:' }}</div>
                 <div>{{ scan_result.status_code }}</div>
