@@ -226,6 +226,24 @@ def finalize_meeting(meeting_id):
         if datetime.utcnow() < meeting.ends_at:
             flash("A meeting can only be finalized after it ends.", "error")
         else:
+            # Materialize absences so student, professor and admin reports agree.
+            enrolled = db.session.execute(
+                db.select(ClassEnrollment).where(
+                    ClassEnrollment.class_id == course.id,
+                    ClassEnrollment.enrolled_at <= meeting.starts_at
+                )
+            ).scalars().all()
+            marked_ids = set(db.session.execute(
+                db.select(ClassAttendance.student_id).where(
+                    ClassAttendance.meeting_id == meeting.id
+                )
+            ).scalars().all())
+            for row in enrolled:
+                if row.student_id not in marked_ids:
+                    db.session.add(ClassAttendance(
+                        meeting_id=meeting.id, student_id=row.student_id,
+                        status="Absent", recorded_by=current_user.id
+                    ))
             meeting.finalized_at = datetime.utcnow()
             db.session.commit()
             flash("Meeting finalized; unmarked enrolled students count as absent.", "success")
