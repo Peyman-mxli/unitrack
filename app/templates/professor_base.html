@@ -278,6 +278,8 @@ color:var(--danger);
 
 <a href="{{ url_for('professor_views.access_control_scanner') }}" class="{% if active_page == 'scanner' %}active{% endif %}">{{ t('QR Scanner') }}</a>
 
+<a href="{{ url_for('attendance.classes') }}" class="{% if active_page == 'classes' %}active{% endif %}">{{ "Clases y asistencia" if current_language == "es" else "Classes and Attendance" }}</a>
+
 <a href="{{ url_for('professor_views.configuration_page') }}" class="{% if active_page == 'configuration' %}active{% endif %}">{{ t('configuration') }}</a>
 
 <form method="POST" action="{{ url_for('auth.logout') }}">
