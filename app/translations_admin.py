@@ -207,5 +207,17 @@ ADMIN_SPANISH = {
     "Unexpected error while updating password": "Error inesperado al actualizar la contraseña.",
     "Email error: ": "Error de correo: ",
     "UniTrack": "UniTrack",
-    "Unitrack": "UniTrack"
+    "Unitrack": "UniTrack",
+    "Unused Codes": "Códigos sin usar",
+    "Available codes not yet consumed": "Códigos disponibles que aún no se han utilizado",
+    "Access Control": "Control de acceso",
+    "Admin QR Scanner": "Escáner QR del administrador",
+    "Simulate the access reader by pasting the user QR code content or backup access code.": "Simula el lector de acceso pegando el contenido QR del usuario o su código de acceso de respaldo.",
+    "Scan Result": "Resultado del escaneo",
+    "Success": "Correcto",
+    "Error": "Error",
+    "No message returned.": "No se recibió ningún mensaje.",
+    "Action": "Acción",
+    "HTTP Status": "Estado HTTP",
+    "No scan has been processed yet. Paste a QR payload or backup access code and click": "Aún no se ha procesado ningún escaneo. Pega el contenido QR o el código de respaldo y pulsa"
 }
