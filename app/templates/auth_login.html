@@ -791,6 +791,7 @@ font-size:11px;
 {% endif %}
 
 <form method="POST" action="/auth/login-page">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
 <input type="hidden" name="language" value="{{ current_language }}">
 
