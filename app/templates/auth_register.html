@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ current_language }}">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>UniTrack Register</title>
+<title>{{ text.page_title }}</title>
 
 <style>
 *{
@@ -553,9 +553,9 @@ body{
 
     <div class="header-left">
         <img src="{{ url_for('static', filename='img/unitrack_logo.png') }}" class="header-corner-logo" alt="UniTrack Logo">
-        <div class="header-upbc">UPBC</div>
+        <div class="header-upbc">{{ text.header_upbc_short }}</div>
         <div class="header-university">
-            Universidad Politécnica de Baja California
+            {{ text.header_university }}
         </div>
     </div>
 
@@ -563,8 +563,8 @@ body{
 
         <form method="GET" action="/auth/register-page">
             <select class="language-select" name="language" onchange="this.form.submit()">
-                <option value="en">English</option>
-                <option value="es">Español</option>
+                <option value="en" {% if current_language == "en" %}selected{% endif %}>English</option>
+                <option value="es" {% if current_language == "es" %}selected{% endif %}>Español</option>
             </select>
         </form>
 
@@ -589,7 +589,7 @@ body{
 
     <div class="register-card">
 
-        <div class="card-title">Register</div>
+        <div class="card-title">{{ text.card_title }}</div>
 
         {% if error %}
             <div class="error">{{ error }}</div>
@@ -604,125 +604,125 @@ body{
             <div class="form-grid">
 
                 <div class="form-group">
-                    <label class="form-label" for="first_name">First Name</label>
+                    <label class="form-label" for="first_name">{{ text.first_name_label }}</label>
                     <input
                         id="first_name"
                         type="text"
                         name="first_name"
                         class="form-input"
-                        placeholder="First name"
+                        placeholder="{{ text.first_name_placeholder }}"
                         value="{{ first_name or '' }}"
                         required
                     >
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label" for="last_name">Last Name</label>
+                    <label class="form-label" for="last_name">{{ text.last_name_label }}</label>
                     <input
                         id="last_name"
                         type="text"
                         name="last_name"
                         class="form-input"
-                        placeholder="Last name"
+                        placeholder="{{ text.last_name_placeholder }}"
                         value="{{ last_name or '' }}"
                         required
                     >
                 </div>
 
                 <div class="form-group full-width">
-                    <label class="form-label" for="username">Username</label>
+                    <label class="form-label" for="username">{{ text.username_label }}</label>
                     <input
                         id="username"
                         type="text"
                         name="username"
                         class="form-input"
-                        placeholder="Username"
+                        placeholder="{{ text.username_placeholder }}"
                         value="{{ username or '' }}"
                         required
                     >
                 </div>
 
                 <div class="form-group full-width">
-                    <label class="form-label" for="email">Email</label>
+                    <label class="form-label" for="email">{{ text.email_label }}</label>
                     <input
                         id="email"
                         type="email"
                         name="email"
                         class="form-input"
-                        placeholder="Email"
+                        placeholder="{{ text.email_placeholder }}"
                         value="{{ email or '' }}"
                         required
                     >
                 </div>
 
                 <div class="form-group full-width">
-                    <label class="form-label" for="phone">Phone</label>
+                    <label class="form-label" for="phone">{{ text.phone_label }}</label>
                     <input
                         id="phone"
                         type="text"
                         name="phone"
                         class="form-input"
-                        placeholder="Phone"
+                        placeholder="{{ text.phone_placeholder }}"
                         value="{{ phone or '' }}"
                         required
                     >
                 </div>
 
                 <div class="form-group full-width">
-                    <label class="form-label" for="role">Role</label>
+                    <label class="form-label" for="role">{{ text.role_label }}</label>
                     <select id="role" name="role" class="form-select" required>
-                        <option value="">Select your role</option>
-                        <option value="estudiante" {% if role == 'estudiante' %}selected{% endif %}>Student</option>
-                        <option value="docente" {% if role == 'docente' %}selected{% endif %}>Teacher</option>
-                        <option value="personal" {% if role == 'personal' %}selected{% endif %}>Staff</option>
-                        <option value="administrativo" {% if role == 'administrativo' %}selected{% endif %}>Admin</option>
+                        <option value="">{{ text.role_placeholder }}</option>
+                        <option value="estudiante" {% if role == 'estudiante' %}selected{% endif %}>{{ text.role_student }}</option>
+                        <option value="docente" {% if role == 'docente' %}selected{% endif %}>{{ text.role_teacher }}</option>
+                        <option value="personal" {% if role == 'personal' %}selected{% endif %}>{{ text.role_staff }}</option>
+                        <option value="administrativo" {% if role == 'administrativo' %}selected{% endif %}>{{ text.role_admin }}</option>
                     </select>
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label" for="validation_code">Validation Code</label>
+                    <label class="form-label" for="validation_code">{{ text.validation_code_label }}</label>
                     <input
                         id="validation_code"
                         type="text"
                         name="validation_code"
                         class="form-input"
-                        placeholder="Validation code"
+                        placeholder="{{ text.validation_code_placeholder }}"
                         value="{{ validation_code or '' }}"
                         required
                     >
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label" for="password">Create Password</label>
+                    <label class="form-label" for="password">{{ text.password_label }}</label>
                     <input
                         id="password"
                         type="password"
                         name="password"
                         class="form-input"
-                        placeholder="Create password"
+                        placeholder="{{ text.password_placeholder }}"
                         required
                     >
                 </div>
 
                 <div class="form-group full-width">
-                    <label class="form-label" for="confirm_password">Confirm Password</label>
+                    <label class="form-label" for="confirm_password">{{ text.confirm_password_label }}</label>
                     <input
                         id="confirm_password"
                         type="password"
                         name="confirm_password"
                         class="form-input"
-                        placeholder="Confirm password"
+                        placeholder="{{ text.confirm_password_placeholder }}"
                         required
                     >
                 </div>
 
                 <div class="option-row">
                     <input type="checkbox" id="show_password" onclick="togglePasswords()">
-                    <label for="show_password">Show password</label>
+                    <label for="show_password">{{ text.show_password }}</label>
                 </div>
 
                 <div class="form-group full-width">
-                    <label class="form-label" for="photo">Profile Photo</label>
+                    <label class="form-label" for="photo">{{ text.photo_label }}</label>
                     <input
                         id="photo"
                         type="file"
@@ -731,25 +731,25 @@ body{
                         accept=".jpg,.jpeg,.png,.webp"
                     >
                     <div class="file-help">
-                        Upload a clear profile image. Supported formats: JPG, JPEG, PNG, WEBP.
+                        {{ text.photo_help }}
                     </div>
                 </div>
 
             </div>
 
             <button type="submit" class="register-button">
-                Create Account
+                {{ text.create_account_button }}
             </button>
 
         </form>
 
         <div class="signin-link-wrap">
-            Already have an account?
-            <a href="/auth/login-page" class="signin-link">Sign in</a>
+            {{ text.already_have_account }}
+            <a href="/auth/login-page" class="signin-link">{{ text.sign_in }}</a>
         </div>
 
         <div class="helper-note">
-            Every registration requires a valid university-issued validation code.
+            {{ text.helper_note }}
         </div>
 
     </div>
@@ -761,16 +761,16 @@ body{
     <div class="footer-content">
 
         <div class="footer-info">
-            <strong>Universidad Politécnica de Baja California</strong>
+            <strong>{{ text.header_university }}</strong>
             <div>Calle de la Claridad S/N</div>
-            <div>Colonia Plutarco Elías Calles, Mexicali, Baja California, México CP. 21376</div>
-            <div>Tel. Conmutador: (52) 686-104-2727</div>
+            <div>{{ text.footer_address_line_2 }}</div>
+            <div>{{ text.footer_phone }}</div>
         </div>
 
     </div>
 
     <div class="footer-bottom">
-        © Todos los derechos reservados de la Universidad Politécnica de Baja California
+        {{ text.footer_copyright }}
     </div>
 
 </footer>
