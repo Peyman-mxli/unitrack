@@ -1298,6 +1298,45 @@ def admin_update_user_id_action(user_id):
     return redirect(f"/admin/users/{user_id}/update-user-id")
 
 
+@admin_views_bp.route("/users/<int:user_id>/toggle-active", methods=["POST"])
+@login_required
+def admin_toggle_user_active(user_id):
+    """Suspend/reactivate an account without destroying university records."""
+    if not _is_admin_user():
+        return _reject_non_admin()
+    user = get_user_by_id_for_admin(user_id)
+    if user is None:
+        flash("User not found.", "error")
+        return redirect("/admin/users")
+    if user.id == current_user.id:
+        flash("You cannot deactivate your own account.", "error")
+        return redirect(f"/admin/users/{user_id}/edit")
+    next_active = not bool(user.is_active_user)
+    if not next_active and is_default_admin_user(user):
+        flash("The main administrator account cannot be deactivated.", "error")
+        return redirect(f"/admin/users/{user_id}/edit")
+    if not next_active and user.role == "administrativo":
+        active_admins = safe_scalar(db.select(db.func.count(User.id)).where(
+            User.role == "administrativo", User.is_active_user.is_(True)
+        ))
+        if active_admins <= 1:
+            flash("The last active administrator cannot be deactivated.", "error")
+            return redirect(f"/admin/users/{user_id}/edit")
+    try:
+        user.is_active_user = next_active
+        if not next_active:
+            db.session.execute(db.delete(UserPresence).where(UserPresence.user_id == user.id))
+        record_admin_action(
+            "reactivate_user" if next_active else "deactivate_user", target=user
+        )
+        db.session.commit()
+        flash("User account activated." if next_active else "User account deactivated.", "success")
+    except Exception:
+        db.session.rollback()
+        flash("Could not update the account status.", "error")
+    return redirect(f"/admin/users/{user_id}/edit")
+
+
 @admin_views_bp.route("/users/<int:user_id>/delete", methods=["GET"])
 @login_required
 def admin_delete_user_page(user_id):
