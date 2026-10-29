@@ -1,0 +1,50 @@
+{% extends "admin_base.html" %}
+{% block title %}{{ "Historial de Asistencia y Acceso" if current_language == "es" else "Attendance and Access History" }} | UniTrack{% endblock %}
+{% block page_title %}{{ "Historial de Asistencia y Acceso" if current_language == "es" else "Attendance and Access History" }}{% endblock %}
+{% block page_subtitle %}{{ "Consulta entradas, salidas y asistencia registrada a clases." if current_language == "es" else "Review campus entry and classroom attendance history." }}{% endblock %}
+{% block content %}
+{% set es = current_language == "es" %}
+<style>
+.history-sheet{background:#f5f7ff;border:1px solid #dce3f3;border-radius:18px;padding:20px;margin-bottom:22px}
+.history-sheet h2{font-size:21px;margin-bottom:12px}
+.history-form{display:flex;align-items:end;gap:12px;flex-wrap:wrap;margin-bottom:20px}
+.history-form input,.history-form select{padding:12px;border:1px solid #cbd5e1;border-radius:10px;min-width:160px}
+.history-form button{background:#7c3aed;color:white;padding:12px 18px;border:0;border-radius:10px;font-weight:bold}
+.history-tablewrap{overflow-x:auto}.history-table{width:100%;border-collapse:collapse;background:white}
+.history-table th,.history-table td{padding:12px 14px;border-bottom:1px solid #e2e8f0;text-align:left;white-space:nowrap}
+.history-table th{background:#eaf0ff}
+</style>
+<div class="history-sheet">
+<form method="GET" action="{{ url_for('admin_views.admin_attendance_history') }}" class="history-form">
+  <input type="text" name="search" value="{{ search_text }}" placeholder="{{ 'Nombre o ID' if es else 'Name or ID' }}">
+  <select name="role"><option value="">{{ "Todos los roles" if es else "All roles" }}</option>
+  {% for role, label in [('estudiante','Estudiante' if es else 'Student'),('docente','Profesor' if es else 'Professor'),('personal','Personal' if es else 'Staff'),('administrativo','Administrador' if es else 'Admin')] %}
+  <option value="{{ role }}" {% if selected_role==role %}selected{% endif %}>{{ label }}</option>
+  {% endfor %}</select>
+  <input type="date" name="date" value="{{ selected_date }}">
+  <button type="submit">{{ "Buscar" if es else "Search" }}</button>
+  <a href="{{ url_for('admin_views.admin_attendance_history') }}">{{ "Restablecer" if es else "Reset" }}</a>
+</form>
+<h2>{{ "Historial de acceso al campus" if es else "Campus Access History" }} ({{ access_history|length }})</h2>
+<div class="history-tablewrap"><table class="history-table">
+<thead><tr><th>{{ "Nombre" if es else "Name" }}</th><th>{{ "Rol" if es else "Role" }}</th><th>ID</th><th>{{ "Fecha" if es else "Date" }}</th><th>{{ "Entrada" if es else "Check In" }}</th><th>{{ "Salida" if es else "Check Out" }}</th><th>{{ "Estado" if es else "Status" }}</th></tr></thead>
+<tbody>
+{% for row in access_history %}
+<tr>
+<td>{{ display_user_name(row.user) }}</td><td>{{ t({'estudiante':'Student','docente':'Professor','personal':'Staff','administrativo':'Admin'}.get(row.user.role,row.user.role)) }}</td>
+<td>{{ row.user.user_id_code or row.user.username }}</td><td>{{ row.log.access_date }}</td><td>{{ row.log.check_in_time or '—' }}</td><td>{{ row.log.check_out_time or '—' }}</td><td>{{ t('Inside Campus') if not row.log.check_out_time else t('Outside Campus') }}</td>
+</tr>
+{% else %}<tr><td colspan="7">{{ "No hay registros de acceso." if es else "No access records found." }}</td></tr>{% endfor %}
+</tbody></table></div>
+</div>
+<div class="history-sheet">
+<h2>{{ "Asistencia académica registrada" if es else "Academic Attendance Records" }} ({{ class_history|length }})</h2>
+<div class="history-tablewrap"><table class="history-table">
+<thead><tr><th>{{ "Estudiante" if es else "Student" }}</th><th>{{ "Clase" if es else "Class" }}</th><th>{{ "Fecha" if es else "Date" }}</th><th>{{ "Estado" if es else "Status" }}</th></tr></thead>
+<tbody>
+{% for entry in class_history %}
+<tr><td>{{ entry.student.first_name }} {{ entry.student.last_name }}</td><td>{{ entry.course.title }} ({{ entry.course.code }})</td><td>{{ entry.meeting.starts_at }}</td><td>{{ {'Present':'Presente','Late':'Tarde','Absent':'Ausente'}.get(entry.attendance.status,entry.attendance.status) if es else entry.attendance.status }}</td></tr>
+{% else %}<tr><td colspan="4">{{ "Aún no hay asistencia académica registrada." if es else "No academic attendance recorded yet." }}</td></tr>{% endfor %}
+</tbody></table></div>
+</div>
+{% endblock %}
