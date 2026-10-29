@@ -697,6 +697,7 @@ padding:10px 10px 16px 10px;
 </nav>
 
 <form method="POST" action="{{ url_for('auth.logout') }}" class="logout-form">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 <button type="submit" class="logout-button">{{ "Cerrar Sesión" if is_spanish else "Log Out" }}</button>
 </form>
 
