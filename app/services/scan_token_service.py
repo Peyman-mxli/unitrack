@@ -5,7 +5,6 @@ consumed together. A permanent public user ID cannot grant campus access.
 """
 import hashlib
 import secrets
-import string
 from datetime import datetime, timedelta
 from urllib.parse import urlparse, parse_qs
 
@@ -18,6 +17,25 @@ from app.models.scan_token_model import ScanToken
 QR_TOKEN_LIFETIME_SECONDS = 300
 _CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 _CODE_LENGTH = 16
+# Every person receives a random secret, plus a visible three-letter role.
+_ROLE_PREFIX = {
+    "estudiante": "EST", "student": "EST",
+    "docente": "DOC", "professor": "DOC", "teacher": "DOC",
+    "personal": "PER", "staff": "PER",
+    "administrativo": "ADM", "admin": "ADM",
+}
+_VALID_PREFIXES = frozenset((*_ROLE_PREFIX.values(), "USR"))
+
+
+def _prefix_for_user(user):
+    return _ROLE_PREFIX.get(str(getattr(user, "role", "") or "").lower(), "USR")
+
+
+def _nonce_matches_role(nonce, user):
+    # Previously issued no-prefix credentials are valid until expiry.
+    prefix, separator, _secret = nonce.partition(":")
+    return not separator or prefix == _prefix_for_user(user)
+
 
 
 def _serializer():
@@ -35,10 +53,25 @@ def _extract_token(qr_text):
 
 
 def _normalize_code(value):
+    """Normalize role-prefixed codes to the exact nonce used by the QR.
+
+    New: DOC-ABCD-EFGH-JKLM-NPQR -> DOC:ABCDEFGHJKLMNPQR
+    Old: ABCD-EFGH-JKLM-NPQR -> ABCDEFGHJKLMNPQR
+    The former cannot be used by changing or removing the prefix.
+    """
     text = str(value or "").strip().upper().replace("-", "").replace(" ", "")
-    if len(text) != _CODE_LENGTH or any(c not in _CODE_ALPHABET for c in text):
+    if len(text) == _CODE_LENGTH:
+        secret = text  # existing short-lived credentials from previous version
+        prefix = ""
+    elif len(text) == _CODE_LENGTH + 3:
+        prefix, secret = text[:3], text[3:]
+        if prefix not in _VALID_PREFIXES:
+            return ""
+    else:
         return ""
-    return text
+    if any(c not in _CODE_ALPHABET for c in secret):
+        return ""
+    return f"{prefix}:{secret}" if prefix else secret
 
 
 def issue_access_credential(user):
@@ -52,8 +85,10 @@ def issue_access_credential(user):
 
     now = datetime.utcnow()
     # Collision-resistant random 80-bit code; never use predictable user IDs.
+    prefix = _prefix_for_user(user)
     for _ in range(5):
-        nonce = "".join(secrets.choice(_CODE_ALPHABET) for _ in range(_CODE_LENGTH))
+        secret = "".join(secrets.choice(_CODE_ALPHABET) for _ in range(_CODE_LENGTH))
+        nonce = f"{prefix}:{secret}"
         digest = hashlib.sha256(nonce.encode("ascii")).hexdigest()
         if not db.session.execute(db.select(ScanToken.id).where(
             ScanToken.token_hash == digest
@@ -74,7 +109,9 @@ def issue_access_credential(user):
         expires_at=now + timedelta(seconds=QR_TOKEN_LIFETIME_SECONDS),
     ))
     db.session.commit()
-    readable_code = "-".join(nonce[i:i + 4] for i in range(0, _CODE_LENGTH, 4))
+    readable_code = prefix + "-" + "-".join(
+        secret[i:i + 4] for i in range(0, _CODE_LENGTH, 4)
+    )
     return token, readable_code
 
 
@@ -103,6 +140,8 @@ def resolve_scan_token(qr_text):
         user = db.session.get(User, record.user_id)
         if not user or not user.is_active_user:
             raise ValueError("User account is unavailable.")
+        if not _nonce_matches_role(nonce_from_code, user):
+            raise ValueError("Access code no longer matches the user's role.")
         return user, record
 
     token = _extract_token(supplied)
@@ -127,6 +166,8 @@ def resolve_scan_token(qr_text):
     current_password_version = hashlib.sha256(user.password_hash.encode("utf-8")).hexdigest()[:16]
     if payload.get("version") != current_password_version:
         raise ValueError("QR code is no longer valid. Refresh it.")
+    if not _nonce_matches_role(nonce, user):
+        raise ValueError("QR code no longer matches the user's role. Refresh it.")
     nonce_hash = hashlib.sha256(nonce.encode("utf-8")).hexdigest()
     record = db.session.execute(db.select(ScanToken).where(
         ScanToken.token_hash == nonce_hash, ScanToken.user_id == user.id
