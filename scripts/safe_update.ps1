@@ -7,8 +7,10 @@ param([switch]$SkipStart)
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
-$root = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
-Set-Location $root
+$root = (Get-Location).Path
+if (-not (Test-Path -LiteralPath (Join-Path $root 'run.py') -PathType Leaf)) {
+    throw 'Open PowerShell in your UniTrack project folder before running this updater.'
+}
 
 function Fail([string]$message) {
     throw "UniTrack safe update stopped: $message"
@@ -53,12 +55,28 @@ $db = Join-Path $root 'unitrack.db'
 if (-not (Test-Path -LiteralPath $db -PathType Leaf)) {
     Fail 'The local unitrack.db was not found; refusing an update that could create a blank database.'
 }
-$backupScript = Join-Path $root 'scripts\backup_sqlite.py'
-if (-not (Test-Path -LiteralPath $backupScript -PathType Leaf)) {
-    Fail 'The SQLite backup tool is missing.'
-}
+# Self-contained backup works even when the local checkout is older than the
+# current remote repository. The backup happens BEFORE the git pull.
+$backupCode = @'
+from datetime import datetime
+from pathlib import Path
+import sqlite3
+
+root = Path.cwd()
+source = root / "unitrack.db"
+destination_dir = root / "backups"
+destination_dir.mkdir(exist_ok=True)
+target = destination_dir / ("unitrack-before-update-" + datetime.now().strftime("%Y%m%d-%H%M%S-%f") + ".db")
+with sqlite3.connect(str(source), timeout=30) as original:
+    with sqlite3.connect(str(target), timeout=30) as backup:
+        original.backup(backup, pages=128, sleep=0.05)
+        result = backup.execute("PRAGMA integrity_check").fetchone()[0]
+        if result != "ok":
+            raise RuntimeError("Backup failed integrity check: " + result)
+print("Verified backup:", target)
+'@
 Write-Host 'Backing up and checking SQLite database...' -ForegroundColor Cyan
-RunNative $python @($backupScript)
+RunNative $python @('-c', $backupCode)
 
 # --ff-only prevents accidental merges, rebases, or overwriting local work.
 Write-Host 'Pulling the latest verified main branch...' -ForegroundColor Cyan
