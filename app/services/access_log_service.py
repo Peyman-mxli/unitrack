@@ -605,11 +605,12 @@ def get_all_active_users():
     return results
 
 
-def get_today_access_logs():
+def get_today_access_logs(access_date=None):
     """
-    Get all access logs for today with dashboard-friendly values.
+    Get access logs for the requested date (today by default), formatted
+    for dashboards and historical searches.
     """
-    today = get_current_system_datetime().date()
+    today = access_date or get_current_system_datetime().date()
 
     query = (
         db.select(AccessLog)
