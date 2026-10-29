@@ -334,7 +334,7 @@ class UniTrackTests(unittest.TestCase):
                     value for value in re.findall(
                         rb"(?:EST|DOC|PER|ADM)-(?:[A-HJ-NP-Z2-9]{4}-){3}[A-HJ-NP-Z2-9]{4}", page.data
                     )
-                    if value != b"XXXX-XXXX-XXXX-XXXX"
+                    if not value.endswith(b"XXXX-XXXX-XXXX-XXXX")
                 ]
                 self.assertTrue(matches, f"No generated temporary code on {path}")
                 code = matches[0].decode("ascii")
