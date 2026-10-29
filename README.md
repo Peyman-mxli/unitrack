@@ -207,6 +207,21 @@ Configure environment variables through your hosting platform, not through commi
 
 **Security incident action:** historical Git commits contained an email application password. Immediately revoke that old app password in the email provider's security settings, generate a new one, and supply it only via your host's secret settings. Removing it from the current file does **not** erase repository history. Review previously committed profile photos before exposing the public repository; ignored files remain in Git history until separately remediated.
 
+### Safely update an existing Windows installation
+
+Open PowerShell **in the local UniTrack folder** (for example, `C:\\unitrack`). Stop the running Flask process with Ctrl+C before updating. This guarded updater is downloadable without first pulling Git changes:
+
+```powershell
+cd C:\unitrack
+$updateScript = Join-Path $env:TEMP 'unitrack-safe-update.ps1'
+Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/Peyman-mxli/unitrack/main/scripts/safe_update.ps1' -OutFile $updateScript
+powershell -NoProfile -ExecutionPolicy Bypass -File $updateScript
+```
+
+The script checks the Git origin and branch, refuses uncommitted tracked edits, verifies the existing `.venv`, makes and verifies an SQLite backup in ignored `backups/`, pulls with `--ff-only`, installs requirements, runs isolated tests, and starts the app only after success. It **never** deletes local database/photos, applies a stash, force-pulls, or re-creates a virtual environment. If any check fails, it exits and prints the reason. You can run it with `-SkipStart` to update and test without launching Flask.
+
+**Important:** The script updates only the local Windows checkout. It cannot change the remote Render database, recover data lost from an ephemeral server disk, or rotate the email provider's exposed app password. For a hosted release, use a persistent external database, external upload storage and a new email application password. Ensure the Render service only deploys after GitHub CI checks pass.
+
 ### Safe database backup
 
 ```powershell
