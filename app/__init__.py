@@ -55,8 +55,8 @@ def create_app():
     # a persistent random key, stored outside Git so sessions survive restarts.
     configured_key = os.environ.get("SECRET_KEY")
     environment = os.environ.get("UNITRACK_ENV", "").strip().lower()
-    if environment == "production" and not configured_key:
-        raise RuntimeError("Set a strong SECRET_KEY in production.")
+    if environment == "production" and (not configured_key or len(configured_key) < 32):
+        raise RuntimeError("Set a unique SECRET_KEY with at least 32 characters in production.")
     if not configured_key:
         local_key_path = os.path.join(BASE_DIR, ".unitrack-secret")
         try:
@@ -73,6 +73,11 @@ def create_app():
         if not configured_key:
             raise RuntimeError("Local secret key file is empty.")
     app.config["SECRET_KEY"] = configured_key
+    if environment == "production":
+        # Never allow accidental debug or insecure cookies in production.
+        app.config["DEBUG"] = False
+        app.config["SESSION_COOKIE_SECURE"] = True
+        app.config["ENFORCE_OPERATOR_SCANS"] = True
 
     db.init_app(app)
     migrate.init_app(app, db)
@@ -771,6 +776,19 @@ def create_app():
             supplied = request.form.get("csrf_token") or request.headers.get("X-CSRF-Token")
             if not expected or not supplied or not hmac.compare_digest(str(expected), str(supplied)):
                 abort(400, description="Security token missing or invalid. Refresh the page.")
+
+    @app.after_request
+    def add_web_security_headers(response):
+        """Protect private pages, signed QR links and login forms."""
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault("Referrer-Policy", "no-referrer")
+        if not request.path.startswith("/static/"):
+            response.headers["Cache-Control"] = "no-store, max-age=0"
+            response.headers["Pragma"] = "no-cache"
+        if environment == "production":
+            response.headers.setdefault("Strict-Transport-Security", "max-age=31536000")
+        return response
 
     # ✅ ROOT → LOGIN PAGE
     @app.route("/")
