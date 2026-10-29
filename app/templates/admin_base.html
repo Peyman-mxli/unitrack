@@ -959,6 +959,7 @@
                 </nav>
 
                 <form action="/auth/logout" method="POST" class="logout-form">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="logout-button">{{ t('logout') }}</button>
                 </form>
             </aside>
