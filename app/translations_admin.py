@@ -98,6 +98,7 @@ ADMIN_SPANISH = {
     "Save Role": "Guardar rol",
     "Change User Password": "Cambiar contraseña de usuario",
     "Change User Password | UniTrack Admin": "Cambiar contraseña | Administración de UniTrack",
+    "Change Password | UniTrack Admin": "Cambiar contraseña | Administración de UniTrack",
     "Reset this user's password. The system will require them to change it again on next login.": "Restablece la contraseña de este usuario. El sistema le pedirá cambiarla nuevamente al iniciar sesión.",
     "Password Reset": "Restablecimiento de contraseña",
     "Enter new password below.": "Escribe la nueva contraseña a continuación.",
