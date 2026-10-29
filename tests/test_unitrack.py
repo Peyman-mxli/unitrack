@@ -223,5 +223,72 @@ class UniTrackTests(unittest.TestCase):
         self.assertEqual(client.get("/attendance/classes").status_code, 403)
 
 
+    def test_teacher_class_workflow_and_student_report(self):
+        from app.models.academic_models import UniversityClass, ClassMeeting, ClassEnrollment
+        from app.models.user_model import User
+        from app.services.attendance_service import get_student_attendance_summary
+        from app.utils.local_time import campus_now
+        client = self._signed_in_client("TeacherA")
+        page = client.get("/attendance/classes")
+        csrf_match = re.search(rb'name="csrf_token" value="([^"]+)"', page.data)
+        self.assertIsNotNone(csrf_match)
+        csrf = csrf_match.group(1).decode("utf-8")
+        create = client.post("/attendance/classes/create", data={
+            "code": "ENDTOEND101", "title": "Integration Test Class",
+            "csrf_token": csrf,
+        })
+        self.assertEqual(create.status_code, 302)
+        with self.app.app_context():
+            course = self.db.session.execute(
+                self.db.select(UniversityClass).where(UniversityClass.code == "ENDTOEND101")
+            ).scalar_one()
+            course_id = course.id
+
+        enroll = client.post(f"/attendance/classes/{course_id}/enroll", data={
+            "student_identifier": "StudentA", "csrf_token": csrf,
+        })
+        self.assertEqual(enroll.status_code, 302)
+        now = campus_now()
+        # Simulate a meeting after the student's existing enrollment.
+        with self.app.app_context():
+            student = self.db.session.execute(
+                self.db.select(User).where(User.username == "StudentA")
+            ).scalar_one()
+            membership = self.db.session.execute(self.db.select(ClassEnrollment).where(
+                ClassEnrollment.class_id == course_id,
+                ClassEnrollment.student_id == student.id
+            )).scalar_one()
+            membership.enrolled_at = now - timedelta(days=3)
+            self.db.session.commit()
+            student_id = student.id
+
+        start = now - timedelta(days=1)
+        end = start + timedelta(hours=1)
+        schedule = client.post(f"/attendance/classes/{course_id}/meeting", data={
+            "starts_at": start.strftime("%Y-%m-%dT%H:%M"),
+            "ends_at": end.strftime("%Y-%m-%dT%H:%M"),
+            "csrf_token": csrf
+        })
+        self.assertEqual(schedule.status_code, 302)
+        with self.app.app_context():
+            meeting = self.db.session.execute(
+                self.db.select(ClassMeeting).where(ClassMeeting.class_id == course_id)
+            ).scalar_one()
+            meeting_id = meeting.id
+        mark = client.post(f"/attendance/meetings/{meeting_id}/mark", data={
+            "student_id": student_id, "status": "Present", "csrf_token": csrf
+        })
+        self.assertEqual(mark.status_code, 302)
+        finalize = client.post(f"/attendance/meetings/{meeting_id}/finalize", data={
+            "csrf_token": csrf
+        })
+        self.assertEqual(finalize.status_code, 302)
+        with self.app.app_context():
+            report = get_student_attendance_summary(student_id, selected_class_name="ENDTOEND101")
+            self.assertEqual(report["present_count"], 1)
+            self.assertEqual(report["absent_count"], 0)
+            self.assertEqual(report["attendance_percentage"], 100.0)
+
+
 if __name__ == "__main__":
     unittest.main()
