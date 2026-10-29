@@ -7,13 +7,14 @@ Minimal working version for UniTrack
 import sys
 import os
 import secrets
+import hmac
 
 # 🔥 FIX: ensure project root is always available
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
 
-from flask import Flask, redirect, url_for, session, request
+from flask import Flask, redirect, url_for, session, request, abort
 from flask_login import LoginManager, current_user
 from flask_migrate import Migrate
 
@@ -648,11 +649,20 @@ def create_app():
             return t("System Administrator")
         return name
 
+    def csrf_token():
+        """Create an unpredictable per-session token for HTML form submissions."""
+        token = session.get("csrf_token")
+        if not token:
+            token = secrets.token_urlsafe(32)
+            session["csrf_token"] = token
+        return token
+
     @app.context_processor
     def inject_global_translations():
         return {
             "t": t,
             "display_user_name": display_user_name,
+            "csrf_token": csrf_token,
             "current_language": get_current_language(),
         }
 
@@ -673,6 +683,7 @@ def create_app():
         from .models.scan_token_model import ScanToken
         from .models.validation_revocation_model import ValidationCodeRevocation
         from .models.user_presence_model import UserPresence
+        from .models.auth_attempt_model import AuthAttempt
 
         db.create_all()
 
@@ -699,6 +710,56 @@ def create_app():
         except Exception:
             db.session.rollback()
             app.logger.exception("Could not update user presence")
+
+    @app.before_request
+    def protect_mutating_requests():
+        """CSRF protection for HTML forms and DB-backed auth throttling."""
+        if request.method not in {"POST", "PUT", "PATCH", "DELETE"}:
+            return
+        from datetime import datetime, timedelta
+        from .models.auth_attempt_model import AuthAttempt
+
+        route = request.path
+        action = None
+        limit = None
+        period_seconds = 60
+        if route in {"/auth/login", "/auth/login-page"}:
+            action, limit = "login", 12
+        elif route in {"/auth/register", "/auth/register-page"}:
+            action, limit, period_seconds = "register", 5, 600
+        elif route == "/auth/forgot-password":
+            action, limit, period_seconds = "recovery", 5, 600
+        elif route == "/auth/reset-password":
+            action, limit, period_seconds = "reset", 10, 600
+
+        if action:
+            now = datetime.utcnow()
+            ip = str(request.remote_addr or "unknown")[:64]
+            count = db.session.execute(
+                db.select(db.func.count(AuthAttempt.id)).where(
+                    AuthAttempt.ip_address == ip,
+                    AuthAttempt.action == action,
+                    AuthAttempt.attempted_at >= now - timedelta(seconds=period_seconds),
+                )
+            ).scalar_one()
+            if count >= limit:
+                abort(429, description="Too many requests. Please try again later.")
+            db.session.add(AuthAttempt(ip_address=ip, action=action, attempted_at=now))
+            if secrets.randbelow(100) == 0:
+                db.session.execute(
+                    db.delete(AuthAttempt).where(
+                        AuthAttempt.attempted_at < now - timedelta(days=1)
+                    )
+                )
+            db.session.commit()
+
+        # JSON API requests rely on the browser's same-origin policy; HTML
+        # forms must include the token rendered with that user's session.
+        if not request.is_json:
+            expected = session.get("csrf_token")
+            supplied = request.form.get("csrf_token") or request.headers.get("X-CSRF-Token")
+            if not expected or not supplied or not hmac.compare_digest(str(expected), str(supplied)):
+                abort(400, description="Security token missing or invalid. Refresh the page.")
 
     # ✅ ROOT → LOGIN PAGE
     @app.route("/")
