@@ -1,4 +1,4 @@
-/* UniTrack camera QR reader. Local jsQR library works without BarcodeDetector.
+/* UniTrack camera QR reader. Local jsQR library avoids browser-specific native QR APIs.
  * Camera access requires HTTPS or localhost. Never automatically register access. */
 (() => {
   "use strict";
