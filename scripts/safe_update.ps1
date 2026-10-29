@@ -30,7 +30,8 @@ $python = Join-Path $root '.venv\Scripts\python.exe'
 if (-not (Test-Path -LiteralPath $python -PathType Leaf)) {
     Fail "Expected the working .venv Python at $python. No environment was deleted."
 }
-RunNative $python @('-c', 'import flask, sqlalchemy; print("Python environment OK")')
+RunNative $python @('-m', 'pip', 'show', 'flask', 'sqlalchemy')
+Write-Host 'Python environment OK' -ForegroundColor Green
 
 $branch = (& git branch --show-current).Trim()
 if ($LASTEXITCODE -ne 0 -or $branch -ne 'main') {
@@ -76,7 +77,21 @@ with sqlite3.connect(str(source), timeout=30) as original:
 print("Verified backup:", target)
 '@
 Write-Host 'Backing up and checking SQLite database...' -ForegroundColor Cyan
-RunNative $python @('-c', $backupCode)
+# Windows PowerShell 5.1 strips quotes from python -c arguments. Run the
+# multi-line backup code as a temporary .py file to preserve it exactly.
+$backupRunner = Join-Path $env:TEMP ("unitrack-backup-runner-" + [guid]::NewGuid().ToString('N') + ".py")
+try {
+    [System.IO.File]::WriteAllText(
+        $backupRunner, $backupCode,
+        (New-Object System.Text.UTF8Encoding($false))
+    )
+    RunNative $python @($backupRunner)
+}
+finally {
+    if (Test-Path -LiteralPath $backupRunner) {
+        Remove-Item -LiteralPath $backupRunner -Force
+    }
+}
 
 # Copy local account images before git updates. Some old repository
 # revisions tracked uploaded photos, so a pull may alter tracked paths.
