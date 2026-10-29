@@ -46,7 +46,8 @@ def create_user(
     phone,
     password_hash,
     role="estudiante",
-    photo_path=None
+    photo_path=None,
+    commit=True
 ):
     """
     Create and save new user safely.
@@ -74,7 +75,11 @@ def create_user(
 
     try:
         db.session.add(user)
-        db.session.commit()
+        if commit:
+            db.session.commit()
+        else:
+            # Allocate user.id but keep the account in the caller's transaction.
+            db.session.flush()
         return user
     except Exception:
         db.session.rollback()
