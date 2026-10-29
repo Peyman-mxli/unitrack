@@ -38,6 +38,8 @@ from werkzeug.utils import secure_filename
 
 from app.database import db
 from app.models.user_model import User
+from app.models.access_log_model import AccessLog
+from app.models.academic_models import UniversityClass, ClassMeeting, ClassAttendance
 from app.models.admin_audit_model import AdminAuditLog
 from app.models.validation_code_model import ValidationCode
 from app.models.validation_revocation_model import ValidationCodeRevocation
@@ -1491,15 +1493,64 @@ def admin_access_control_mobile_scan():
 @admin_views_bp.route("/attendance-history", methods=["GET"])
 @login_required
 def admin_attendance_history():
-    """
-    Attendance history page.
-    """
     if not _is_admin_user():
         return _reject_non_admin()
+    search_text = str(request.args.get("search", "")).strip()
+    selected_role = str(request.args.get("role", "")).strip().lower()
+    selected_date = str(request.args.get("date", "")).strip()
+    if selected_date:
+        try:
+            date.fromisoformat(selected_date)
+        except ValueError:
+            selected_date = ""
 
+    access_query = (
+        db.select(AccessLog, User)
+        .join(User, AccessLog.student_id == User.id)
+        .order_by(AccessLog.check_in_time.desc())
+    )
+    if search_text:
+        like = f"%{search_text}%"
+        access_query = access_query.where(db.or_(
+            User.first_name.ilike(like), User.last_name.ilike(like),
+            User.username.ilike(like), User.user_id_code.ilike(like)
+        ))
+    if selected_role in get_allowed_role_values():
+        access_query = access_query.where(User.role == selected_role)
+    if selected_date:
+        access_query = access_query.where(AccessLog.access_date == date.fromisoformat(selected_date))
+
+    academic_query = (
+        db.select(ClassAttendance, ClassMeeting, UniversityClass, User)
+        .join(ClassMeeting, ClassAttendance.meeting_id == ClassMeeting.id)
+        .join(UniversityClass, ClassMeeting.class_id == UniversityClass.id)
+        .join(User, ClassAttendance.student_id == User.id)
+        .order_by(ClassMeeting.starts_at.desc())
+    )
+    if selected_role and selected_role != "estudiante":
+        academic_query = academic_query.where(User.id == -1)
+    if search_text:
+        like = f"%{search_text}%"
+        academic_query = academic_query.where(db.or_(
+            User.first_name.ilike(like), User.last_name.ilike(like),
+            User.username.ilike(like), UniversityClass.code.ilike(like)
+        ))
+    if selected_date:
+        academic_query = academic_query.where(
+            db.func.date(ClassMeeting.starts_at) == selected_date
+        )
+    access_rows = db.session.execute(access_query.limit(500)).all()
+    academic_rows = db.session.execute(academic_query.limit(500)).all()
     return render_template(
-        "admin_base.html",
-        page_title="Attendance History"
+        "admin_attendance_history.html",
+        search_text=search_text,
+        selected_role=selected_role,
+        selected_date=selected_date,
+        access_history=[{"log": log, "user": user} for log, user in access_rows],
+        class_history=[{
+            "attendance": record, "meeting": meeting,
+            "course": course, "student": student,
+        } for record, meeting, course, student in academic_rows],
     )
 
 
