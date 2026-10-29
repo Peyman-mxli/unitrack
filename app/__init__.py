@@ -671,6 +671,7 @@ def create_app():
         from .models.academic_models import UniversityClass, ClassEnrollment, ClassMeeting, ClassAttendance
         from .models.admin_audit_model import AdminAuditLog
         from .models.scan_token_model import ScanToken
+        from .models.validation_revocation_model import ValidationCodeRevocation
 
         db.create_all()
 
