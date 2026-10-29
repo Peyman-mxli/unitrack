@@ -581,15 +581,17 @@ def create_app():
     TRANSLATIONS["es"].update(ADMIN_SPANISH)
 
     def get_current_language():
+        # The language explicitly chosen in this browser takes priority.
+        # Do not overwrite Spanish with an older account preference on login.
+        session_language = session.get("language")
+        if session_language in {"en", "es"}:
+            return session_language
+
         if current_user.is_authenticated:
             user_language = getattr(current_user, "language", None)
             if user_language in {"en", "es"}:
                 session["language"] = user_language
                 return user_language
-
-        session_language = session.get("language")
-        if session_language in {"en", "es"}:
-            return session_language
 
         session["language"] = "en"
         return "en"
@@ -605,10 +607,29 @@ def create_app():
                     return ADMIN_SPANISH[prefix] + str(key)[len(prefix):]
         return key
 
+    def display_user_name(user, username=None):
+        # Keep actual account names untouched. Translate only the default
+        # system administrator's built-in display name, never its stored data.
+        if isinstance(user, dict):
+            name = str(user.get("full_name") or "").strip()
+            username = username or user.get("username")
+        elif isinstance(user, str):
+            name = user.strip()
+        else:
+            first_name = str(getattr(user, "first_name", "") or "").strip()
+            last_name = str(getattr(user, "last_name", "") or "").strip()
+            name = f"{first_name} {last_name}".strip()
+            username = username or getattr(user, "username", "")
+
+        if str(username or "").strip().lower() == "admin" and name == "System Administrator":
+            return t("System Administrator")
+        return name
+
     @app.context_processor
     def inject_global_translations():
         return {
             "t": t,
+            "display_user_name": display_user_name,
             "current_language": get_current_language(),
         }
 
