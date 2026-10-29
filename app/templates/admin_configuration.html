@@ -430,7 +430,7 @@
                         {% elif category == 'warning' %}alert-warning
                         {% else %}alert-info
                         {% endif %}">
-                        {{ message }}
+                        {{ t(message) }}
                     </div>
                 {% endfor %}
             {% endif %}
@@ -452,7 +452,7 @@
                     </div>
 
                     <h2 class="profile-name">
-                        {{ current_user.first_name }} {{ current_user.last_name }}
+                        {{ display_user_name(current_user) }}
                     </h2>
 
                     <div class="profile-role">
@@ -474,7 +474,7 @@
 
                     <div class="meta-item">
                         <div class="meta-label">{{ t('role') }}</div>
-                        <div class="meta-value">{{ current_user.role or 'administrativo' }}</div>
+                        <div class="meta-value">{{ t({'administrativo': 'Admin', 'estudiante': 'Student', 'docente': 'Professor', 'personal': 'Staff'}.get(current_user.role, current_user.role or 'Admin')) }}</div>
                     </div>
 
                     <div class="meta-item">
