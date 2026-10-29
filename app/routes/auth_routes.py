@@ -1238,6 +1238,12 @@ def logout():
     - supports POST for API and form logout
     """
 
+    # A logged-out account should disappear from online counts immediately.
+    from app.models.user_presence_model import UserPresence
+    presence = db.session.get(UserPresence, current_user.id)
+    if presence is not None:
+        db.session.delete(presence)
+        db.session.commit()
     logout_user()
 
     return redirect("/auth/login-page")
