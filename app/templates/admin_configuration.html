@@ -652,8 +652,8 @@
                             <div class="form-group">
                                 <label class="form-label" for="language">{{ t('settings') }}</label>
                                 <select id="language" name="language" class="form-select">
-                                    <option value="en" {% if current_user.language == 'en' %}selected{% endif %}>{{ t('english') }}</option>
-                                    <option value="es" {% if current_user.language == 'es' %}selected{% endif %}>{{ t('spanish') }}</option>
+                                    <option value="en" {% if current_language == 'en' %}selected{% endif %}>{{ t('english') }}</option>
+                                    <option value="es" {% if current_language == 'es' %}selected{% endif %}>{{ t('spanish') }}</option>
                                 </select>
                             </div>
 
