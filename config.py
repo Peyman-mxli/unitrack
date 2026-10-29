@@ -58,6 +58,7 @@ class Config:
         SQLALCHEMY_DATABASE_URI = f"sqlite:///{DATABASE_PATH}"
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    ALLOW_LEGACY_QR = os.environ.get("UNITRACK_ALLOW_LEGACY_QR", "False").lower() == "true"
 
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
