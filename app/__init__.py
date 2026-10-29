@@ -600,7 +600,7 @@ def create_app():
         if key in dictionary:
             return dictionary[key]
         if language == "es":
-            for prefix in ("Validation code created successfully: ", "User deleted successfully: "):
+            for prefix in ("Validation code created successfully: ", "User deleted successfully: ", "Email error: "):
                 if str(key).startswith(prefix):
                     return ADMIN_SPANISH[prefix] + str(key)[len(prefix):]
         return key
