@@ -938,6 +938,10 @@
                         <span>{{ t('users') }}</span>
                     </a>
 
+                    <a href="{{ url_for('attendance.classes') }}" class="nav-link">
+                        <span class="nav-icon">▤</span><span>{{ "Clases y asistencia" if current_language == "es" else "Classes and Attendance" }}</span>
+                    </a>
+
                     <a href="/admin/access-control" class="nav-link {% block nav_access_control %}{% endblock %}">
                         <span class="nav-icon">▣</span>
                         <span>{{ t('access_control') }}</span>
