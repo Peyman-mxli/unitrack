@@ -352,5 +352,38 @@ class UniTrackTests(unittest.TestCase):
             self.assertIn("history", reason.lower())
 
 
+    def test_registration_consumes_validation_code_once(self):
+        from app.models.user_model import User
+        from app.services.validation_code_service import create_validation_code
+        with self.app.app_context():
+            admin = self.db.session.execute(
+                self.db.select(User).where(User.username == "Admin")
+            ).scalar_one()
+            code = create_validation_code(admin.id, "estudiante", expires_in_hours=2).code
+
+        client = self.app.test_client()
+        payload = {
+            "first_name": "Atomic", "last_name": "Register",
+            "username": "AtomicTestUser", "email": "atomic@example.test",
+            "phone": "6861234567", "password": "TestingPassword123!",
+            "role": "estudiante", "validation_code": code,
+        }
+        first = client.post("/auth/register", json=payload)
+        self.assertEqual(first.status_code, 201, first.get_json())
+        second_payload = dict(payload, username="AtomicSecondUser",
+                              email="atomic2@example.test")
+        second = client.post("/auth/register", json=second_payload)
+        self.assertEqual(second.status_code, 403)
+        with self.app.app_context():
+            first_user = self.db.session.execute(
+                self.db.select(User).where(User.username == "AtomicTestUser")
+            ).scalar_one_or_none()
+            second_user = self.db.session.execute(
+                self.db.select(User).where(User.username == "AtomicSecondUser")
+            ).scalar_one_or_none()
+            self.assertIsNotNone(first_user)
+            self.assertIsNone(second_user)
+
+
 if __name__ == "__main__":
     unittest.main()
