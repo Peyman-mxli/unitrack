@@ -81,7 +81,11 @@ def resolve_scan_token(qr_text):
 
 
 def consume_scan_token(record):
-    """Atomically mark a QR used to reject repeated/concurrent scans."""
+    """Reserve QR atomically in caller's transaction.
+
+    The attendance write commits the reservation and access event together.
+    If attendance fails, its rollback leaves the QR token available.
+    """
     from sqlalchemy import update
     changed = db.session.execute(
         update(ScanToken)
@@ -92,4 +96,6 @@ def consume_scan_token(record):
     if changed.rowcount != 1:
         db.session.rollback()
         raise ValueError("QR code has already been used or has expired.")
-    db.session.commit()
+    # Do not commit here. The scan's check-in/check-out service commits both
+    # the access log and token reservation in the same transaction.
+    db.session.flush()
