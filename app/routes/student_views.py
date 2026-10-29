@@ -1461,24 +1461,11 @@ def access_control_scan():
 
 @student_views_bp.route("/access-control/mobile-scan", methods=["GET"])
 def access_control_mobile_scan():
-    """
-    Real phone camera scan endpoint.
-
-    Public on purpose:
-    a real phone camera must be able to open this route without being logged in.
-
-    The QR opens this URL directly in the browser.
-    Then the backend processes the student code and shows a direct result page.
-    """
-
-    qr_text = (
-        _clean_scan_code(request.args.get("qr_text")) or
-        _clean_scan_code(request.args.get("user_code")) or
-        _clean_scan_code(request.args.get("qr_id_code"))
-    )
-
-    response_data, status_code = process_access_scan_qr_text(qr_text)
-    return _build_mobile_scan_result_html(response_data, status_code), status_code
+    """Display safe QR instructions without recording an access event."""
+    message = "An authorized UniTrack operator must scan this QR code."
+    return _build_mobile_scan_result_html(
+        {"success": False, "message": message}, 200
+    ), 200
 
 
 @student_views_bp.route("/access-control/scanner", methods=["GET", "POST"])
