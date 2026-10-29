@@ -38,6 +38,7 @@ from werkzeug.utils import secure_filename
 
 from app.database import db
 from app.models.user_model import User
+from app.models.admin_audit_model import AdminAuditLog
 from app.models.validation_code_model import ValidationCode
 from app.services.validation_code_service import create_validation_code
 from app.services.access_log_service import (
@@ -60,6 +61,35 @@ from app.routes.student_views import (
 admin_views_bp = Blueprint("admin_views", __name__, url_prefix="/admin")
 
 ALLOWED_ADMIN_PHOTO_EXTENSIONS = {"png", "jpg", "jpeg", "webp"}
+
+def record_admin_action(action, target=None, details=""):
+    """Add a log entry to the current transaction; caller commits atomically."""
+    db.session.add(AdminAuditLog(
+        actor_id=current_user.id,
+        actor_username=str(current_user.username),
+        action=action,
+        target_user_id=getattr(target, "id", None) if target else None,
+        target_username=getattr(target, "username", None) if target else None,
+        details=str(details or "")[:250],
+    ))
+
+
+def get_recent_admin_actions(limit=15):
+    logs = db.session.execute(
+        db.select(AdminAuditLog)
+        .order_by(AdminAuditLog.created_at.desc(), AdminAuditLog.id.desc())
+        .limit(limit)
+    ).scalars().all()
+    return [
+        {
+            "title": log.action.replace("_", " ").title(),
+            "time": log.created_at.strftime("%Y-%m-%d %H:%M") if log.created_at else "--",
+            "description": f"{log.actor_username}: {log.target_username or '—'}"
+                           + (f" — {log.details}" if log.details else ""),
+        }
+        for log in logs
+    ]
+
 
 
 def safe_scalar(query, default=0):
@@ -668,7 +698,7 @@ def build_admin_dashboard_context():
         "active_staff_today": len(by_role["personal"]["users"]),
         "recent_access_records": recent_access_records[:100],
         "live_presence_feed": live_presence_feed,
-        "recent_admin_activity": [],
+        "recent_admin_activity": get_recent_admin_actions(),
         "access_search": request.args.get("access_search", ""),
         "selected_access_role": selected_role,
         "selected_access_date": selected_date,
@@ -811,7 +841,7 @@ def build_users_context():
         "total_users_found": len(user_rows),
 
         # Placeholder for next step
-        "recent_admin_activity": [],
+        "recent_admin_activity": get_recent_admin_actions(),
     }
 
 
@@ -876,6 +906,8 @@ def admin_create_validation_code():
             expires_in_hours=expires_in_hours
         )
 
+        record_admin_action("create_validation_code", details=f"role={role}; expires_in_hours={expires_in_hours}")
+        db.session.commit()
         flash(
             f"Validation code created successfully: {validation_code.code}",
             "success"
@@ -981,6 +1013,7 @@ def admin_update_user(user_id):
         if hasattr(user, "phone"):
             user.phone = phone
 
+        record_admin_action("edit_user", target=user)
         db.session.commit()
         flash("User information updated successfully.", "success")
     except Exception:
@@ -1053,6 +1086,7 @@ def admin_change_role_action(user_id):
         if hasattr(user, "role"):
             user.role = new_role
 
+        record_admin_action("change_role", target=user, details=f"{current_role} → {new_role}")
         db.session.commit()
         flash("User role updated successfully.", "success")
     except Exception:
@@ -1123,6 +1157,7 @@ def admin_change_password_action(user_id):
         if hasattr(user, "must_change_password"):
             user.must_change_password = True
 
+        record_admin_action("reset_password", target=user)
         db.session.commit()
         flash("User password updated successfully.", "success")
     except Exception:
@@ -1200,6 +1235,7 @@ def admin_update_user_id_action(user_id):
 
     try:
         user.user_id_code = new_user_id_code
+        record_admin_action("change_user_id", target=user, details=f"{current_user_id_code} → {new_user_id_code}")
         db.session.commit()
         flash("User ID updated successfully.", "success")
     except Exception:
@@ -1272,6 +1308,7 @@ def admin_delete_user_action(user_id):
             f"{safe_user_attribute(user, 'last_name', '')}"
         ).strip() or safe_user_attribute(user, "username", "Unknown User")
 
+        record_admin_action("delete_user", target=user)
         db.session.delete(user)
         db.session.commit()
         flash(f"User deleted successfully: {deleted_user_name}", "success")
@@ -1552,6 +1589,7 @@ def admin_configuration():
                 if hasattr(current_user, "must_change_password"):
                     current_user.must_change_password = False
 
+            record_admin_action("update_admin_configuration", target=current_user)
             db.session.commit()
             session["language"] = language
 
