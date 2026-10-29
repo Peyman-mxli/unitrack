@@ -330,8 +330,13 @@ class UniTrackTests(unittest.TestCase):
                 page = client.get(path)
                 self.assertEqual(page.status_code, 200)
                 self.assertIn(b"data:image/png;base64,", page.data)
-                matches = re.findall(rb"(?:[A-HJ-NP-Z2-9]{4}-){3}[A-HJ-NP-Z2-9]{4}", page.data)
-                self.assertTrue(matches, f"No temporary code on {path}")
+                matches = [
+                    value for value in re.findall(
+                        rb"(?:[A-HJ-NP-Z2-9]{4}-){3}[A-HJ-NP-Z2-9]{4}", page.data
+                    )
+                    if value != b"XXXX-XXXX-XXXX-XXXX"
+                ]
+                self.assertTrue(matches, f"No generated temporary code on {path}")
                 code = matches[0].decode("ascii")
                 self.assertNotIn(code, issued)
                 issued.add(code)
