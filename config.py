@@ -59,6 +59,7 @@ class Config:
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     ALLOW_LEGACY_QR = os.environ.get("UNITRACK_ALLOW_LEGACY_QR", "False").lower() == "true"
+    ENFORCE_OPERATOR_SCANS = os.environ.get("UNITRACK_ENV", "").lower() == "production"
 
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
