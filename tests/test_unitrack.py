@@ -111,6 +111,48 @@ class UniTrackTests(unittest.TestCase):
         })
         self.assertEqual(response.status_code, 400)
 
+    def _signed_in_client(self, username="Admin"):
+        client = self.app.test_client()
+        response = client.get("/auth/login-page")
+        token = re.search(rb'name="csrf_token" value="([^"]+)"', response.data)
+        self.assertIsNotNone(token)
+        response = client.post("/auth/login-page", data={
+            "login": username, "password": "TestingPassword123!",
+            "csrf_token": token.group(1).decode("utf-8"),
+            "language": "es",
+        })
+        self.assertIn(response.status_code, (302, 303))
+        return client
+
+    def test_administrator_pages_render(self):
+        client = self._signed_in_client()
+        for url in (
+            "/admin/dashboard", "/admin/users", "/admin/validation-codes",
+            "/admin/configuration", "/admin/attendance-history",
+            "/attendance/classes", "/admin/access-control/scanner",
+        ):
+            with self.subTest(url=url):
+                response = client.get(url)
+                self.assertEqual(response.status_code, 200, url)
+                self.assertIn(b"UniTrack", response.data)
+
+    def test_teacher_class_management_page(self):
+        client = self._signed_in_client("TeacherA")
+        response = client.get("/attendance/classes")
+        self.assertEqual(response.status_code, 200)
+
+    def test_scanner_rejects_unsigned_identifier(self):
+        client = self._signed_in_client()
+        page = client.get("/admin/access-control/scanner")
+        token = re.search(rb'name="csrf_token" value="([^"]+)"', page.data)
+        self.assertIsNotNone(token)
+        response = client.post("/admin/access-control/scanner", data={
+            "qr_text": "UT-UPBC-0001",
+            "csrf_token": token.group(1).decode("utf-8"),
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"QR", response.data)
+
     def test_login_page_and_csrf_work_together(self):
         client = self.app.test_client()
         response = client.get("/auth/login-page")
