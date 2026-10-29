@@ -39,8 +39,10 @@ from werkzeug.utils import secure_filename
 from app.database import db
 from app.models.user_model import User
 from app.models.access_log_model import AccessLog
-from app.models.academic_models import UniversityClass, ClassMeeting, ClassAttendance
+from app.models.academic_models import UniversityClass, ClassEnrollment, ClassMeeting, ClassAttendance
 from app.models.admin_audit_model import AdminAuditLog
+from app.models.scan_token_model import ScanToken
+from app.models.user_presence_model import UserPresence
 from app.models.validation_code_model import ValidationCode
 from app.models.validation_revocation_model import ValidationCodeRevocation
 from app.services.validation_code_service import create_validation_code
@@ -272,7 +274,7 @@ def is_default_admin_user(user):
     return role_value == "administrativo" and username_value == "admin"
 
 
-def can_delete_user(target_user, acting_user):
+def can_delete_user(target_user, acting_user, check_history=True):
     """
     Central protection rules for deleting users.
     """
@@ -289,6 +291,25 @@ def can_delete_user(target_user, acting_user):
 
     if target_role == "administrativo" and count_admin_users() <= 1:
         return False, "You cannot delete the last remaining admin account."
+
+    if check_history:
+        uid = target_user.id
+        referenced = [
+            db.select(AccessLog.id).where(AccessLog.student_id == uid),
+            db.select(ClassEnrollment.id).where(ClassEnrollment.student_id == uid),
+            db.select(ClassAttendance.id).where(
+                db.or_(ClassAttendance.student_id == uid, ClassAttendance.recorded_by == uid)
+            ),
+            db.select(UniversityClass.id).where(UniversityClass.professor_id == uid),
+            db.select(ValidationCode.id).where(
+                db.or_(ValidationCode.generated_by == uid, ValidationCode.used_by_user_id == uid)
+            ),
+            db.select(AdminAuditLog.id).where(
+                db.or_(AdminAuditLog.actor_id == uid, AdminAuditLog.target_user_id == uid)
+            ),
+        ]
+        if any(db.session.execute(query.limit(1)).first() for query in referenced):
+            return False, "Cannot permanently delete a user with attendance, access or audit history. Deactivate the account instead."
 
     return True, ""
 
@@ -808,7 +829,7 @@ def build_users_context():
                 "is_active_user": is_active_user,
                 "must_change_password": getattr(user, "must_change_password", False),
                 "last_login_at": getattr(user, "last_login_at", None),
-                "can_delete": can_delete_user(user, current_user)[0],
+                "can_delete": can_delete_user(user, current_user, check_history=False)[0],
                 "is_default_admin_protected": is_default_admin_user(user),
             }
         )
