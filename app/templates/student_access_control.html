@@ -440,6 +440,64 @@
 </div>
 {% endif %}
 
+<section class="qr-card" id="studentAccessCamera" style="margin:0 0 20px;padding:24px;">
+    <h2 style="margin:0 0 8px;color:#081a43;font-size:23px;">
+        {{ "Escáner QR de acceso" if is_spanish else "Campus Access QR Scanner" }}
+    </h2>
+    <p style="color:#475569;margin:0 0 15px;font-size:14px;line-height:1.6;">
+        {{ "Abre la cámara para comprobar tu propio código QR o introduce tu código temporal EST. Esta verificación no registra entrada ni salida; el registro oficial se realiza cuando el personal autorizado escanea tu QR." if is_spanish else "Open the camera to verify your own QR or enter your EST temporary code. This check does not record entry or exit; official campus access is recorded by authorized staff." }}
+    </p>
+
+    <form method="POST" action="{{ url_for('student_views.access_control_page') }}" id="studentAccessQrForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label for="student_scanned_qr" style="display:block;font-weight:800;color:#081a43;margin-bottom:8px;">
+            {{ "Contenido del QR" if is_spanish else "QR code content" }}
+        </label>
+        <textarea name="qr_text" id="student_scanned_qr" required
+                  placeholder="{{ 'La cámara colocará aquí el QR detectado' if is_spanish else 'The scanned QR will appear here' }}"
+                  style="width:100%;min-height:78px;box-sizing:border-box;padding:12px;
+                         border:1px solid #cbd5e1;border-radius:12px;background:white;"></textarea>
+        {% include "qr_camera_widget.html" %}
+        <button type="submit" style="border:0;border-radius:11px;padding:12px 20px;
+                background:#16a34a;color:white;font-weight:800;cursor:pointer;">
+            {{ "Verificar QR" if is_spanish else "Verify QR" }}
+        </button>
+    </form>
+
+    <form method="POST" action="{{ url_for('student_views.access_control_page') }}"
+          style="margin-top:20px;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label for="student_manual_code" style="display:block;font-weight:800;color:#081a43;margin-bottom:8px;">
+            {{ "Ingresar código de acceso" if is_spanish else "Enter access code" }}
+        </label>
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px;">
+            <input type="text" id="student_manual_code" name="pass_code" required
+                   maxlength="24" spellcheck="false" autocomplete="off"
+                   placeholder="EST-XXXX-XXXX-XXXX-XXXX"
+                   style="flex:1;min-width:230px;box-sizing:border-box;padding:12px;
+                          border:1px solid #cbd5e1;border-radius:11px;
+                          background:white;font:800 15px Consolas,monospace;">
+            <button type="submit" style="border:0;border-radius:11px;padding:12px 20px;
+                    background:#7c3aed;color:white;font-weight:800;cursor:pointer;">
+                {{ "Verificar código" if is_spanish else "Verify code" }}
+            </button>
+        </div>
+    </form>
+
+    {% if scan_result %}
+    <div id="studentScanResult" role="status"
+         style="padding:14px 16px;border-radius:12px;margin-top:16px;
+                background:{{ '#ecfdf5' if scan_result.success else '#fef2f2' }};
+                border:1px solid {{ '#86efac' if scan_result.success else '#fecaca' }};
+                color:{{ '#166534' if scan_result.success else '#991b1b' }};">
+        <strong>
+            {{ ("Código verificado" if is_spanish else "Code verified") if scan_result.success else ("Verificación rechazada" if is_spanish else "Verification rejected") }}
+        </strong>
+        <p style="margin:8px 0 0;">{{ scan_result.message }}</p>
+    </div>
+    {% endif %}
+</section>
+
 <section class="qr-card" id="studentPersonalAccess" style="margin:0 0 20px;padding:24px;">
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between;">
         <div>
