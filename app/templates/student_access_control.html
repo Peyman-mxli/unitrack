@@ -621,7 +621,7 @@
     </div>
 </form>
 
-<div class="history-card">
+<div class="history-card" data-live-campus-history>
     <div class="history-header">
         <div>
             <h3 class="history-title">{{ "Historial de Acceso" if is_spanish else "Access History" }}</h3>
@@ -755,4 +755,5 @@ async function copyTextValue(id, button){
 }
 </script>
 
+<script src="{{ url_for('static', filename='js/access-history-live.js') }}" defer></script>
 {% endblock %}
