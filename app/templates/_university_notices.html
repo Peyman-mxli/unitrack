@@ -1,0 +1,17 @@
+{# Read-only in-app notifications filtered on the server to the signed-in user's role. #}
+{% if global_notices %}
+<section aria-label="{{ 'Avisos institucionales' if current_language == 'es' else 'University notices' }}"
+         style="margin-bottom:20px;display:grid;gap:12px;">
+  {% for notice in global_notices %}
+  <article style="background:#fff7e6;border:1px solid #eec47a;border-left:5px solid #c47a12;
+                  border-radius:14px;padding:15px 18px;color:#26334c;box-shadow:0 4px 15px rgba(0,0,0,.04);">
+    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+      <strong style="font-size:16px;">📣 {{ notice.title }}</strong>
+      <small>{{ notice.created_at.strftime('%d/%m/%Y %H:%M') }} UTC</small>
+    </div>
+    <p style="white-space:pre-wrap;overflow-wrap:anywhere;margin:8px 0 0;">{{ notice.body }}</p>
+    <small style="color:#6b7280;">{{ "Administración UniTrack" if current_language == "es" else "UniTrack Administration" }}</small>
+  </article>
+  {% endfor %}
+</section>
+{% endif %}
