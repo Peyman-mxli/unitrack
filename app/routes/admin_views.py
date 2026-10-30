@@ -43,6 +43,7 @@ from app.models.academic_models import UniversityClass, ClassEnrollment, ClassMe
 from app.models.admin_audit_model import AdminAuditLog
 from app.models.scan_token_model import ScanToken
 from app.models.user_presence_model import UserPresence
+from app.models.university_notice_model import UniversityNotice
 from app.models.validation_code_model import ValidationCode
 from app.models.validation_revocation_model import ValidationCodeRevocation
 from app.services.validation_code_service import create_validation_code
@@ -677,7 +678,56 @@ def build_admin_dashboard_context():
         for entry in active_users[:20]
     ]
 
+    # A recent heartbeat indicates online activity; an open gate log
+    # indicates campus presence. These are separate measures.
+    accounts = db.session.execute(db.select(User).order_by(User.last_name, User.first_name, User.id)).scalars().all()
+    presence_by_id = {p.user_id: p.last_seen_at for p in db.session.execute(db.select(UserPresence)).scalars()}
+    campus_ids = set(db.session.execute(
+        db.select(AccessLog.student_id).where(
+            AccessLog.check_out_time.is_(None),
+            AccessLog.access_status == "checked_in",
+        ).distinct()
+    ).scalars().all())
+    role_counts = {
+        role: {"total": 0, "online": 0, "offline": 0, "campus": 0, "disabled": 0}
+        for role in ("estudiante", "docente", "personal", "administrativo")
+    }
+    cutoff = datetime.utcnow() - timedelta(minutes=5)
+    all_user_statuses = []
+    for u in accounts:
+        role = (u.role or "").strip().lower()
+        if role not in role_counts:
+            continue
+        active = bool(u.is_active_user)
+        seen = presence_by_id.get(u.id)
+        online = bool(active and seen and seen >= cutoff)
+        campus = bool(active and u.id in campus_ids)
+        counts = role_counts[role]
+        counts["total"] += 1
+        counts["online"] += int(online)
+        counts["offline"] += int(active and not online)
+        counts["campus"] += int(campus)
+        counts["disabled"] += int(not active)
+        all_user_statuses.append({
+            "name": f"{u.first_name} {u.last_name}".strip() or u.username,
+            "username": u.username, "role": role,
+            "online": online, "campus": campus, "active": active,
+            "last_seen": seen.strftime("%d/%m/%Y %H:%M UTC") if seen else "—",
+        })
+    all_user_statuses.sort(key=lambda item: (not item["online"], not item["campus"], item["role"], item["name"].casefold()))
+    recent_notices = db.session.execute(
+        db.select(UniversityNotice).order_by(
+            UniversityNotice.created_at.desc(), UniversityNotice.id.desc()
+        ).limit(20)
+    ).scalars().all()
+
     return {
+        "role_counts": role_counts,
+        "all_user_statuses": all_user_statuses,
+        "total_registered": sum(v["total"] for v in role_counts.values()),
+        "current_online": sum(v["online"] for v in role_counts.values()),
+        "current_campus": sum(v["campus"] for v in role_counts.values()),
+        "recent_notices": recent_notices,
         "now": now,
         "today": today,
         "total_validation_codes": total_validation_codes,
@@ -877,6 +927,58 @@ def admin_dashboard():
 
     context = build_admin_dashboard_context()
     return render_template("admin_dashboard.html", **context)
+
+
+@admin_views_bp.route("/notices/create", methods=["POST"])
+@login_required
+def admin_create_notice():
+    """Publish in-app notices, targeted to recipient roles and logged."""
+    if not _is_admin_user():
+        return _reject_non_admin()
+    title = str(request.form.get("title") or "").strip()
+    body = str(request.form.get("body") or "").strip()
+    audience = str(request.form.get("audience") or "").strip().lower()
+    if audience not in {"all", "estudiante", "docente", "personal", "administrativo"}:
+        flash("Destinatarios no válidos.", "error")
+    elif not 3 <= len(title) <= 120 or not 5 <= len(body) <= 2000:
+        flash("Escribe un título de 3–120 caracteres y un mensaje de 5–2000.", "error")
+    else:
+        try:
+            notice = UniversityNotice(
+                title=title, body=body, audience=audience,
+                author_id=current_user.id, author_name=str(current_user.username)
+            )
+            db.session.add(notice)
+            db.session.flush()
+            record_admin_action("publish_notice", details=f"Notice {notice.id} to {audience}")
+            db.session.commit()
+            flash("Aviso publicado correctamente.", "success")
+        except Exception:
+            db.session.rollback()
+            current_app.logger.exception("Could not publish notice")
+            flash("No se pudo publicar el aviso.", "error")
+    return redirect(url_for("admin_views.admin_dashboard") + "#admin-notices")
+
+
+@admin_views_bp.route("/notices/<int:notice_id>/archive", methods=["POST"])
+@login_required
+def admin_archive_notice(notice_id):
+    if not _is_admin_user():
+        return _reject_non_admin()
+    notice = db.session.get(UniversityNotice, notice_id)
+    if notice is None:
+        flash("Aviso no encontrado.", "error")
+    elif notice.is_active:
+        try:
+            notice.is_active = False
+            notice.archived_at = datetime.utcnow()
+            record_admin_action("archive_notice", details=f"Notice {notice.id}")
+            db.session.commit()
+            flash("Aviso archivado.", "success")
+        except Exception:
+            db.session.rollback()
+            flash("No se pudo archivar el aviso.", "error")
+    return redirect(url_for("admin_views.admin_dashboard") + "#admin-notices")
 
 
 @admin_views_bp.route("/validation-codes", methods=["GET"])
