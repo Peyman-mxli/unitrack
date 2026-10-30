@@ -281,6 +281,19 @@ def access_control_page():
 
     status = get_user_current_access_status(current_user.id)
     records = build_access_table_rows(current_user)
+    from app.services.access_log_service import (
+        build_personal_access_events, count_personal_access_events
+    )
+    selected_date = request.args.get("date", "").strip()
+    parsed_date = None
+    date_filter_error = ""
+    if selected_date:
+        try:
+            parsed_date = datetime.strptime(selected_date, "%m/%d/%Y").date()
+        except ValueError:
+            date_filter_error = "Fecha no válida. Usa MM/DD/AAAA."
+    access_events = build_personal_access_events(current_user, selected_date=parsed_date)
+    access_event_counts = count_personal_access_events(access_events)
 
     from app.services.scan_token_service import issue_access_credential
     access_token, access_qr_id_code = issue_access_credential(current_user)
@@ -294,7 +307,11 @@ def access_control_page():
         role_label="Professor",
         account_role_label="Professor",
         account_type_label="Professor",
-        selected_date=None,
+        selected_date=selected_date,
+        access_events=access_events,
+        access_event_counts=access_event_counts,
+        history_page_url=url_for("professor_views.access_control_page"),
+        date_filter_error=date_filter_error,
         access_message=request.args.get("success"),
         access_error=request.args.get("error"),
         operator_scan_url=url_for("professor_views.access_control_page"),
