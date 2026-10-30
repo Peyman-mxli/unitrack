@@ -774,9 +774,26 @@
         </div>
 
         <div class="history-count">
-            {{ records|length if records else 0 }} {{ t('record') }}
+            {{ access_event_counts.total }} {{ 'movimientos' if current_language == 'es' else 'events' }}
         </div>
     </div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin:14px 0 16px;">
+        <div style="background:#fff;border:1px solid #d6e1ef;padding:12px 18px;border-radius:12px;min-width:145px;">
+            <div style="font-size:12px;font-weight:700;color:#475569;">{{ 'Entradas registradas' if current_language == 'es' else 'Recorded entries' }}</div>
+            <strong style="display:block;font-size:25px;color:#166534;">{{ access_event_counts.check_ins }}</strong>
+        </div>
+        <div style="background:#fff;border:1px solid #d6e1ef;padding:12px 18px;border-radius:12px;min-width:145px;">
+            <div style="font-size:12px;font-weight:700;color:#475569;">{{ 'Salidas registradas' if current_language == 'es' else 'Recorded exits' }}</div>
+            <strong style="display:block;font-size:25px;color:#b91c1c;">{{ access_event_counts.check_outs }}</strong>
+        </div>
+        <div style="background:#fff;border:1px solid #d6e1ef;padding:12px 18px;border-radius:12px;min-width:145px;">
+            <div style="font-size:12px;font-weight:700;color:#475569;">{{ 'Total de movimientos' if current_language == 'es' else 'Total events' }}</div>
+            <strong style="display:block;font-size:25px;color:#1e293b;">{{ access_event_counts.total }}</strong>
+        </div>
+    </div>
+    {% if selected_date %}
+    <p style="font-size:12px;color:#64748b;margin:0 0 12px;">{{ 'Totales para la fecha seleccionada' if current_language == 'es' else 'Counts for the selected date' }}: {{ selected_date }}</p>
+    {% endif %}
 
     {% if records and records|length > 0 %}
     <div class="history-table-wrap">
@@ -788,10 +805,11 @@
                     <th>{{ 'Rol' if current_language == 'es' else 'Role' }}</th>
                     <th>{{ t('ID / Username') }}</th>
                     <th>{{ t('Date') }}</th>
-                    <th>{{ t('Check-In') }}</th>
-                    <th>{{ t('Check-Out') }}</th>
-                    <th>{{ t('Hours') }}</th>
+                    <th>{{ 'Hora' if current_language == 'es' else 'Time' }}</th>
+                    <th>{{ 'Movimiento' if current_language == 'es' else 'Action' }}</th>
+                    <th>{{ 'Duración' if current_language == 'es' else 'Duration' }}</th>
                     <th>{{ t('Status') }}</th>
+                    <th>{{ 'Entradas / Salidas del usuario' if current_language == 'es' else 'User entries / exits' }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -802,9 +820,15 @@
                     <td>{{ t({'estudiante':'Student','docente':'Professor','personal':'Staff','administrativo':'Admin'}.get(record.role, record.role)) }}</td>
                     <td>{{ record.user_id_code }}</td>
                     <td>{{ record.date }}</td>
-                    <td>{{ record.check_in }}</td>
-                    <td>{{ record.check_out }}</td>
-                    <td>{{ record.hours }}</td>
+                    <td>{{ record.time }}</td>
+                    <td>
+                        {% if record.action == "check_in" %}
+                            <strong style="color:#15803d;">{{ 'Entrada' if current_language == 'es' else 'Check-in' }}</strong>
+                        {% else %}
+                            <strong style="color:#b91c1c;">{{ 'Salida' if current_language == 'es' else 'Check-out' }}</strong>
+                        {% endif %}
+                    </td>
+                    <td>{{ record.duration }}</td>
                     <td>
                         {% if record.status == "checked_in" %}
                             <span class="status-badge status-green">{{ t('Inside Campus') }}</span>
@@ -812,6 +836,7 @@
                             <span class="status-badge status-red">{{ t('Outside Campus') }}</span>
                         {% endif %}
                     </td>
+                    <td>{{ record.user_check_ins }} / {{ record.user_check_outs }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
