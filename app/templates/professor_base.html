@@ -275,6 +275,7 @@ color:var(--danger);
 <a href="{{ url_for('professor_views.dashboard') }}" class="{% if active_page == 'dashboard' %}active{% endif %}">{{ t('dashboard') }}</a>
 
 <a href="{{ url_for('professor_views.access_control_page') }}" class="{% if active_page == 'access_control' %}active{% endif %}">{{ t('access_control') }}</a>
+{% include "_university_notice_nav.html" %}
 
 
 
