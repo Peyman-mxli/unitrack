@@ -17,44 +17,54 @@ a{color:inherit}
 button,select{font:inherit}
 button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid #ffd86f;outline-offset:3px}
 img{max-width:100%}
-.container{width:min(1340px,calc(100% - 52px));margin:auto}
+
+.container{width:min(1640px,calc(100% - clamp(42px,7vw,136px)));margin:auto}
 .eyebrow{color:var(--purple);letter-spacing:.14em;text-transform:uppercase;font-size:12px;font-weight:900}
-.site-header{background:linear-gradient(90deg,#740018,#8a0021 55%,#5f0017);color:#fff;box-shadow:0 9px 28px rgba(49,3,24,.13);position:sticky;top:0;z-index:30}
-.header-inner{width:min(1600px,calc(100% - 48px));margin:auto;min-height:96px;display:flex;align-items:center;justify-content:space-between;column-gap:24px;row-gap:10px}
-.brand{display:flex;gap:14px;align-items:center;text-decoration:none;flex-shrink:0}
-.brand img{width:48px;height:56px;object-fit:contain}
-.brand-divider{height:38px;width:1px;background:#ffffff5b}
-.brand-upbc{font:900 clamp(34px,2.3vw,42px)/1 "Outfit",Arial,sans-serif;letter-spacing:-.02em}
-.brand-sub{font-size:12px;font-weight:700;opacity:.95;line-height:1.25;max-width:240px}
-.nav-links{display:flex;align-items:center;gap:26px;min-width:0}
-.nav-links a{text-decoration:none;font-size:14px;font-weight:800;color:#fff;white-space:nowrap;opacity:.92;transition:opacity .2s}
-.nav-links a:hover,.nav-links a:focus-visible{opacity:1}
-.header-actions{display:flex;align-items:center;gap:12px;flex-shrink:0}
-.lang-form select{background:#fff;color:#650013;border:1px solid #ffffff8f;border-radius:13px;padding:12px 14px;font-size:13px;font-weight:800;cursor:pointer;min-width:128px;max-width:150px}
-.button{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:50px;padding:12px 22px;border:1px solid transparent;border-radius:13px;cursor:pointer;font-weight:850;font-size:14px;text-decoration:none;transition:transform .2s,box-shadow .2s,background .2s;white-space:nowrap}
+
+/* ProTrack-style header: full-width, distinct brand/navigation/actions columns. */
+.site-header{background:#fff;color:#162641;border-bottom:1px solid #e5ebf5;box-shadow:0 3px 18px #1a356014;position:sticky;top:0;z-index:30}
+.header-inner{width:calc(100% - clamp(44px,7vw,136px));max-width:1840px;margin:auto;min-height:92px;display:grid;grid-template-columns:minmax(255px,1fr) auto minmax(380px,1fr);align-items:center;column-gap:clamp(20px,2vw,38px)}
+.brand{display:flex;gap:12px;align-items:center;min-width:0;text-decoration:none}
+.brand img{width:62px;height:68px;object-fit:contain;flex:0 0 auto;filter:drop-shadow(0 3px 5px #1b1f5a20)}
+.brand-copy{display:flex;flex-direction:column;min-width:0;line-height:1}
+.brand-title{font:900 clamp(30px,2.4vw,37px)/.98 "Outfit",Arial,sans-serif;letter-spacing:-.045em;color:#111c3d;white-space:nowrap}
+.brand-title span{color:#2476fa}
+.brand-sub{display:block;font-size:11px;font-weight:800;color:#5b6884;line-height:1.35;max-width:280px;margin-top:4px}
+.nav-links{display:flex;align-items:center;justify-content:center;gap:clamp(15px,1.35vw,25px);min-width:0;align-self:stretch}
+.nav-links a{display:inline-flex;align-items:center;position:relative;text-decoration:none;font-size:clamp(13px,.84vw,15px);font-weight:800;color:#34425b;white-space:nowrap;transition:color .18s ease}
+.nav-links a:hover,.nav-links a:focus-visible,.nav-links .nav-home{color:#176bfb}
+.nav-links .nav-home::after{content:"";position:absolute;left:0;right:0;bottom:24px;height:3px;border-radius:9px;background:#2476fa}
+.header-actions{display:flex;align-items:center;justify-content:flex-end;gap:9px;min-width:0}
+.lang-form{margin:0}
+.lang-form select{background:#fff;color:#25334f;border:1px solid #d8e3f3;border-radius:12px;padding:0 12px;min-width:156px;height:47px;font-size:13px;font-weight:800;cursor:pointer}
+.button{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:48px;padding:11px 18px;border:1px solid transparent;border-radius:11px;cursor:pointer;font-weight:850;font-size:14px;text-decoration:none;transition:transform .2s,box-shadow .2s,background .2s;white-space:nowrap}
 .button:hover{transform:translateY(-2px)}
 .button-white{background:#fff;color:#7b001c}
-.button-ghost{color:#fff;border-color:#ffffff8b;background:#ffffff16}
+.header-actions .button-ghost{color:#126df2;border:1px solid #bcd4ff;background:#f4f8ff;box-shadow:none;min-width:132px}
+.header-actions .button-ghost:hover{background:#e6f1ff;border-color:#4c96ff}
+.button-ghost{color:#fff;border-color:#ffffffa0;background:#ffffff18}
 .button-main{background:linear-gradient(100deg,#8f50ff,#6b38f4 56%,#416af4);color:white;box-shadow:0 11px 30px #4314ad55}
 .button-outline{color:#fff;border-color:#ffffffad;background:#ffffff13}
-.menu-button{display:none;border:1px solid #ffffff88;border-radius:11px;background:transparent;color:#fff;font-size:22px;min-width:46px;min-height:46px;cursor:pointer}
-.hero{position:relative;isolation:isolate;overflow:hidden;min-height:720px;background:linear-gradient(105deg,#172450,#3d438d,#4f3c87)}
-.hero-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 42%;filter:saturate(1.18) contrast(1.055) brightness(1.06);z-index:-2}
-.hero::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(94deg,rgba(18,14,57,.94) 0%,rgba(29,17,81,.85) 25%,rgba(27,23,79,.61) 48%,rgba(14,25,55,.25) 71%,rgba(7,25,55,.16) 100%),linear-gradient(0deg,#140d3d42,transparent 58%)}
-.hero-content{min-height:720px;display:flex;align-items:center;justify-content:space-between;gap:42px;padding-block:90px 110px}
-.hero-copy{width:min(760px,68%);color:white;min-width:0}
+.menu-button{display:none;border:1px solid #cddbf1;border-radius:11px;background:#f5f8fe;color:#1655a7;font-size:22px;width:46px;height:46px;align-items:center;justify-content:center;cursor:pointer}
+
+/* Full-width campus photo, with the same generous hero proportions as ProTrack. */
+.hero{position:relative;isolation:isolate;overflow:hidden;min-height:690px;background:linear-gradient(105deg,#172450,#3d438d,#4f3c87)}
+.hero-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 43%;filter:saturate(1.15) contrast(1.06) brightness(1.045);z-index:-2}
+.hero::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(90deg,rgba(19,15,66,.95) 0%,rgba(28,19,81,.87) 28%,rgba(25,23,78,.62) 50%,rgba(14,25,55,.15) 78%,rgba(7,25,55,.08) 100%),linear-gradient(0deg,#130c3b50,transparent 55%)}
+.hero-content{min-height:690px;display:flex;align-items:center;justify-content:space-between;gap:clamp(36px,5vw,100px);padding-block:78px 115px}
+.hero-copy{width:min(760px,64%);color:white;min-width:0}
 .hero-kicker{display:inline-flex;align-items:center;gap:9px;border:1px solid #e2d7ff7a;background:#ffffff1b;backdrop-filter:blur(10px);padding:8px 14px;border-radius:100px;color:#f1eaff;font-size:13px;font-weight:800}
 .hero-kicker .spark{height:7px;width:7px;border-radius:50%;background:#a7fb9d;box-shadow:0 0 13px #a7fb9d}
 .hero-heading{margin:24px 0 15px;display:flex;align-items:center;gap:20px}
-.hero-icon{width:110px;height:126px;object-fit:contain;filter:drop-shadow(0 15px 20px #14053f88);flex-shrink:0}
-.hero-heading h1{margin:0;font:900 clamp(72px,8vw,118px)/.94 "Outfit",Arial,sans-serif;letter-spacing:-.055em;color:#fff}
+.hero-icon{width:113px;height:132px;object-fit:contain;filter:drop-shadow(0 15px 20px #14053f88);flex-shrink:0}
+.hero-heading h1{margin:0;font:900 clamp(76px,7vw,116px)/.94 "Outfit",Arial,sans-serif;letter-spacing:-.055em;color:#fff}
 .hero-heading h1 span{color:#bd91ff}
-.hero-subtitle{font:700 clamp(22px,2.3vw,31px)/1.25 "Outfit",Arial,sans-serif;letter-spacing:-.015em;color:#f3ecff;margin:0 0 20px}
-.hero-text{font-size:18px;color:#f0edff;max-width:660px;line-height:1.9;margin:0}
-.hero-ctas{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:30px}
-.hero-ctas .button{font-size:16px;padding:14px 24px;min-height:56px}
+.hero-subtitle{font:700 clamp(23px,2.15vw,31px)/1.25 "Outfit",Arial,sans-serif;letter-spacing:-.015em;color:#f3ecff;margin:0 0 20px}
+.hero-text{font-size:18px;color:#f0edff;max-width:660px;line-height:1.8;margin:0}
+.hero-ctas{display:flex;gap:13px;align-items:center;flex-wrap:wrap;margin-top:30px}
+.hero-ctas .button{font-size:16px;padding:13px 22px;min-height:54px}
 .hero-note{font-size:13px;color:#dfd6ff;opacity:.95;margin-top:20px}
-.role-panel{width:320px;flex-shrink:0;background:rgba(18,22,47,.69);border:1px solid #ffffff47;box-shadow:0 20px 65px #11122c54;backdrop-filter:blur(16px);border-radius:24px;padding:24px;color:white}
+.role-panel{width:320px;flex-shrink:0;background:rgba(18,22,47,.74);border:1px solid #ffffff47;box-shadow:0 20px 65px #11122c54;backdrop-filter:blur(16px);border-radius:24px;padding:24px;color:white}
 .role-panel-label{font-weight:850;font-size:13px;text-transform:uppercase;letter-spacing:.12em;color:#d5cbff;margin:0 0 15px}
 .role-item{display:flex;gap:14px;align-items:center;padding:12px 2px}
 .role-item+.role-item{border-top:1px solid #ffffff23}
@@ -116,52 +126,54 @@ img{max-width:100%}
 .footer-row a:hover{text-decoration:underline}
 .footer-bottom{border-top:1px solid #ffffff36;padding-top:15px;margin-top:23px;font-size:11px;color:#ebcbd7;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
 
-/* Keep navigation readable at browser zoom instead of shrinking font sizes. */
-@media(max-width:1550px){
-  .header-inner{flex-wrap:wrap;justify-content:space-between;padding-block:11px;min-height:96px}
-  .nav-links{order:3;width:100%;justify-content:center;gap:27px;padding:1px 0 7px}
+
+/* Switch to an accessible dropdown BEFORE desktop columns become cramped. */
+@media(max-width:1510px){
+  .header-inner{grid-template-columns:minmax(0,1fr) auto;min-height:82px}
+  .nav-links{display:none;position:absolute;top:100%;left:0;right:0;padding:16px max(28px,5vw) 22px;flex-direction:column;align-items:stretch;gap:0;background:#fff;border-top:1px solid #e7edf7;box-shadow:0 16px 28px #0a21451c}
+  .nav-links.open{display:flex}
+  .nav-links a{display:block;font-size:16px;padding:12px 10px;border-radius:8px}
+  .nav-links a:hover{background:#edf5ff}
+  .nav-links .nav-home::after{display:none}
+  .menu-button{display:flex}
+  .brand-title{font-size:34px}
   .header-actions{margin-left:auto}
 }
-@media(max-width:1200px){
-  .nav-links{gap:18px}
-  .nav-links a{font-size:14px}
-  .role-panel{width:290px}
+@media(max-width:1100px){
+  .container{width:calc(100% - 60px)}
+  .role-panel{width:280px}
+  .hero-copy{width:min(680px,64%)}
+  .hero-heading h1{font-size:clamp(66px,8vw,88px)}
   .features-rail-inner{grid-template-columns:repeat(3,minmax(0,1fr))}
 }
-@media(max-width:1050px){
-  .header-inner{flex-wrap:nowrap}
-  .brand-sub{max-width:180px}
-  .menu-button{display:grid;place-items:center}
-  .nav-links{display:none;position:absolute;top:100%;left:0;right:0;width:100%;padding:16px 24px;background:#73001b;flex-direction:column;align-items:stretch;gap:0;box-shadow:0 17px 22px #29011620}
-  .nav-links.open{display:flex}
-  .nav-links a{padding:12px 9px;font-size:15px}
-  .hero-copy{width:min(760px,100%)}
+@media(max-width:920px){
   .role-panel{display:none}
+  .hero-copy{width:min(710px,100%)}
+  .hero-content{min-height:620px}
+  .hero{min-height:620px}
+  .hero-heading h1{font-size:clamp(68px,10vw,92px)}
   .features-rail-inner{grid-template-columns:repeat(2,minmax(0,1fr))}
   .steps{grid-template-columns:repeat(2,minmax(0,1fr))}
   .benefits{grid-template-columns:1fr}
 }
 @media(max-width:760px){
-  .container{width:min(100% - 30px,1340px)}
-  .header-inner{width:calc(100% - 28px);gap:12px;min-height:78px;flex-wrap:wrap}
-  .brand img{width:38px;height:46px}
-  .brand-upbc{font-size:28px}
-  .brand-divider{height:28px}
-  .brand-sub{font-size:11px;max-width:180px}
-  .header-actions{margin-left:auto;gap:8px}
-  .header-actions .button{padding:10px 13px;min-height:44px;font-size:13px}
-  .lang-form select{min-width:110px;max-width:120px;padding:10px 11px;font-size:12px}
-  .menu-button{min-width:44px;min-height:44px}
-  .hero{min-height:560px}
-  .hero-content{min-height:560px;padding-block:56px 82px}
-  .hero-heading{gap:12px}
-  .hero-icon{width:78px;height:92px}
-  .hero-heading h1{font-size:clamp(49px,9vw,70px)}
+  .container{width:calc(100% - 32px)}
+  .header-inner{width:calc(100% - 32px);grid-template-columns:minmax(0,1fr) auto;gap:10px;min-height:74px;padding-block:8px}
+  .brand img{width:48px;height:54px}
+  .brand-title{font-size:29px}
+  .brand-sub{font-size:10px;max-width:215px}
+  .header-actions{gap:8px}
+  .lang-form select{min-width:118px;height:43px;padding:0 8px;font-size:12px}
+  .header-actions .button-ghost{min-width:auto;min-height:43px;padding:10px 12px;font-size:13px}
+  .hero{min-height:570px}
+  .hero-content{min-height:570px;padding-block:54px 90px}
+  .hero-heading h1{font-size:clamp(49px,11vw,77px)}
+  .hero-icon{width:77px;height:90px}
   .hero-subtitle{font-size:22px}
   .hero-text{font-size:16px;line-height:1.75}
-  .hero-ctas .button{font-size:14px;padding:12px 17px;min-height:49px}
-  .hero-photo{object-position:56% center}
-  .features-rail-inner{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+  .hero-ctas .button{font-size:14px;padding:12px 16px;min-height:49px}
+  .hero-photo{object-position:55% center}
+  .features-rail-inner{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
   .mini-feature{padding:14px;min-height:110px}
   .mini-feature h3{font-size:14px}
   .mini-feature p{font-size:12px}
@@ -172,18 +184,21 @@ img{max-width:100%}
   .contact-strip .button{margin-top:20px}
   .footer-row{grid-template-columns:1fr;gap:12px}
 }
-@media(max-width:600px){
-  .header-actions{width:100%;justify-content:flex-start;flex-wrap:wrap;margin-left:0}
-  .header-actions .button{flex:1 1 auto}
-  .header-actions .lang-form{flex:1 1 auto}
-  .lang-form select{min-width:0;max-width:none;width:100%}
-  .header-actions .menu-button{margin-left:auto}
+@media(max-width:650px){
+  .header-inner{grid-template-columns:minmax(0,1fr) auto}
+  .header-actions{grid-column:1/-1;justify-content:stretch;width:100%;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;position:relative;padding-right:55px}
+  .header-actions .lang-form{grid-column:1/-1}
+  .lang-form select{width:100%;max-width:none}
+  .header-actions .button-ghost{min-width:0;text-align:center}
+  .menu-button{position:absolute;right:0;top:0;width:46px;height:43px}
   .hero-ctas .button{flex:1 1 100%}
 }
 @media(max-width:430px){
-  .brand-sub{font-size:10px;max-width:135px}
-  .hero-heading h1{font-size:clamp(44px,11vw,57px)}
-  .hero-icon{width:66px;height:80px}
+  .brand img{width:41px;height:46px}
+  .brand-title{font-size:27px}
+  .brand-sub{font-size:9px;max-width:190px}
+  .hero-heading h1{font-size:clamp(43px,11vw,56px)}
+  .hero-icon{width:61px;height:75px}
   .hero-subtitle{font-size:19px}
   .hero-text{font-size:15px}
   .hero-ctas{gap:10px}
@@ -201,17 +216,18 @@ img{max-width:100%}
 <body>
 <header class="site-header" id="inicio">
   <div class="header-inner">
-    <a class="brand" href="#inicio" aria-label="UPBC · UniTrack">
-      <img src="{{ url_for('static', filename='img/unitrack_logo.png') }}" alt="UniTrack">
-      <span class="brand-divider" aria-hidden="true"></span>
-      <strong class="brand-upbc">UPBC</strong>
-      <span class="brand-sub">{{ "Universidad Politécnica de Baja California" if es else "Polytechnic University of Baja California" }}</span>
+    <a class="brand" href="#inicio" aria-label="UniTrack · UPBC">
+      <img src="{{ url_for('static', filename='img/UPBCmark.png') }}" alt="UniTrack">
+      <span class="brand-copy">
+        <strong class="brand-title">Uni<span>Track</span></strong>
+        <span class="brand-sub">UPBC · {{ "Universidad Politécnica de Baja California" if es else "Polytechnic University of Baja California" }}</span>
+      </span>
     </a>
     <nav class="nav-links" id="mainNav" aria-label="{{ 'Navegación principal' if es else 'Main navigation' }}">
-      <a href="#inicio">{{ "Inicio" if es else "Home" }}</a>
-      <a href="#como-funciona">{{ "¿Cómo funciona?" if es else "How it works" }}</a>
+      <a href="#inicio" class="nav-home">{{ "Inicio" if es else "Home" }}</a>
       <a href="#caracteristicas">{{ "Características" if es else "Features" }}</a>
       <a href="#beneficios">{{ "Beneficios" if es else "Benefits" }}</a>
+      <a href="#como-funciona">{{ "¿Cómo funciona?" if es else "How it works" }}</a>
       <a href="#proyectos">{{ "Mis proyectos" if es else "My projects" }}</a>
       <a href="#contacto">{{ "Contacto" if es else "Contact" }}</a>
     </nav>
