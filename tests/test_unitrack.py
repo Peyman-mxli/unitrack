@@ -82,6 +82,100 @@ class UniTrackTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 resolve_scan_token(token)
 
+    def test_same_professor_qr_checkin_then_checkout_and_history(self):
+        from app.models.user_model import User
+        from app.models.access_log_model import AccessLog
+        from app.models.access_scan_pair_model import AccessScanPair
+        from app.services.scan_token_service import issue_access_credential
+        with self.app.app_context():
+            professor = self.db.session.execute(
+                self.db.select(User).where(User.username == "TeacherA")
+            ).scalar_one()
+            signed_qr, backup = issue_access_credential(professor)
+            professor_id = professor.id
+
+        admin = self._signed_in_client("Admin")
+        page = admin.get("/admin/access-control")
+        csrf = re.search(rb'name="csrf_token" value="([^"]+)"', page.data)
+        self.assertIsNotNone(csrf)
+        form = {"csrf_token": csrf.group(1).decode("utf-8"), "qr_text": signed_qr}
+
+        first = admin.post("/admin/access-control", data=form)
+        self.assertEqual(first.status_code, 200)
+        self.assertIn("Escaneo correcto".encode("utf-8"), first.data)
+        with self.app.app_context():
+            logs = self.db.session.execute(self.db.select(AccessLog).where(
+                AccessLog.student_id == professor_id
+            )).scalars().all()
+            self.assertEqual(len(logs), 1)
+            self.assertIsNone(logs[0].check_out_time)
+            pair = self.db.session.execute(self.db.select(AccessScanPair).where(
+                AccessScanPair.access_log_id == logs[0].id
+            )).scalar_one()
+            pair.checked_in_at -= timedelta(seconds=30)
+            self.db.session.commit()
+
+        second = admin.post("/admin/access-control", data=form)
+        self.assertEqual(second.status_code, 200)
+        self.assertIn("Escaneo correcto".encode("utf-8"), second.data)
+        self.assertIn("Salida".encode("utf-8"), second.data)
+        with self.app.app_context():
+            logs = self.db.session.execute(self.db.select(AccessLog).where(
+                AccessLog.student_id == professor_id
+            )).scalars().all()
+            self.assertEqual(len(logs), 1)
+            self.assertIsNotNone(logs[0].check_out_time)
+            self.assertEqual(logs[0].access_status, "checked_out")
+            self.assertGreaterEqual(logs[0].check_out_time, logs[0].check_in_time)
+            pair = self.db.session.execute(self.db.select(AccessScanPair).where(
+                AccessScanPair.access_log_id == logs[0].id
+            )).scalar_one()
+            self.assertIsNotNone(pair.checked_out_at)
+
+        professor_client = self._signed_in_client("TeacherA")
+        history = professor_client.get("/professor/access-control")
+        self.assertEqual(history.status_code, 200)
+        self.assertIn("Fuera del campus".encode("utf-8"), history.data)
+        # History row shows both entry and exit, not just an open check-in.
+        self.assertIn(logs[0].check_out_time.strftime("%I:%M %p").encode(), history.data)
+
+        third = admin.post("/admin/access-control", data=form)
+        self.assertEqual(third.status_code, 200)
+        self.assertIn("Escaneo rechazado".encode("utf-8"), third.data)
+        with self.app.app_context():
+            count = self.db.session.execute(self.db.select(self.db.func.count(AccessLog.id)).where(
+                AccessLog.student_id == professor_id
+            )).scalar_one()
+            self.assertEqual(count, 1)
+
+    def test_immediate_duplicate_scan_never_checks_out(self):
+        from app.models.user_model import User
+        from app.models.access_log_model import AccessLog
+        from app.services.scan_token_service import issue_access_credential
+        with self.app.app_context():
+            student = self.db.session.execute(
+                self.db.select(User).where(User.username == "StudentA")
+            ).scalar_one()
+            signed_qr, _code = issue_access_credential(student)
+            student_id = student.id
+        client = self._signed_in_client("Admin")
+        page = client.get("/admin/access-control")
+        csrf = re.search(rb'name="csrf_token" value="([^"]+)"', page.data)
+        payload = {
+            "csrf_token": csrf.group(1).decode("utf-8"),
+            "qr_text": signed_qr,
+        }
+        first = client.post("/admin/access-control", data=payload)
+        self.assertIn("Escaneo correcto".encode("utf-8"), first.data)
+        second = client.post("/admin/access-control", data=payload)
+        self.assertIn("Escaneo rechazado".encode("utf-8"), second.data)
+        with self.app.app_context():
+            latest = self.db.session.execute(
+                self.db.select(AccessLog).where(AccessLog.student_id == student_id)
+                .order_by(AccessLog.id.desc())
+            ).scalars().first()
+            self.assertIsNone(latest.check_out_time)
+
     def test_academic_absence_requires_finalization(self):
         from app.models.user_model import User
         from app.models.academic_models import UniversityClass, ClassEnrollment, ClassMeeting
