@@ -563,11 +563,12 @@ def build_user_access_records(user, selected_date=""):
     ]
 
 
-def build_global_access_records(selected_date=""):
-    """Show admin the campus-wide QR history, not only the admin's own visits.
+def build_global_access_records(selected_date="", search_text="", selected_role="", date_format="%m/%d/%Y"):
+    """Return one chronological event per successful campus entry or exit.
 
-    Read-only: each access row is a paired entry / exit; other users' QR scans
-    must appear immediately after the scanner POST finishes.
+    AccessLog keeps each entry/exit pair for duration calculations; this
+    read-only history expands it into two independent scan events, without
+    changing or duplicating the underlying access data.
     """
     from app.services.access_log_service import (
         build_access_display_name,
@@ -576,33 +577,96 @@ def build_global_access_records(selected_date=""):
         calculate_hours_text,
     )
 
-    query = (
-        db.select(AccessLog, User)
-        .join(User, AccessLog.student_id == User.id)
-        .order_by(AccessLog.check_in_time.desc(), AccessLog.id.desc())
-    )
+    filter_date = None
     if selected_date:
         try:
-            query = query.where(
-                AccessLog.access_date == datetime.strptime(selected_date, "%m/%d/%Y").date()
-            )
+            filter_date = datetime.strptime(selected_date, date_format).date()
         except ValueError:
             return []
 
-    result = []
-    for log, user in db.session.execute(query.limit(500)).all():
-        result.append({
+    query = db.select(AccessLog, User).join(
+        User, AccessLog.student_id == User.id
+    )
+    if search_text:
+        like = f"%{search_text}%"
+        query = query.where(db.or_(
+            User.first_name.ilike(like),
+            User.last_name.ilike(like),
+            User.username.ilike(like),
+            User.user_id_code.ilike(like),
+        ))
+    if selected_role and selected_role in get_allowed_role_values():
+        query = query.where(User.role == selected_role)
+    if filter_date is not None:
+        # Exit can occur on the day AFTER entry. Filter each event by its
+        # actual timestamp, not just the original entry's access_date.
+        day = filter_date.isoformat()
+        query = query.where(db.or_(
+            db.func.date(AccessLog.check_in_time) == day,
+            db.func.date(AccessLog.check_out_time) == day,
+        ))
+
+    # Per-user totals are across all visits, even when the table is filtered.
+    user_totals = {
+        user_id: (int(entries), int(exits))
+        for user_id, entries, exits in db.session.execute(
+            db.select(
+                AccessLog.student_id,
+                db.func.count(AccessLog.id),
+                db.func.count(AccessLog.check_out_time),
+            ).group_by(AccessLog.student_id)
+        ).all()
+    }
+    events = []
+    for log, user in db.session.execute(
+        query.order_by(AccessLog.check_in_time.desc(), AccessLog.id.desc())
+    ).all():
+        user_entries, user_exits = user_totals.get(user.id, (0, 0))
+        base = {
             "name": build_access_display_name(user),
             "username": user.username or "--",
             "user_id_code": user.user_id_code or user.username or "--",
             "role": str(user.role or "").lower(),
-            "date": format_date_for_display(log.access_date),
-            "check_in": format_time_for_display(log.check_in_time),
-            "check_out": format_time_for_display(log.check_out_time),
-            "hours": calculate_hours_text(log.check_in_time, log.check_out_time),
-            "status": "checked_out" if log.check_out_time is not None else "checked_in",
-        })
-    return result
+            "user_check_ins": user_entries,
+            "user_check_outs": user_exits,
+            "access_log_id": log.id,
+        }
+
+        if log.check_in_time and (filter_date is None or log.check_in_time.date() == filter_date):
+            events.append({
+                **base,
+                "action": "check_in",
+                "date": format_date_for_display(log.check_in_time.date()),
+                "time": format_time_for_display(log.check_in_time),
+                "status": "checked_in",
+                "duration": "--",
+                "_timestamp": log.check_in_time,
+            })
+        if log.check_out_time and (filter_date is None or log.check_out_time.date() == filter_date):
+            events.append({
+                **base,
+                "action": "check_out",
+                "date": format_date_for_display(log.check_out_time.date()),
+                "time": format_time_for_display(log.check_out_time),
+                "status": "checked_out",
+                "duration": calculate_hours_text(log.check_in_time, log.check_out_time),
+                "_timestamp": log.check_out_time,
+            })
+
+    events.sort(
+        key=lambda event: (
+            event["_timestamp"], event["access_log_id"],
+            event["action"] == "check_out",
+        ),
+        reverse=True,
+    )
+    return events
+
+
+def count_access_events(events):
+    entries = sum(event["action"] == "check_in" for event in events)
+    exits = sum(event["action"] == "check_out" for event in events)
+    return {"check_ins": entries, "check_outs": exits, "total": entries + exits}
 
 
 def perform_access_check_in_for_user(user, notes=""):
@@ -1615,6 +1679,7 @@ def admin_access_control():
     current_access_status = get_user_current_access_status(current_user.id)
     access_records = build_user_access_records(current_user)
     global_access_records = build_global_access_records(selected_date)
+    access_event_counts = count_access_events(global_access_records)
 
     from app.services.scan_token_service import issue_access_credential
     access_token, access_qr_id_code = issue_access_credential(current_user)
@@ -1636,6 +1701,7 @@ def admin_access_control():
         current_access_status=current_access_status,
         access_records=access_records,
         global_access_records=global_access_records,
+        access_event_counts=access_event_counts,
         demo_records=access_records,
         current_server_time=datetime.utcnow(),
     )
@@ -1756,21 +1822,13 @@ def admin_attendance_history():
         except ValueError:
             selected_date = ""
 
-    access_query = (
-        db.select(AccessLog, User)
-        .join(User, AccessLog.student_id == User.id)
-        .order_by(AccessLog.check_in_time.desc())
+    access_history = build_global_access_records(
+        selected_date=selected_date,
+        search_text=search_text,
+        selected_role=selected_role,
+        date_format="%Y-%m-%d",
     )
-    if search_text:
-        like = f"%{search_text}%"
-        access_query = access_query.where(db.or_(
-            User.first_name.ilike(like), User.last_name.ilike(like),
-            User.username.ilike(like), User.user_id_code.ilike(like)
-        ))
-    if selected_role in get_allowed_role_values():
-        access_query = access_query.where(User.role == selected_role)
-    if selected_date:
-        access_query = access_query.where(AccessLog.access_date == date.fromisoformat(selected_date))
+    access_event_counts = count_access_events(access_history)
 
     academic_query = (
         db.select(ClassAttendance, ClassMeeting, UniversityClass, User)
@@ -1791,14 +1849,14 @@ def admin_attendance_history():
         academic_query = academic_query.where(
             db.func.date(ClassMeeting.starts_at) == selected_date
         )
-    access_rows = db.session.execute(access_query.limit(500)).all()
     academic_rows = db.session.execute(academic_query.limit(500)).all()
     return render_template(
         "admin_attendance_history.html",
         search_text=search_text,
         selected_role=selected_role,
         selected_date=selected_date,
-        access_history=[{"log": log, "user": user} for log, user in access_rows],
+        access_history=access_history,
+        access_event_counts=access_event_counts,
         class_history=[{
             "attendance": record, "meeting": meeting,
             "course": course, "student": student,
