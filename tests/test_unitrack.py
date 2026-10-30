@@ -70,7 +70,7 @@ class UniTrackTests(unittest.TestCase):
         self.assertIn(b'class="nav-links" id="mainNav"', landing.data)
         self.assertIn(b"justify-self:end;gap:12px;min-width:max-content", landing.data)
         self.assertIn(b"min-height:690px", landing.data)
-        self.assertIn(b"@media(max-width:1780px)", landing.data)
+        self.assertIn(b"@media(max-width:1680px)", landing.data)
         self.assertIn(b"@media(max-width:1180px)", landing.data)
         self.assertIn(b"@media(max-width:1020px)", landing.data)
         self.assertIn(b'grid-template-areas:"brand actions" "nav nav"', landing.data)
