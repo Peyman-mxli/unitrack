@@ -715,6 +715,17 @@ def build_admin_dashboard_context():
             "last_seen": seen.strftime("%d/%m/%Y %H:%M UTC") if seen else "—",
         })
     all_user_statuses.sort(key=lambda item: (not item["online"], not item["campus"], item["role"], item["name"].casefold()))
+    monitor_role = str(request.args.get("monitor_role", "")).strip().lower()
+    monitor_status = str(request.args.get("monitor_status", "")).strip().lower()
+    filtered_user_statuses = [
+        item for item in all_user_statuses
+        if (not monitor_role or item["role"] == monitor_role)
+        and (not monitor_status
+             or (monitor_status == "online" and item["online"])
+             or (monitor_status == "offline" and item["active"] and not item["online"])
+             or (monitor_status == "campus" and item["campus"])
+             or (monitor_status == "disabled" and not item["active"]))
+    ]
     recent_notices = db.session.execute(
         db.select(UniversityNotice).order_by(
             UniversityNotice.created_at.desc(), UniversityNotice.id.desc()
@@ -723,7 +734,10 @@ def build_admin_dashboard_context():
 
     return {
         "role_counts": role_counts,
-        "all_user_statuses": all_user_statuses,
+        "all_user_statuses": filtered_user_statuses[:300],
+        "total_matched_users": len(filtered_user_statuses),
+        "monitor_role": monitor_role,
+        "monitor_status": monitor_status,
         "total_registered": sum(v["total"] for v in role_counts.values()),
         "current_online": sum(v["online"] for v in role_counts.values()),
         "current_campus": sum(v["campus"] for v in role_counts.values()),
