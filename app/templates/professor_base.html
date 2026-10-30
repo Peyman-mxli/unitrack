@@ -276,7 +276,7 @@ color:var(--danger);
 
 <a href="{{ url_for('professor_views.access_control_page') }}" class="{% if active_page == 'access_control' %}active{% endif %}">{{ t('access_control') }}</a>
 
-<a href="{{ url_for('professor_views.access_control_scanner') }}" class="{% if active_page == 'scanner' %}active{% endif %}">{{ t('QR Scanner') }}</a>
+
 
 <a href="{{ url_for('attendance.classes') }}" class="{% if active_page == 'classes' %}active{% endif %}">{{ "Clases y asistencia" if current_language == "es" else "Classes and Attendance" }}</a>
 
