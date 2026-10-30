@@ -440,6 +440,54 @@
 </div>
 {% endif %}
 
+<section class="qr-card" id="studentPersonalAccess" style="margin:0 0 20px;padding:24px;">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between;">
+        <div>
+            <h2 style="margin:0 0 7px;color:#081a43;font-size:23px;">
+                {{ "Mi QR personal de acceso" if is_spanish else "My Personal Access QR" }}
+            </h2>
+            <p style="margin:0;color:#475569;font-size:14px;">
+                {{ "Este código es exclusivo para tu cuenta. Muéstralo a la cámara del encargado de la entrada." if is_spanish else "This QR belongs only to your account. Show it to the entrance operator's camera." }}
+            </p>
+        </div>
+        <a href="{{ url_for('student_views.access_control_page') }}"
+           style="display:inline-block;border-radius:11px;padding:12px 17px;background:#7c3aed;color:white;font-weight:800;text-decoration:none;">
+            {{ "Generar nuevo QR" if is_spanish else "Generate new QR" }}
+        </a>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:25px;flex-wrap:wrap;margin-top:18px;">
+        {% if access_qr_image %}
+        <img src="{{ access_qr_image }}"
+             alt="{{ 'Mi QR personal de acceso' if is_spanish else 'My personal access QR' }}"
+             style="width:230px;height:230px;max-width:100%;object-fit:contain;
+                    padding:9px;border:1px solid #dbe4f0;border-radius:16px;background:white;">
+        {% else %}
+        <p>{{ "No se pudo generar la imagen QR." if is_spanish else "QR image unavailable." }}</p>
+        {% endif %}
+        <div style="flex:1;min-width:210px;">
+            <div style="font-size:14px;font-weight:900;color:#081a43;margin-bottom:8px;">
+                {{ student_name if student_name else current_user.username }}
+            </div>
+            <div style="font-size:13px;color:#475569;font-weight:700;margin-bottom:7px;">
+                {{ "Mi código temporal EST" if is_spanish else "My EST temporary code" }}
+            </div>
+            <div id="accessQrIdCodeText" style="background:#ffffff;border:1px solid #dbe4f0;
+                    border-radius:11px;padding:13px;font:800 17px Consolas,monospace;
+                    letter-spacing:0.04em;overflow-wrap:anywhere;">
+                {{ access_qr_id_code if access_qr_id_code else "--" }}
+            </div>
+            <button type="button" class="copy-btn" style="margin-top:11px;"
+                onclick="copyTextValue('accessQrIdCodeText', this)">
+                {{ "Copiar código" if is_spanish else "Copy code" }}
+            </button>
+            <p style="color:#475569;font-size:13px;line-height:1.6;margin:14px 0 0;">
+                {{ "Tu QR y código temporal duran 5 minutos y se usan una sola vez. Si caducan o ya los utilizaste, genera otros. El código se puede dictar al encargado si la cámara no funciona." if is_spanish else "Your QR and temporary code last five minutes and work once. Generate a new pair when expired or used. You can provide the code to an operator if the camera is unavailable." }}
+            </p>
+        </div>
+    </div>
+</section>
+
 <div class="summary-card">
     <div class="summary-header">
         <div class="summary-avatar">
@@ -514,54 +562,6 @@
         </div>
     </div>
 </form>
-
-<section class="qr-card" id="studentPersonalAccess" style="margin:0 0 20px;padding:24px;">
-    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between;">
-        <div>
-            <h2 style="margin:0 0 7px;color:#081a43;font-size:23px;">
-                {{ "Mi QR personal de acceso" if is_spanish else "My Personal Access QR" }}
-            </h2>
-            <p style="margin:0;color:#475569;font-size:14px;">
-                {{ "Este código es exclusivo para tu cuenta. Muéstralo a la cámara del encargado de la entrada." if is_spanish else "This QR belongs only to your account. Show it to the entrance operator's camera." }}
-            </p>
-        </div>
-        <a href="{{ url_for('student_views.access_control_page') }}"
-           style="display:inline-block;border-radius:11px;padding:12px 17px;background:#7c3aed;color:white;font-weight:800;text-decoration:none;">
-            {{ "Generar nuevo QR" if is_spanish else "Generate new QR" }}
-        </a>
-    </div>
-
-    <div style="display:flex;align-items:center;gap:25px;flex-wrap:wrap;margin-top:18px;">
-        {% if access_qr_image %}
-        <img src="{{ access_qr_image }}"
-             alt="{{ 'Mi QR personal de acceso' if is_spanish else 'My personal access QR' }}"
-             style="width:230px;height:230px;max-width:100%;object-fit:contain;
-                    padding:9px;border:1px solid #dbe4f0;border-radius:16px;background:white;">
-        {% else %}
-        <p>{{ "No se pudo generar la imagen QR." if is_spanish else "QR image unavailable." }}</p>
-        {% endif %}
-        <div style="flex:1;min-width:210px;">
-            <div style="font-size:14px;font-weight:900;color:#081a43;margin-bottom:8px;">
-                {{ student_name if student_name else current_user.username }}
-            </div>
-            <div style="font-size:13px;color:#475569;font-weight:700;margin-bottom:7px;">
-                {{ "Mi código temporal EST" if is_spanish else "My EST temporary code" }}
-            </div>
-            <div id="accessQrIdCodeText" style="background:#ffffff;border:1px solid #dbe4f0;
-                    border-radius:11px;padding:13px;font:800 17px Consolas,monospace;
-                    letter-spacing:0.04em;overflow-wrap:anywhere;">
-                {{ access_qr_id_code if access_qr_id_code else "--" }}
-            </div>
-            <button type="button" class="copy-btn" style="margin-top:11px;"
-                onclick="copyTextValue('accessQrIdCodeText', this)">
-                {{ "Copiar código" if is_spanish else "Copy code" }}
-            </button>
-            <p style="color:#475569;font-size:13px;line-height:1.6;margin:14px 0 0;">
-                {{ "Tu QR y código temporal duran 5 minutos y se usan una sola vez. Si caducan o ya los utilizaste, genera otros. El código se puede dictar al encargado si la cámara no funciona." if is_spanish else "Your QR and temporary code last five minutes and work once. Generate a new pair when expired or used. You can provide the code to an operator if the camera is unavailable." }}
-            </p>
-        </div>
-    </div>
-</section>
 
 <div class="history-card">
     <div class="history-header">
