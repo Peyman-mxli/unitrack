@@ -301,6 +301,7 @@
         gap: 12px;
         margin-bottom: 20px;
     }
+    .admin-monitor-filter { grid-template-columns: 1fr 1fr auto; }
 
     .input-field,
     .select-field {
@@ -416,7 +417,8 @@
             grid-template-columns: 1fr;
         }
 
-        .search-row {
+        .search-row,
+        .admin-monitor-filter {
             grid-template-columns: 1fr;
         }
 
@@ -593,7 +595,7 @@
   <section class="section-panel panel-card" id="admin-user-monitor">
     <h3 class="panel-title">{{ "Monitor de usuarios" if es else "User monitoring" }}</h3>
     <p class="panel-subtitle">{{ "Estado calculado en el momento de abrir esta página. Actualiza para consultar los últimos datos. La fecha de actividad se muestra en UTC." if es else "Status when the page loaded. Refresh for updated information. Activity time uses UTC." }}</p>
-    <form method="GET" action="{{ url_for('admin_views.admin_dashboard') }}" class="search-row" style="grid-template-columns:1fr 1fr auto;">
+    <form method="GET" action="{{ url_for('admin_views.admin_dashboard') }}" class="search-row admin-monitor-filter">
       <select class="select-field" name="monitor_role" aria-label="{{ 'Filtrar por rol' if es else 'Filter by role' }}">
         <option value="">{{ "Todos los roles" if es else "All roles" }}</option>
         {% for role, label in [('estudiante','Estudiantes'),('docente','Docentes'),('personal','Trabajadores'),('administrativo','Administradores')] %}
