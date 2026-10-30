@@ -1406,45 +1406,16 @@ def configuration_update_photo():
 @login_required
 @role_required("estudiante")
 def access_control_check_in():
-    """
-    Create a new university access check-in for the logged-in student.
-    """
-
-    try:
-        create_check_in(
-            student_id=current_user.id,
-            access_method="qr",
-            notes="Student check-in from access control panel"
-        )
-        return _redirect_access_message("Check-in completed successfully.")
-
-    except ValueError as exc:
-        return _redirect_access_error(str(exc))
-
-    except Exception:
-        return _redirect_access_error("Failed to register check-in.")
+    """Students cannot register campus entry without an authorized operator."""
+    return "El acceso debe ser registrado por personal autorizado.", 403
 
 
 @student_views_bp.route("/access-control/check-out", methods=["POST"])
 @login_required
 @role_required("estudiante")
 def access_control_check_out():
-    """
-    Close the active university access log for the logged-in student.
-    """
-
-    try:
-        create_check_out(
-            student_id=current_user.id,
-            notes="Student check-out from access control panel"
-        )
-        return _redirect_access_message("Check-out completed successfully.")
-
-    except ValueError as exc:
-        return _redirect_access_error(str(exc))
-
-    except Exception:
-        return _redirect_access_error("Failed to register check-out.")
+    """Students cannot register campus exit without an authorized operator."""
+    return "El acceso debe ser registrado por personal autorizado.", 403
 
 
 @student_views_bp.route("/access-control/scan", methods=["POST"])
@@ -1475,65 +1446,7 @@ def access_control_mobile_scan():
 @login_required
 @role_required("estudiante")
 def access_control_scanner_page():
-    """
-    Simple browser-based QR scanner simulation page.
-    """
-
-    _sync_student_language_from_session()
-    student_name = _student_full_name(current_user)
-    scan_result = None
-    qr_text_value = ""
-
+    """One access-control page per student; never allow self-scanning."""
     if request.method == "POST":
-        qr_text_value = _extract_scan_text_from_form(request.form)
-
-        if not qr_text_value:
-            scan_result = {
-                "success": False,
-                "message": "QR text is required.",
-                "action": "",
-                "student_name": "",
-                "user_name": "",
-                "staff_name": "",
-                "professor_name": "",
-                "admin_name": "",
-                "username": "",
-                "user_id_code": "",
-                "qr_id_code": "",
-                "status": "",
-                "check_in_time": "",
-                "check_out_time": "",
-                "processed_at": _server_now_iso(),
-                "status_code": 400,
-                "role_label": "",
-            }
-        else:
-            response_data, status_code = process_access_scan_qr_text(qr_text_value)
-
-            scan_result = {
-                "success": response_data.get("success", False),
-                "message": response_data.get("message", ""),
-                "action": response_data.get("action", ""),
-                "student_name": response_data.get("student_name", ""),
-                "user_name": response_data.get("user_name", ""),
-                "staff_name": response_data.get("staff_name", ""),
-                "professor_name": response_data.get("professor_name", ""),
-                "admin_name": response_data.get("admin_name", ""),
-                "username": response_data.get("username", ""),
-                "user_id_code": response_data.get("user_id_code", ""),
-                "qr_id_code": response_data.get("qr_id_code", ""),
-                "status": response_data.get("status", ""),
-                "check_in_time": response_data.get("check_in_time", ""),
-                "check_out_time": response_data.get("check_out_time", ""),
-                "processed_at": response_data.get("processed_at", _server_now_iso()),
-                "status_code": status_code,
-                "role_label": response_data.get("role_label", ""),
-            }
-
-    return render_template(
-        "student_qr_scanner.html",
-        student_name=student_name,
-        active_page="access_control",
-        scan_result=scan_result,
-        qr_text_value=qr_text_value
-    )
+        return "El acceso debe ser registrado por personal autorizado.", 403
+    return redirect(url_for("student_views.access_control_page"))
