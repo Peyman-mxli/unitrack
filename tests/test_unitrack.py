@@ -266,22 +266,14 @@ class UniTrackTests(unittest.TestCase):
 
         # Person can view their own status via the existing authenticated
         # endpoint without refreshing the page or minting a new QR.
-        from flask_login import login_user
-        from flask import session as flask_session
         teacher = self.app.test_client()
-        with teacher:
-            with self.app.app_context():
-                user = self.db.session.get(User, user_id)
-                login_user(user)
-                # Flask's login manager needs a request; test client login
-                # is established by directly setting its session.
-            with teacher.session_transaction() as session_state:
-                session_state["_user_id"] = str(user_id)
-                session_state["_fresh"] = True
-            before = teacher.get("/api/access-control/live")
-            self.assertEqual(before.status_code, 200)
-            self.assertEqual(before.get_json()["status"]["status"], "checked_in")
-            self.assertIsNone(before.get_json()["records"][0]["check_out"] if before.get_json()["records"][0]["check_out"] is None else None)  # live view exists
+        with teacher.session_transaction() as session_state:
+            session_state["_user_id"] = str(user_id)
+            session_state["_fresh"] = True
+        before = teacher.get("/api/access-control/live")
+        self.assertEqual(before.status_code, 200)
+        self.assertEqual(before.get_json()["status"]["status"], "checked_in")
+        self.assertEqual(before.get_json()["records"][0]["check_out"], "--")
 
         second = admin.post("/admin/access-control", data=form)
         self.assertIn("Escaneo correcto".encode(), second.data)
