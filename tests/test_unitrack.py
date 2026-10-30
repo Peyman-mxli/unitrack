@@ -298,6 +298,10 @@ class UniTrackTests(unittest.TestCase):
                 self.assertEqual(response.data.count(b"js/vendor/jsQR.js"), 1)
                 self.assertIn(b"data-qr-start", response.data)
                 self.assertIn(b"data-qr-video", response.data)
+                self.assertIn(b"data-qr-stage", response.data)
+                self.assertIn(b"data-qr-overlay", response.data)
+                self.assertIn(b"data-qr-outline", response.data)
+                self.assertIn(b"data-qr-detected-badge", response.data)
 
     def test_student_has_one_access_page_with_personal_qr_and_history(self):
         client = self._signed_in_client("StudentA")
@@ -312,6 +316,10 @@ class UniTrackTests(unittest.TestCase):
         self.assertIn(b'id="studentAccessCamera"', page.data)
         self.assertIn(b'data-qr-start', page.data)
         self.assertIn(b'data-qr-video', page.data)
+        self.assertIn(b'data-qr-stage', page.data)
+        self.assertIn(b'data-qr-overlay', page.data)
+        self.assertIn(b'data-qr-outline', page.data)
+        self.assertIn(b'data-qr-detected-badge', page.data)
         self.assertIn(b'name="pass_code"', page.data)
         self.assertIn(b'js/qr-camera.js', page.data)
         self.assertEqual(page.data.count(b"js/qr-camera.js"), 1)
@@ -427,7 +435,13 @@ class UniTrackTests(unittest.TestCase):
         self.assertNotIn(b"BarcodeDetector", scanner.data)
         # Authorized camera capture submits the CSRF-protected form once.
         self.assertIn(b"form.requestSubmit", scanner.data)
-        self.assertIn(b"foundQr(result.data, true)", scanner.data)
+        self.assertIn(b"foundQr(result.data, true, result)", scanner.data)
+        self.assertIn(b"loc.topLeftCorner", scanner.data)
+        self.assertIn(b"loc.bottomRightCorner", scanner.data)
+        self.assertIn(b'outline.setAttribute("points"', scanner.data)
+        self.assertIn(b'overlay.setAttribute("viewBox"', scanner.data)
+        self.assertIn(b'video.pause()', scanner.data)
+        self.assertIn(b'}, 1000)', scanner.data)
         self.assertNotIn(b"form.submit()", scanner.data)
 
     def test_each_role_displays_own_secure_qr_and_temporary_code(self):
