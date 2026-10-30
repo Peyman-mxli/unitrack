@@ -542,6 +542,95 @@ class UniTrackTests(unittest.TestCase):
             teacher_record.is_active = False
             self.db.session.commit()
 
+
+    def test_inbox_notifications_for_student_teacher_staff(self):
+        """Recipient-only announcements, persistent read badges, and archived visibility."""
+        from app.models.university_notice_model import UniversityNotice
+        from app.models.university_notice_read_model import UniversityNoticeRead
+        from app.models.user_model import User
+        with self.app.app_context():
+            admin_id = self.db.session.execute(
+                self.db.select(User.id).where(User.username == "Admin")
+            ).scalar_one()
+            for suffix, audience in (
+                ("All", "all"), ("Students", "estudiante"),
+                ("Teachers", "docente"), ("Staff", "personal")
+            ):
+                self.db.session.add(UniversityNotice(
+                    title="Inbox Scope " + suffix,
+                    body="This role-targeted announcement is saved in the inbox.",
+                    audience=audience, author_id=admin_id,
+                    author_name="Admin", is_active=True,
+                ))
+            self.db.session.commit()
+            notices = {
+                item.title: item.id for item in self.db.session.execute(
+                    self.db.select(UniversityNotice).where(
+                        UniversityNotice.title.like("Inbox Scope %")
+                    )
+                ).scalars().all()
+            }
+
+        for username, route, own, hidden in (
+            ("StudentA", "/student/dashboard", "Students", ("Teachers", "Staff")),
+            ("TeacherA", "/professor/dashboard", "Teachers", ("Students", "Staff")),
+            ("StaffA", "/personal/dashboard", "Staff", ("Students", "Teachers")),
+        ):
+            with self.subTest(role=username):
+                client = self._signed_in_client(username)
+                dashboard = client.get(route)
+                self.assertIn(b'href="/avisos"', dashboard.data)
+                self.assertIn(b'data-notice-sidebar-count', dashboard.data)
+                self.assertIn(("Inbox Scope " + own).encode(), dashboard.data)
+                inbox = client.get("/avisos")
+                self.assertEqual(inbox.status_code, 200)
+                self.assertIn(("Inbox Scope " + own).encode(), inbox.data)
+                self.assertIn(b"Inbox Scope All", inbox.data)
+                for excluded in hidden:
+                    self.assertNotIn(("Inbox Scope " + excluded).encode(), inbox.data)
+
+        student = self._signed_in_client("StudentA")
+        inbox = student.get("/avisos")
+        csrf = re.search(rb'name="csrf_token" value="([^"]+)"', inbox.data)
+        self.assertIsNotNone(csrf)
+        token = csrf.group(1).decode()
+        self.assertEqual(student.post(
+            "/avisos/" + str(notices["Inbox Scope Teachers"]) + "/leer",
+            data={"csrf_token": token}
+        ).status_code, 404)
+        self.assertEqual(student.post(
+            "/avisos/" + str(notices["Inbox Scope Students"]) + "/leer"
+        ).status_code, 400)
+        self.assertEqual(student.post(
+            "/avisos/" + str(notices["Inbox Scope Students"]) + "/leer",
+            data={"csrf_token": token}
+        ).status_code, 302)
+        with self.app.app_context():
+            student_id = self.db.session.execute(
+                self.db.select(User.id).where(User.username == "StudentA")
+            ).scalar_one()
+            self.assertIsNotNone(self.db.session.get(
+                UniversityNoticeRead, (student_id, notices["Inbox Scope Students"])
+            ))
+        self.assertEqual(student.post(
+            "/avisos/leer-todos", data={"csrf_token": token}
+        ).status_code, 302)
+        self.assertIn(b'data-notice-unread-total>0 sin leer', student.get("/avisos").data)
+        self.assertIn(b"Inbox Scope Students", student.get("/avisos").data)
+        # Admin can archive a published notice; it stops appearing for recipients.
+        admin = self._signed_in_client("Admin")
+        admin_page = admin.get("/admin/dashboard")
+        admin_token = re.search(rb'name="csrf_token" value="([^"]+)"', admin_page.data)
+        self.assertIsNotNone(admin_token)
+        archived = admin.post(
+            "/admin/notices/" + str(notices["Inbox Scope Students"]) + "/archive",
+            data={"csrf_token": admin_token.group(1).decode()}
+        )
+        self.assertEqual(archived.status_code, 302)
+        self.assertNotIn(b"Inbox Scope Students", student.get("/avisos").data)
+        self.assertEqual(admin.get("/avisos").status_code, 403)
+        self.assertNotEqual(self.app.test_client().get("/avisos").status_code, 200)
+
     def test_notice_form_protected_by_csrf(self):
         client = self._signed_in_client()
         response = client.post("/admin/notices/create", data={
