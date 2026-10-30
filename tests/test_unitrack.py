@@ -148,6 +148,78 @@ class UniTrackTests(unittest.TestCase):
             )).scalar_one()
             self.assertEqual(count, 1)
 
+    def test_new_qr_closes_preexisting_open_entry_without_deleting_history(self):
+        from app.models.user_model import User
+        from app.models.access_log_model import AccessLog
+        from app.services.scan_token_service import issue_access_credential
+        from app.services.access_log_service import create_check_in
+        with self.app.app_context():
+            person = self.db.session.execute(
+                self.db.select(User).where(User.username == "StaffA")
+            ).scalar_one()
+            old = create_check_in(student_id=person.id, access_method="qr",
+                                  notes="Earlier campus entry")
+            original_id = old.id
+            user_id = person.id
+            new_qr, _ = issue_access_credential(person)
+        admin = self._signed_in_client("Admin")
+        page = admin.get("/admin/access-control")
+        csrf = re.search(rb'name="csrf_token" value="([^"]+)"', page.data)
+        response = admin.post("/admin/access-control", data={
+            "csrf_token": csrf.group(1).decode("utf-8"),
+            "qr_text": new_qr,
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Escaneo correcto".encode("utf-8"), response.data)
+        with self.app.app_context():
+            logs = self.db.session.execute(self.db.select(AccessLog).where(
+                AccessLog.student_id == user_id
+            )).scalars().all()
+            self.assertEqual(len(logs), 1)
+            self.assertEqual(logs[0].id, original_id)
+            self.assertIsNotNone(logs[0].check_out_time)
+            self.assertEqual(logs[0].access_status, "checked_out")
+
+    def test_same_qr_checkout_remains_valid_after_initial_five_minutes(self):
+        from app.models.user_model import User
+        from app.models.scan_token_model import ScanToken
+        from app.models.access_scan_pair_model import AccessScanPair
+        from app.models.access_log_model import AccessLog
+        from app.services.scan_token_service import issue_access_credential
+        with self.app.app_context():
+            person = self.db.session.execute(
+                self.db.select(User).where(User.username == "StudentA")
+            ).scalar_one()
+            qr, _ = issue_access_credential(person)
+            user_id = person.id
+        admin = self._signed_in_client("Admin")
+        page = admin.get("/admin/access-control")
+        csrf = re.search(rb'name="csrf_token" value="([^"]+)"', page.data)
+        payload = {
+            "csrf_token": csrf.group(1).decode("utf-8"),
+            "qr_text": qr,
+        }
+        first = admin.post("/admin/access-control", data=payload)
+        self.assertIn("Escaneo correcto".encode("utf-8"), first.data)
+        with self.app.app_context():
+            pair = self.db.session.execute(
+                self.db.select(AccessScanPair).where(
+                    AccessScanPair.user_id == user_id
+                ).order_by(AccessScanPair.id.desc())
+            ).scalars().first()
+            self.assertIsNotNone(pair)
+            pair.checked_in_at = datetime.utcnow() - timedelta(hours=2)
+            credential = self.db.session.get(ScanToken, pair.scan_token_id)
+            credential.expires_at = datetime.utcnow() - timedelta(hours=1)
+            self.db.session.commit()
+        second = admin.post("/admin/access-control", data=payload)
+        self.assertIn("Escaneo correcto".encode("utf-8"), second.data)
+        with self.app.app_context():
+            log = self.db.session.execute(self.db.select(AccessLog).where(
+                AccessLog.student_id == user_id
+            ).order_by(AccessLog.id.desc())).scalars().first()
+            self.assertIsNotNone(log.check_out_time)
+
     def test_immediate_duplicate_scan_never_checks_out(self):
         from app.models.user_model import User
         from app.models.access_log_model import AccessLog
