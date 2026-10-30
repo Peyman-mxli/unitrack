@@ -186,7 +186,7 @@ def calculate_minutes_until_now(check_in_time):
     return total_seconds // 60
 
 
-def create_check_in(student_id=None, personal_id=None, access_method="qr", notes=None):
+def create_check_in(student_id=None, personal_id=None, access_method="qr", notes=None, commit=True):
     user_id = student_id if student_id is not None else personal_id
 
     if user_id is None:
@@ -216,14 +216,17 @@ def create_check_in(student_id=None, personal_id=None, access_method="qr", notes
 
     try:
         db.session.add(new_log)
-        db.session.commit()
+        if commit:
+            db.session.commit()
+        else:
+            db.session.flush()
         return new_log
     except Exception:
         db.session.rollback()
         raise
 
 
-def create_check_out(student_id=None, personal_id=None, notes=None):
+def create_check_out(student_id=None, personal_id=None, notes=None, commit=True):
     user_id = student_id if student_id is not None else personal_id
 
     if user_id is None:
@@ -251,7 +254,10 @@ def create_check_out(student_id=None, personal_id=None, notes=None):
         open_log.updated_at = now
 
     try:
-        db.session.commit()
+        if commit:
+            db.session.commit()
+        else:
+            db.session.flush()
         return open_log
     except Exception:
         db.session.rollback()
