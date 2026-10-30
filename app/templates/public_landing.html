@@ -78,6 +78,34 @@ img{max-width:100%}
 .blue{background:#e4efff;color:#1a68d9}.mint{background:#def9ed;color:#14764e}.violet{background:#efe5ff;color:#7531dd}.orange{background:#ffefd8;color:#ba6515}.pink{background:#ffe7ef;color:#d52d65}
 .mini-feature h3{margin:0 0 5px;font-size:15px;line-height:1.3;font-weight:900}
 .mini-feature p{margin:0;color:#657087;font-size:13px;line-height:1.55}
+
+/* Cards are true links: keyboard, touch and mouse all open their explanation. */
+.mini-feature{color:inherit;text-decoration:none;cursor:pointer;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+.mini-feature:hover,.mini-feature:focus-visible{transform:translateY(-4px);border-color:#c2b8fc;box-shadow:0 14px 37px #293b6230}
+.mini-feature:focus-visible{outline:3px solid #8c5aff;outline-offset:3px}
+.mini-more{display:inline-block;margin-top:11px;color:#6637d2;font-size:12px;font-weight:900}
+.feature-explain-section{padding:74px 0 92px;background:#fff}
+.feature-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.feature-detail{background:#fff;border:1px solid #e0e6f4;border-radius:22px;padding:28px;box-shadow:0 9px 30px #20345810;scroll-margin-top:var(--landing-nav-offset,120px);transition:border-color .2s,box-shadow .2s;min-width:0}
+.feature-detail:target{border-color:#8248ed;box-shadow:0 0 0 4px #8248ed23,0 16px 39px #293b6222}
+.feature-detail-head{display:flex;gap:16px;align-items:center;margin-bottom:14px}
+.feature-detail-icon{display:grid;place-items:center;width:62px;height:62px;border-radius:18px;flex-shrink:0;font-size:30px}
+.feature-detail-kicker{display:block;color:#7245d8;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.10em}
+.feature-detail h3{font:900 clamp(20px,2vw,26px)/1.15 "Outfit",Arial,sans-serif;margin:5px 0 0;color:#111c3d}
+.feature-detail p{font-size:15px;line-height:1.8;color:#56647d;margin:0 0 15px}
+.feature-detail ul{padding-left:22px;margin:0 0 17px;color:#233550;font-size:14px;line-height:1.9}
+.feature-detail li{padding-left:3px;margin-bottom:4px}
+.feature-detail li::marker{color:#8049ed}
+.feature-next{color:#6538d4;font-size:13px;font-weight:900;text-decoration:none}
+.feature-next:hover,.feature-back-top:hover{text-decoration:underline}
+.feature-cta{background:linear-gradient(140deg,#221a5a,#5335a4);border-color:#6d55bb;display:flex;flex-direction:column;align-items:flex-start;justify-content:center}
+.feature-cta .eyebrow{color:#cbb4ff}
+.feature-cta h3{color:#fff;font-size:31px;margin:12px 0}
+.feature-cta p{color:#f0eaff}
+.feature-cta-actions{display:flex;gap:10px;flex-wrap:wrap;margin:15px 0}
+.feature-cta-secondary{background:#ffffff20;border-color:#ffffffab;color:#fff}
+.feature-back-top{color:#eee4ff;font-weight:850;text-decoration:none;font-size:13px;margin-top:14px}
+
 .section{padding:100px 0}
 .section-pale{background:var(--pale)}
 .section-heading{max-width:740px;margin-bottom:34px}
@@ -147,6 +175,8 @@ img{max-width:100%}
   .features-rail-inner{grid-template-columns:repeat(3,minmax(0,1fr))}
 }
 @media(max-width:920px){
+  .feature-detail-grid{grid-template-columns:1fr}
+
   .role-panel{display:none}
   .hero-copy{width:min(710px,100%)}
   .hero-content{min-height:620px}
@@ -157,6 +187,11 @@ img{max-width:100%}
   .benefits{grid-template-columns:1fr}
 }
 @media(max-width:760px){
+  .feature-explain-section{padding:55px 0 65px}
+  .feature-detail{padding:22px}
+  .feature-detail-icon{width:51px;height:51px;font-size:25px}
+  .feature-detail h3{font-size:23px}
+
   .container{width:calc(100% - 32px)}
   .header-inner{width:calc(100% - 32px);grid-template-columns:minmax(0,1fr) auto;gap:10px;min-height:74px;padding-block:8px}
   .brand img{width:48px;height:54px}
@@ -216,7 +251,7 @@ img{max-width:100%}
 <body>
 <header class="site-header" id="inicio">
   <div class="header-inner">
-    <a class="brand" href="#inicio" aria-label="UniTrack · UPBC">
+    <a class="brand" href="#inicio" data-return-top aria-label="UniTrack · UPBC">
       <img src="{{ url_for('static', filename='img/UPBCmark.png') }}" alt="UniTrack">
       <span class="brand-copy">
         <strong class="brand-title">Uni<span>Track</span></strong>
@@ -224,7 +259,7 @@ img{max-width:100%}
       </span>
     </a>
     <nav class="nav-links" id="mainNav" aria-label="{{ 'Navegación principal' if es else 'Main navigation' }}">
-      <a href="#inicio" class="nav-home">{{ "Inicio" if es else "Home" }}</a>
+      <a href="#inicio" class="nav-home" data-return-top>{{ "Inicio" if es else "Home" }}</a>
       <a href="#caracteristicas">{{ "Características" if es else "Features" }}</a>
       <a href="#beneficios">{{ "Beneficios" if es else "Benefits" }}</a>
       <a href="#como-funciona">{{ "¿Cómo funciona?" if es else "How it works" }}</a>
@@ -281,11 +316,84 @@ img{max-width:100%}
 
 <section class="features-rail container" id="caracteristicas" aria-label="{{ 'Características de UniTrack' if es else 'UniTrack features' }}">
   <div class="features-rail-inner">
-    <div class="mini-feature"><span class="mini-icon blue">🎓</span><div><h3>{{ "Gestión académica" if es else "Academic management" }}</h3><p>{{ "Clases y seguimiento de actividades" if es else "Classes and activity tracking" }}</p></div></div>
-    <div class="mini-feature"><span class="mini-icon mint">▦</span><div><h3>{{ "Acceso con QR" if es else "QR campus access" }}</h3><p>{{ "Entradas y salidas registradas" if es else "Recorded check-ins and exits" }}</p></div></div>
-    <div class="mini-feature"><span class="mini-icon violet">🔔</span><div><h3>{{ "Avisos" if es else "Notices" }}</h3><p>{{ "Comunicación según el rol" if es else "Role-based announcements" }}</p></div></div>
-    <div class="mini-feature"><span class="mini-icon orange">▥</span><div><h3>{{ "Historial" if es else "History" }}</h3><p>{{ "Consulta de registros y asistencias" if es else "Access and attendance records" }}</p></div></div>
-    <div class="mini-feature"><span class="mini-icon pink">♢</span><div><h3>{{ "Seguridad" if es else "Security" }}</h3><p>{{ "Permisos por tipo de cuenta" if es else "Role-specific permissions" }}</p></div></div>
+    <a class="mini-feature" href="#detalle-gestion"><span class="mini-icon blue" aria-hidden="true">🎓</span><div><h3>{{ "Gestión académica" if es else "Academic management" }}</h3><p>{{ "Clases y seguimiento de actividades" if es else "Classes and activity tracking" }}</p><span class="mini-more">{{ "Ver cómo funciona" if es else "Learn how it works" }} →</span></div></a>
+    <a class="mini-feature" href="#detalle-qr"><span class="mini-icon mint" aria-hidden="true">▦</span><div><h3>{{ "Acceso con QR" if es else "QR campus access" }}</h3><p>{{ "Entradas y salidas registradas" if es else "Recorded check-ins and exits" }}</p><span class="mini-more">{{ "Ver cómo funciona" if es else "Learn how it works" }} →</span></div></a>
+    <a class="mini-feature" href="#detalle-avisos"><span class="mini-icon violet" aria-hidden="true">🔔</span><div><h3>{{ "Avisos" if es else "Notices" }}</h3><p>{{ "Comunicación según el rol" if es else "Role-based announcements" }}</p><span class="mini-more">{{ "Ver cómo funciona" if es else "Learn how it works" }} →</span></div></a>
+    <a class="mini-feature" href="#detalle-historial"><span class="mini-icon orange" aria-hidden="true">▥</span><div><h3>{{ "Historial" if es else "History" }}</h3><p>{{ "Consulta de registros y asistencias" if es else "Access and attendance records" }}</p><span class="mini-more">{{ "Ver cómo funciona" if es else "Learn how it works" }} →</span></div></a>
+    <a class="mini-feature" href="#detalle-seguridad"><span class="mini-icon pink" aria-hidden="true">♢</span><div><h3>{{ "Seguridad" if es else "Security" }}</h3><p>{{ "Permisos por tipo de cuenta" if es else "Role-specific permissions" }}</p><span class="mini-more">{{ "Ver cómo funciona" if es else "Learn how it works" }} →</span></div></a>
+  </div>
+</section>
+
+
+<section class="feature-explain-section" aria-labelledby="feature-explain-title">
+  <div class="container">
+    <div class="section-heading centered">
+      <span class="eyebrow">{{ "Explora UniTrack" if es else "Explore UniTrack" }}</span>
+      <h2 id="feature-explain-title">{{ "Conoce cada función de UniTrack" if es else "Explore every UniTrack feature" }}</h2>
+      <p>{{ "Selecciona una tarjeta para venir directamente a su explicación. Así sabrás qué hace cada módulo y cómo se usa." if es else "Choose any feature card to jump directly to a full explanation of what it does and how to use it." }}</p>
+    </div>
+    <div class="feature-detail-grid">
+      <article class="feature-detail" id="detalle-gestion" tabindex="-1">
+        <div class="feature-detail-head"><span class="feature-detail-icon blue" aria-hidden="true">🎓</span><div><span class="feature-detail-kicker">01 · {{ "Académico" if es else "Academics" }}</span><h3>{{ "Gestión académica" if es else "Academic management" }}</h3></div></div>
+        <p>{{ "Los docentes pueden organizar sus clases y sus listas de estudiantes, programar sesiones y gestionar la asistencia de cada grupo. Los estudiantes consultan la información académica disponible para su cuenta." if es else "Teachers can organize their classes and student lists, schedule sessions, and manage attendance for each group. Students can consult the academic information available to their account." }}</p>
+        <ul>
+          <li>{{ "El docente abre su panel y selecciona una clase." if es else "Teachers open their dashboard and select a class." }}</li>
+          <li>{{ "Registra asistencia, retardos o ausencias y finaliza la sesión." if es else "They record present, late or absent students and finalize the session." }}</li>
+          <li>{{ "Cada usuario consulta únicamente los datos permitidos para su rol." if es else "Each user sees only the academic information allowed for their role." }}</li>
+        </ul>
+        <a class="feature-next" href="#como-funciona">{{ "Ver guía paso a paso" if es else "See the step-by-step guide" }} →</a>
+      </article>
+      <article class="feature-detail" id="detalle-qr" tabindex="-1">
+        <div class="feature-detail-head"><span class="feature-detail-icon mint" aria-hidden="true">▦</span><div><span class="feature-detail-kicker">02 · {{ "Acceso" if es else "Access" }}</span><h3>{{ "Acceso al campus con QR" if es else "QR campus access" }}</h3></div></div>
+        <p>{{ "Cada persona tiene un código QR para identificarse. Un operador autorizado —administrador, docente o personal— utiliza el escáner para registrar el acceso al campus." if es else "Each person has a QR code for identification. An authorized operator—administrator, teacher or staff member—uses the scanner to record campus access." }}</p>
+        <ul>
+          <li>{{ "Primer escaneo válido: se registra Entrada con fecha y hora." if es else "First valid scan: an entry is recorded with date and time." }}</li>
+          <li>{{ "Siguiente escaneo válido: se registra Salida con otra hora." if es else "Next valid scan: an exit is recorded with a separate timestamp." }}</li>
+          <li>{{ "La cámara identifica el QR y el sistema mantiene el historial." if es else "The camera detects the QR and the system keeps the history." }}</li>
+        </ul>
+        <a class="feature-next" href="#detalle-historial">{{ "Cómo consultar los movimientos" if es else "How to review access events" }} →</a>
+      </article>
+      <article class="feature-detail" id="detalle-avisos" tabindex="-1">
+        <div class="feature-detail-head"><span class="feature-detail-icon violet" aria-hidden="true">🔔</span><div><span class="feature-detail-kicker">03 · {{ "Comunicación" if es else "Communication" }}</span><h3>{{ "Avisos a la comunidad" if es else "Community notices" }}</h3></div></div>
+        <p>{{ "El administrador publica comunicados para todos o para grupos específicos. Los destinatarios reciben sus mensajes dentro de UniTrack sin entrar al panel de administración." if es else "An administrator publishes announcements for everyone or selected groups. Recipients see their messages inside UniTrack without needing access to the admin dashboard." }}</p>
+        <ul>
+          <li>{{ "Avisos dirigidos a estudiantes, docentes, personal o todos." if es else "Target students, teachers, staff or everyone." }}</li>
+          <li>{{ "Los mensajes aparecen en avisos de página y en la sección 🔔 Avisos." if es else "Messages appear in page banners and in the 🔔 Notices inbox." }}</li>
+          <li>{{ "Cada usuario puede marcar avisos como leídos y consultar los activos." if es else "Each user can mark announcements as read and revisit active notices." }}</li>
+        </ul>
+        <a class="feature-next" href="#beneficios">{{ "Conocer los beneficios" if es else "Explore the benefits" }} →</a>
+      </article>
+      <article class="feature-detail" id="detalle-historial" tabindex="-1">
+        <div class="feature-detail-head"><span class="feature-detail-icon orange" aria-hidden="true">▥</span><div><span class="feature-detail-kicker">04 · {{ "Seguimiento" if es else "Tracking" }}</span><h3>{{ "Historial de acceso y asistencia" if es else "Access and attendance history" }}</h3></div></div>
+        <p>{{ "En Control de Acceso, cada Entrada y cada Salida se muestra como un movimiento independiente. Las fechas, horas y totales ayudan a comprobar cuántas veces entró o salió una persona. La asistencia a clases se consulta por separado." if es else "In Access Control, every check-in and check-out appears as a separate event. Dates, times and totals show how often someone entered or exited. Classroom attendance is tracked separately." }}</p>
+        <ul>
+          <li>{{ "Un escaneo de entrada y otro de salida generan dos movimientos." if es else "One entry scan and one exit scan generate two events." }}</li>
+          <li>{{ "Contadores separados de Entradas, Salidas y movimientos totales." if es else "Separate counters for entries, exits and total events." }}</li>
+          <li>{{ "Filtro por fecha y detalle de duración de las visitas." if es else "Filter by date and view visit durations." }}</li>
+        </ul>
+        <a class="feature-next" href="#detalle-qr">{{ "Entender el escaneo QR" if es else "Understand QR scanning" }} →</a>
+      </article>
+      <article class="feature-detail" id="detalle-seguridad" tabindex="-1">
+        <div class="feature-detail-head"><span class="feature-detail-icon pink" aria-hidden="true">♢</span><div><span class="feature-detail-kicker">05 · {{ "Permisos" if es else "Permissions" }}</span><h3>{{ "Acceso y seguridad por rol" if es else "Role-based access and security" }}</h3></div></div>
+        <p>{{ "UniTrack diferencia las funciones de estudiantes, docentes, personal y administradores. El acceso a herramientas de gestión y al escáner depende del rol autorizado; la autenticación mantiene las áreas privadas separadas de esta página pública." if es else "UniTrack assigns different capabilities to students, teachers, staff and administrators. Management tools and operator scanners depend on authorized roles, and authentication keeps private dashboards separate from this public page." }}</p>
+        <ul>
+          <li>{{ "Inicio de sesión con nombre de usuario o correo y contraseña." if es else "Sign in with a username or email and password." }}</li>
+          <li>{{ "Permisos distintos para las cuentas según su rol." if es else "Different permissions for different account roles." }}</li>
+          <li>{{ "Códigos y comprobaciones para ayudar a evitar accesos no autorizados." if es else "Codes and checks to help prevent unauthorized access." }}</li>
+        </ul>
+        <a class="feature-next" href="#como-funciona">{{ "Ver cómo empezar" if es else "See how to get started" }} →</a>
+      </article>
+      <div class="feature-detail feature-cta">
+        <span class="eyebrow">{{ "¿Quieres utilizar UniTrack?" if es else "Ready to use UniTrack?" }}</span>
+        <h3>{{ "Empieza con tu cuenta" if es else "Get started with your account" }}</h3>
+        <p>{{ "Después de explorar las funciones, inicia sesión con tu usuario y contraseña o registra una nueva cuenta." if es else "After exploring the features, sign in with your username and password or create a new account." }}</p>
+        <div class="feature-cta-actions">
+          <a class="button button-main" href="{{ url_for('auth.login_page') }}">{{ "Iniciar sesión" if es else "Sign in" }} →</a>
+          <a class="button feature-cta-secondary" href="{{ url_for('auth.register_page') }}">{{ "Crear cuenta" if es else "Create account" }}</a>
+        </div>
+        <a class="feature-back-top" href="#inicio" data-return-top>{{ "Volver al inicio ↑" if es else "Back to top ↑" }}</a>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -374,14 +482,41 @@ img{max-width:100%}
 <script>
 (function(){
   var menu=document.getElementById("navToggle"), nav=document.getElementById("mainNav");
+  var header=document.querySelector(".site-header");
+  // Match anchored content to the actual sticky header height at every zoom level.
+  function updateScrollOffset(){
+    if(header){document.documentElement.style.setProperty("--landing-nav-offset",(header.getBoundingClientRect().height+18)+"px");}
+  }
+  updateScrollOffset();
+  if(window.ResizeObserver&&header){new ResizeObserver(updateScrollOffset).observe(header);}
+  window.addEventListener("resize",updateScrollOffset);
   if(menu&&nav){
     menu.addEventListener("click",function(){
       var open=nav.classList.toggle("open");
       menu.setAttribute("aria-expanded",String(open));
       menu.textContent=open?"✕":"☰";
+      updateScrollOffset();
     });
-    nav.querySelectorAll("a").forEach(function(link){link.addEventListener("click",function(){nav.classList.remove("open");menu.setAttribute("aria-expanded","false");menu.textContent="☰";});});
+    nav.querySelectorAll("a").forEach(function(link){link.addEventListener("click",function(){
+      nav.classList.remove("open");menu.setAttribute("aria-expanded","false");menu.textContent="☰";
+      updateScrollOffset();
+    });});
   }
+  // The logo and Inicio are special: return immediately instead of smooth scrolling.
+  document.querySelectorAll("[data-return-top]").forEach(function(link){
+    link.addEventListener("click",function(event){
+      event.preventDefault();
+      if(nav){nav.classList.remove("open");}
+      if(menu){menu.setAttribute("aria-expanded","false");menu.textContent="☰";}
+      var root=document.documentElement;
+      root.style.scrollBehavior="auto";
+      window.scrollTo(0,0);
+      if(window.history&&window.history.replaceState){
+        window.history.replaceState(null,"",window.location.pathname+window.location.search);
+      }
+      requestAnimationFrame(function(){root.style.removeProperty("scroll-behavior");updateScrollOffset();});
+    });
+  });
 })();
 </script>
 </body>
