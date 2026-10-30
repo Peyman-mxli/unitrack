@@ -23,9 +23,25 @@
      style="font-size:13px;color:#334155;margin:2px 0;">
     {{ "La cámara verifica el QR automáticamente. Si seleccionas una imagen, pulsa el botón inferior para confirmar." if current_language == 'es' else "The camera automatically checks the QR. If you select an image, use the button below to confirm." }}
   </p>
-  <video data-qr-video hidden autoplay muted playsinline
-         aria-label="{{ 'Vista de la cámara' if current_language == 'es' else 'Camera preview' }}"
-         style="max-width:100%;width:440px;aspect-ratio:4/3;object-fit:cover;border-radius:12px;background:#0f172a;"></video>
+  <div data-qr-stage hidden style="position:relative;width:440px;max-width:100%;aspect-ratio:4/3;
+       overflow:hidden;border-radius:12px;background:#0f172a;isolation:isolate;">
+    <video data-qr-video hidden autoplay muted playsinline
+           aria-label="{{ 'Vista de la cámara' if current_language == 'es' else 'Camera preview' }}"
+           style="display:block;width:100%;height:100%;object-fit:cover;background:#0f172a;"></video>
+    <svg data-qr-overlay viewBox="0 0 1 1" preserveAspectRatio="xMidYMid slice"
+         aria-hidden="true"
+         style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:hidden;">
+      <polygon data-qr-outline points=""
+               style="opacity:0;fill:rgba(34,197,94,0.14);stroke:#22c55e;stroke-width:6;
+                      stroke-linejoin:round;vector-effect:non-scaling-stroke;
+                      filter:drop-shadow(0 0 5px rgba(0,0,0,0.8));"/>
+    </svg>
+    <div data-qr-detected-badge hidden style="position:absolute;bottom:12px;left:12px;z-index:2;
+         padding:8px 13px;border-radius:10px;background:#15803d;color:white;
+         font-size:14px;font-weight:900;box-shadow:0 4px 18px rgba(0,0,0,0.4);">
+      {{ "✓ QR detectado" if current_language == 'es' else "✓ QR detected" }}
+    </div>
+  </div>
 </div>
 <script src="{{ url_for('static', filename='js/vendor/jsQR.js') }}" defer></script>
 <script src="{{ url_for('static', filename='js/qr-camera.js') }}" defer></script>
