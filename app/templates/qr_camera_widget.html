@@ -1,6 +1,6 @@
-{# Shared camera scanner for authorized UniTrack operators.
-   jsQR is hosted locally so decoding works without BarcodeDetector or a CDN.
-   Scanning only fills the QR field; a manual submit confirms access. #}
+{# Shared QR camera scanner for each Control de Acceso page.
+   jsQR is hosted locally. Camera detection submits the page's form;
+   each route decides whether it is access registration or verification. #}
 <div id="unitrackQrCamera" class="unitrack-camera-widget"
      style="margin:14px 0;display:flex;flex-direction:column;align-items:flex-start;gap:10px;">
   <div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap;">
@@ -21,7 +21,7 @@
           style="max-width:400px;padding:10px;border:1px solid #cbd5e1;border-radius:9px;"></select>
   <p data-qr-status role="status" aria-live="polite"
      style="font-size:13px;color:#334155;margin:2px 0;">
-    {{ "Escanea el QR con la cámara o elige una imagen. Confirma con «Escanear QR»." if current_language == 'es' else "Scan with the camera or choose an image. Confirm using Scan QR." }}
+    {{ "La cámara verifica el QR automáticamente. Si seleccionas una imagen, pulsa el botón inferior para confirmar." if current_language == 'es' else "The camera automatically checks the QR. If you select an image, use the button below to confirm." }}
   </p>
   <video data-qr-video hidden autoplay muted playsinline
          aria-label="{{ 'Vista de la cámara' if current_language == 'es' else 'Camera preview' }}"
