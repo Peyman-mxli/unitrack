@@ -414,7 +414,7 @@
 <div style="margin-bottom:18px;">
     <h1 class="section-title">{{ "Control de Acceso" if is_spanish else "Access Control System" }}</h1>
     <p class="section-subtitle">
-        {{ "Usa tu código QR para registrar entrada o salida y revisar tu historial de acceso." if is_spanish else "Use your QR code to check in or check out and review your access history." }}
+        {{ "Presenta tu QR o código temporal al personal autorizado para registrar tu entrada o salida. Consulta aquí tu estado e historial." if is_spanish else "Show your QR or temporary code to authorized staff to register access. Review your status and history here." }}
     </p>
 </div>
 
@@ -515,140 +515,74 @@
     </div>
 </form>
 
-<div class="access-grid">
-
-    <div class="qr-card">
-        <h3 style="margin:0; color:#081a43;">{{ "Tu Código QR de Acceso" if is_spanish else "Your Access QR Code" }}
-        <p style="margin:10px 0;color:#475569;font-size:13px;">{{ "Tu QR y este código son únicos, se crean automáticamente y vencen en 5 minutos. Después de usarlos, actualiza la página para obtener otros." if is_spanish else "Your QR and code are unique, generated automatically, and expire after 5 minutes. Refresh this page to get new ones after use." }}</p>
-        <a href="{{ url_for('student_views.access_control_page') }}" style="display:inline-block;margin:5px 0 12px;padding:9px 13px;border-radius:9px;background:#7c3aed;color:white;text-decoration:none;font-weight:800;">{{ "Generar nuevo QR" if is_spanish else "Get new QR" }}</a></h3>
-
-        <div class="qr-box">
-            {% if access_qr_image %}
-                <img
-                    src="{{ access_qr_image }}"
-                    alt="{{ 'Código QR de Acceso del Estudiante' if is_spanish else 'Student Access QR Code' }}"
-                    style="width:100%; height:100%; object-fit:contain;"
-                >
-            {% else %}
-                QR
-            {% endif %}
+<section class="qr-card" id="studentPersonalAccess" style="margin:0 0 20px;padding:24px;">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between;">
+        <div>
+            <h2 style="margin:0 0 7px;color:#081a43;font-size:23px;">
+                {{ "Mi QR personal de acceso" if is_spanish else "My Personal Access QR" }}
+            </h2>
+            <p style="margin:0;color:#475569;font-size:14px;">
+                {{ "Este código es exclusivo para tu cuenta. Muéstralo a la cámara del encargado de la entrada." if is_spanish else "This QR belongs only to your account. Show it to the entrance operator's camera." }}
+            </p>
         </div>
-
-        <div style="font-weight:800; margin-bottom:8px; color:#0f172a; text-align:center;">
-            {{ student_name if student_name else ("Estudiante" if is_spanish else "Student") }}
-        </div>
-
-        <div class="card" style="margin-top:14px;">
-            <div style="font-size:13px; font-weight:900; margin-bottom:8px; color:#081a43;">
-                {{ "Contenido del QR" if is_spanish else "QR Payload" }}
-            </div>
-
-            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-                <div id="accessQrPayloadText" style="
-                    flex:1;
-                    background:#fff;
-                    border:1px solid #dbe4f0;
-                    border-radius:10px;
-                    padding:10px;
-                    font-family:Consolas, monospace;
-                    font-size:12px;
-                    color:#0f172a;
-                    word-break:break-word;
-                ">
-                    {{ access_qr_payload if access_qr_payload else "--" }}
-                </div>
-
-                <button
-                    type="button"
-                    onclick="copyTextValue('accessQrPayloadText', this)"
-                    class="copy-btn"
-                >
-                    {{ "Copiar" if is_spanish else "Copy" }}
-                </button>
-            </div>
-        </div>
-
-        <div class="card">
-            <div style="font-size:13px; font-weight:900; margin-bottom:8px; color:#081a43;">
-                {{ "Código temporal para entrar" if is_spanish else "Temporary Access Code" }}
-            </div>
-
-            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-                <div id="accessQrIdCodeText" style="
-                    flex:1;
-                    background:#fff;
-                    border:1px solid #dbe4f0;
-                    border-radius:10px;
-                    padding:10px;
-                    font-family:Consolas, monospace;
-                    font-weight:900;
-                    color:#0f172a;
-                    word-break:break-word;
-                ">
-                    {{ access_qr_id_code if access_qr_id_code else "--" }}
-                </div>
-
-                <button
-                    type="button"
-                    onclick="copyTextValue('accessQrIdCodeText', this)"
-                    class="copy-btn"
-                >
-                    {{ "Copiar" if is_spanish else "Copy" }}
-                </button>
-            </div>
-        </div>
-
-        <div class="qr-actions">
-            {% if current_access_status and current_access_status.status == "checked_in" %}
-                <form method="POST" action="{{ url_for('student_views.access_control_check_out') }}">
-<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="qr-badge qr-checkout">{{ "Registrar Salida" if is_spanish else "Check Out" }}</button>
-                </form>
-            {% else %}
-                <form method="POST" action="{{ url_for('student_views.access_control_check_in') }}">
-<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="qr-badge qr-checkin">{{ "Registrar Entrada" if is_spanish else "Check In" }}</button>
-                </form>
-            {% endif %}
-        </div>
-
+        <a href="{{ url_for('student_views.access_control_page') }}"
+           style="display:inline-block;border-radius:11px;padding:12px 17px;background:#7c3aed;color:white;font-weight:800;text-decoration:none;">
+            {{ "Generar nuevo QR" if is_spanish else "Generate new QR" }}
+        </a>
     </div>
 
-    <div class="info-card">
-        <div class="card">
-            <h3 style="margin-top:0; color:#081a43;">{{ "Estado Actual" if is_spanish else "Current Status" }}</h3>
-
-            <div style="display:grid; grid-template-columns:180px 1fr; gap:12px 14px;">
-
-                <div style="font-weight:800;">{{ "Estudiante:" if is_spanish else "Student:" }}</div>
-                <div>{{ student_name if student_name else "--" }}</div>
-
-                <div style="font-weight:800;">{{ "Usuario:" if is_spanish else "Username:" }}</div>
-                <div>{{ current_user.username if current_user.username else "--" }}</div>
-
-                <div style="font-weight:800;">{{ "Estado:" if is_spanish else "Status:" }}</div>
-                <div>
-                    {% if current_access_status and current_access_status.status == "checked_in" %}
-                        <span class="status-badge status-green">{{ "Dentro del Campus" if is_spanish else "Inside Campus" }}</span>
-                    {% else %}
-                        <span class="status-badge status-red">{{ "Fuera del Campus" if is_spanish else "Outside Campus" }}</span>
-                    {% endif %}
-                </div>
-
-                <div style="font-weight:800;">{{ "Última Entrada:" if is_spanish else "Last Check-In:" }}</div>
-                <div>{{ current_access_status.last_check_in if current_access_status and current_access_status.last_check_in else "--" }}</div>
-
-                <div style="font-weight:800;">{{ "Última Salida:" if is_spanish else "Last Check-Out:" }}</div>
-                <div>{{ current_access_status.last_check_out if current_access_status and current_access_status.last_check_out else "--" }}</div>
-
-                <div style="font-weight:800;">{{ "Horas de Hoy:" if is_spanish else "Hours Today:" }}</div>
-                <div>{{ current_access_status.hours_today if current_access_status and current_access_status.hours_today else "--" }}</div>
-
+    <div style="display:flex;align-items:center;gap:25px;flex-wrap:wrap;margin-top:18px;">
+        {% if access_qr_image %}
+        <img src="{{ access_qr_image }}"
+             alt="{{ 'Mi QR personal de acceso' if is_spanish else 'My personal access QR' }}"
+             style="width:230px;height:230px;max-width:100%;object-fit:contain;
+                    padding:9px;border:1px solid #dbe4f0;border-radius:16px;background:white;">
+        {% else %}
+        <p>{{ "No se pudo generar la imagen QR." if is_spanish else "QR image unavailable." }}</p>
+        {% endif %}
+        <div style="flex:1;min-width:210px;">
+            <div style="font-size:14px;font-weight:900;color:#081a43;margin-bottom:8px;">
+                {{ student_name if student_name else current_user.username }}
             </div>
+            <div style="font-size:13px;color:#475569;font-weight:700;margin-bottom:7px;">
+                {{ "Mi código temporal EST" if is_spanish else "My EST temporary code" }}
+            </div>
+            <div id="accessQrIdCodeText" style="background:#ffffff;border:1px solid #dbe4f0;
+                    border-radius:11px;padding:13px;font:800 17px Consolas,monospace;
+                    letter-spacing:0.04em;overflow-wrap:anywhere;">
+                {{ access_qr_id_code if access_qr_id_code else "--" }}
+            </div>
+            <button type="button" class="copy-btn" style="margin-top:11px;"
+                onclick="copyTextValue('accessQrIdCodeText', this)">
+                {{ "Copiar código" if is_spanish else "Copy code" }}
+            </button>
+            <p style="color:#475569;font-size:13px;line-height:1.6;margin:14px 0 0;">
+                {{ "Tu QR y código temporal duran 5 minutos y se usan una sola vez. Si caducan o ya los utilizaste, genera otros. El código se puede dictar al encargado si la cámara no funciona." if is_spanish else "Your QR and temporary code last five minutes and work once. Generate a new pair when expired or used. You can provide the code to an operator if the camera is unavailable." }}
+            </p>
         </div>
     </div>
+</section>
 
-</div>
+<section class="summary-card" aria-labelledby="studentCurrentStatus">
+    <h2 id="studentCurrentStatus" style="color:#081a43;margin:0 0 12px;font-size:21px;">
+        {{ "Mi estado de acceso" if is_spanish else "My Access Status" }}
+    </h2>
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+        {% if current_access_status and current_access_status.status == "checked_in" %}
+        <span class="status-badge status-green">{{ "Dentro del campus" if is_spanish else "Inside campus" }}</span>
+        {% else %}
+        <span class="status-badge status-red">{{ "Fuera del campus" if is_spanish else "Outside campus" }}</span>
+        {% endif %}
+        <span style="color:#475569;font-size:13px;">
+            {{ "Tu entrada o salida se registra cuando personal autorizado verifica tu QR o código temporal." if is_spanish else "Your entry or exit is recorded when authorized staff verify your QR or temporary code." }}
+        </span>
+    </div>
+    <div class="summary-grid" style="margin-top:16px;">
+        <div class="summary-box"><div class="summary-label">{{ "Última entrada" if is_spanish else "Last check-in" }}</div><div class="summary-value">{{ current_access_status.last_check_in if current_access_status and current_access_status.last_check_in else "--" }}</div></div>
+        <div class="summary-box"><div class="summary-label">{{ "Última salida" if is_spanish else "Last check-out" }}</div><div class="summary-value">{{ current_access_status.last_check_out if current_access_status and current_access_status.last_check_out else "--" }}</div></div>
+        <div class="summary-box"><div class="summary-label">{{ "Horas de hoy" if is_spanish else "Hours today" }}</div><div class="summary-value">{{ current_access_status.hours_today if current_access_status and current_access_status.hours_today else "--" }}</div></div>
+    </div>
+</section>
 
 <div class="history-card">
     <div class="history-header">
