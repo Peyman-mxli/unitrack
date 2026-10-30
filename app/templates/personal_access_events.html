@@ -1,0 +1,91 @@
+{# Shared personal access-history module: identical layout/behavior for student,
+   teacher and staff. Unlike the admin's global list, only own records appear. #}
+{% set access_es = current_language == "es" %}
+<style>
+.access-events-card{background:#f4f7ff;border:1px solid #dbe4f0;border-radius:18px;padding:20px;margin:18px 0 24px;color:#152948;min-width:0}
+.access-events-heading{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+.access-events-heading h2{margin:0 0 5px;font-size:21px;font-weight:850;color:#081a43}
+.access-events-heading p{margin:0;font-size:13px;color:#475569}
+.access-events-pill{display:inline-block;border:1px solid #dbe4f0;background:#fff;border-radius:30px;padding:9px 13px;font-size:13px;font-weight:800}
+.access-events-filter{display:flex;align-items:end;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.access-events-filter label{display:flex;flex-direction:column;gap:7px;font-size:13px;font-weight:800;color:#334155}
+.access-events-filter input{background:#fff;border:1px solid #cbd5e1;border-radius:11px;padding:11px 13px;font-size:14px;min-height:44px;box-sizing:border-box}
+.access-events-button{background:linear-gradient(100deg,#7c3aed,#36b6ea);border:0;color:#fff;border-radius:10px;font-weight:800;min-height:44px;padding:11px 18px;cursor:pointer}
+.access-events-reset{color:#5146b5;font-size:13px;font-weight:750;padding:11px}
+.access-events-totals{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.access-events-total{background:#fff;border:1px solid #dbe4f0;border-radius:12px;padding:12px 18px;flex:1 1 145px;min-width:0}
+.access-events-total span{display:block;font-size:12px;font-weight:750;color:#475569}
+.access-events-total strong{display:block;margin-top:4px;font-size:25px;color:#1e293b}
+.access-events-total.entry strong{color:#166534}.access-events-total.exit strong{color:#b91c1c}
+.access-events-table-wrap{overflow-x:auto;background:#fff;border:1px solid #dbe4f0;border-radius:13px}
+.access-events-table{border-collapse:collapse;width:100%;font-size:13px}
+.access-events-table th{background:#eaf0ff;text-align:left;font-weight:850;color:#0f2346;padding:12px 13px;white-space:nowrap}
+.access-events-table td{border-top:1px solid #e2e8f0;padding:12px 13px;white-space:nowrap;color:#1e293b}
+.access-events-tag{display:inline-block;border-radius:22px;padding:5px 9px;font-size:12px;font-weight:800}
+.access-events-tag.in{background:#dcfce7;color:#166534;border:1px solid #86efac}
+.access-events-tag.out{background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5}
+.access-events-empty{padding:20px;text-align:center;color:#64748b;background:#fff;border:1px solid #dbe4f0;border-radius:12px}
+@media(max-width:600px){.access-events-card{padding:15px}.access-events-filter input{max-width:100%}}
+</style>
+<section class="access-events-card" data-live-campus-history aria-labelledby="personalAccessHistoryTitle">
+  <div class="access-events-heading">
+    <div>
+      <h2 id="personalAccessHistoryTitle">{{ "Historial de acceso al campus" if access_es else "Campus Access History" }}</h2>
+      <p>{{ "Cada entrada y salida se muestra por separado, con su propia hora." if access_es else "Every entry and exit appears separately with its own timestamp." }}</p>
+    </div>
+    <div class="access-events-pill history-count" data-access-total-label>{{ access_event_counts.total }} {{ "movimientos" if access_es else "events" }}</div>
+  </div>
+  <form method="GET" action="{{ history_page_url }}" class="access-events-filter">
+    <label>{{ "Fecha" if access_es else "Date" }}
+      <input type="text" name="date" placeholder="MM/DD/YYYY" value="{{ selected_date or '' }}" inputmode="numeric" aria-label="{{ 'Filtrar por fecha' if access_es else 'Filter by date' }}">
+    </label>
+    <button class="access-events-button" type="submit">{{ "Buscar" if access_es else "Search" }}</button>
+    <a class="access-events-reset" href="{{ history_page_url }}">{{ "Restablecer" if access_es else "Reset" }}</a>
+  </form>
+  {% if date_filter_error %}<p role="alert" style="color:#b91c1c;font-weight:700;">{{ date_filter_error }}</p>{% endif %}
+  <div class="access-events-totals">
+    <div class="access-events-total entry">
+      <span>{{ "Entradas registradas" if access_es else "Recorded entries" }}</span>
+      <strong data-access-count-in>{{ access_event_counts.check_ins }}</strong>
+    </div>
+    <div class="access-events-total exit">
+      <span>{{ "Salidas registradas" if access_es else "Recorded exits" }}</span>
+      <strong data-access-count-out>{{ access_event_counts.check_outs }}</strong>
+    </div>
+    <div class="access-events-total">
+      <span>{{ "Total de movimientos" if access_es else "Total events" }}</span>
+      <strong data-access-count-total>{{ access_event_counts.total }}</strong>
+    </div>
+  </div>
+  <div class="access-events-table-wrap" data-access-table-wrap {% if not access_events %}hidden{% endif %}>
+    <table class="access-events-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>{{ "Usuario" if access_es else "User" }}</th>
+          <th>{{ "ID / Usuario" if access_es else "ID / Username" }}</th>
+          <th>{{ "Fecha" if access_es else "Date" }}</th>
+          <th>{{ "Hora" if access_es else "Time" }}</th>
+          <th>{{ "Movimiento" if access_es else "Action" }}</th>
+          <th>{{ "Duración" if access_es else "Duration" }}</th>
+          <th>{{ "Estado después del evento" if access_es else "Status after event" }}</th>
+        </tr>
+      </thead>
+      <tbody data-access-event-rows>
+      {% for record in access_events %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>{{ record.name }}</td>
+          <td>{{ record.user_id_code }}</td>
+          <td>{{ record.date }}</td>
+          <td>{{ record.time }}</td>
+          <td>{% if record.action == "check_in" %}<span class="access-events-tag in">{{ "Entrada" if access_es else "Check-in" }}</span>{% else %}<span class="access-events-tag out">{{ "Salida" if access_es else "Check-out" }}</span>{% endif %}</td>
+          <td>{{ record.duration }}</td>
+          <td>{% if record.status == "checked_in" %}<span class="access-events-tag in">{{ "Dentro del campus" if access_es else "Inside campus" }}</span>{% else %}<span class="access-events-tag out">{{ "Fuera del campus" if access_es else "Outside campus" }}</span>{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="access-events-empty" data-access-empty {% if access_events %}hidden{% endif %}>{{ "Aún no hay movimientos de acceso." if access_es else "No access events recorded yet." }}</div>
+</section>
