@@ -440,6 +440,60 @@ def get_user_access_logs(user_id, access_date=None):
     return db.session.execute(query).scalars().all()
 
 
+
+def build_personal_access_events(user, selected_date=None):
+    """Separate, timestamped QR entry and exit events for the signed-in user.
+
+    Never merge actions into one history row. Existing AccessLog pairs remain
+    unchanged for duration calculation; history is a read-only projection.
+    The optional date filters EACH action's timestamp (including an exit
+    occurring after midnight), not only the entry date.
+    """
+    logs = get_user_access_logs(user.id)
+    events = []
+    for log in logs:
+        shared = {
+            "name": build_access_display_name(user),
+            "username": user.username or "--",
+            "user_id_code": user.user_id_code or user.username or "--",
+            "access_log_id": log.id,
+        }
+        if log.check_in_time and (selected_date is None or log.check_in_time.date() == selected_date):
+            events.append({
+                **shared,
+                "action": "check_in",
+                "date": format_date_for_display(log.check_in_time.date()),
+                "time": format_time_for_display(log.check_in_time),
+                "duration": "--",
+                "status": "checked_in",
+                "_timestamp": log.check_in_time,
+            })
+        if log.check_out_time and (selected_date is None or log.check_out_time.date() == selected_date):
+            events.append({
+                **shared,
+                "action": "check_out",
+                "date": format_date_for_display(log.check_out_time.date()),
+                "time": format_time_for_display(log.check_out_time),
+                "duration": calculate_hours_text(log.check_in_time, log.check_out_time),
+                "status": "checked_out",
+                "_timestamp": log.check_out_time,
+            })
+    events.sort(
+        key=lambda event: (event["_timestamp"], event["access_log_id"], event["action"] == "check_out"),
+        reverse=True,
+    )
+    for event in events:
+        event.pop("_timestamp")
+    return events
+
+
+def count_personal_access_events(events):
+    """Counters reflect individual entry/exit actions, not visit pairs."""
+    entries = sum(event["action"] == "check_in" for event in events)
+    exits = sum(event["action"] == "check_out" for event in events)
+    return {"check_ins": entries, "check_outs": exits, "total": entries + exits}
+
+
 def get_student_access_logs(student_id, access_date=None):
     return get_user_access_logs(student_id, access_date)
 
