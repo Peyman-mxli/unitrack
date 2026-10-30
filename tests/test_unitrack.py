@@ -61,13 +61,18 @@ class UniTrackTests(unittest.TestCase):
         self.assertIn(b'id="caracteristicas"', landing.data)
         self.assertIn("Proyecto independiente".encode("utf-8"), landing.data)
 
-        # Zoom-safe header and responsive hero sizes remain part of landing CSS.
-        self.assertIn(b"min-height:96px", landing.data)
-        self.assertIn(b"font-size:14px;font-weight:800;color:#fff", landing.data)
-        self.assertIn(b"min-height:720px", landing.data)
-        self.assertIn(b"@media(max-width:1550px)", landing.data)
-        self.assertIn(b"@media(max-width:1050px)", landing.data)
+        # ProTrack-style header is a single aligned grid on wide screens,
+        # switching to a dropdown menu BEFORE buttons collide on smaller ones.
+        self.assertIn(b"background:#fff;color:#162641", landing.data)
+        self.assertIn(b"grid-template-columns:minmax(255px,1fr) auto minmax(380px,1fr)", landing.data)
+        self.assertIn(b'class="brand-title">Uni', landing.data)
+        self.assertIn(b'class="nav-links" id="mainNav"', landing.data)
+        self.assertIn(b"justify-content:flex-end;gap:9px", landing.data)
+        self.assertIn(b"min-height:690px", landing.data)
+        self.assertIn(b"@media(max-width:1510px)", landing.data)
+        self.assertIn(b"@media(max-width:920px)", landing.data)
         self.assertIn(b"@media(max-width:760px)", landing.data)
+        self.assertIn(b"@media(max-width:650px)", landing.data)
         self.assertIn(b"@media(max-width:430px)", landing.data)
         self.assertIn(b"top:100%;left:0;right:0", landing.data)
         # Both header auth buttons use the same visual class, but retain
