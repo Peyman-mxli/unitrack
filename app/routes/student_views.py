@@ -1057,10 +1057,10 @@ def process_access_scan_qr_text(qr_text):
                 raise ValueError("QR does not match the active campus entry.")
             # Avoid a rapid duplicate camera submission immediately undoing
             # a successful entry (the user must deliberately present it again).
-            if (datetime.utcnow() - pair.checked_in_at).total_seconds() < 8:
+            if (datetime.utcnow() - pair.checked_in_at).total_seconds() < 2:
                 return {
                     "success": False,
-                    "message": "Entrada registrada. Espera unos segundos para marcar la salida.",
+                    "message": "Entrada registrada. Vuelve a presentar el QR para marcar la salida.",
                     "processed_at": _server_now_iso(),
                 }, 409
             stamp = datetime.utcnow()
