@@ -683,6 +683,17 @@ def create_app():
             app.logger.exception("University notice read failed")
             return []
 
+    def _get_unread_university_notice_count():
+        """A private per-user sidebar badge (never counts other roles' notices)."""
+        if not current_user.is_authenticated:
+            return 0
+        try:
+            from .services.university_notice_service import unread_notice_count
+            return unread_notice_count(current_user)
+        except Exception:
+            app.logger.exception("University notice count failed")
+            return 0
+
     @app.context_processor
     def inject_global_translations():
         return {
@@ -691,6 +702,7 @@ def create_app():
             "csrf_token": csrf_token,
             "current_language": get_current_language(),
             "global_notices": _get_visible_university_notices(),
+            "notice_unread_count": _get_unread_university_notice_count(),
         }
 
     # ✅ REGISTER BLUEPRINTS
@@ -712,6 +724,7 @@ def create_app():
         from .models.validation_revocation_model import ValidationCodeRevocation
         from .models.user_presence_model import UserPresence
         from .models.university_notice_model import UniversityNotice
+        from .models.university_notice_read_model import UniversityNoticeRead
         from .models.auth_attempt_model import AuthAttempt
 
         db.create_all()
@@ -841,6 +854,54 @@ def create_app():
             "username": current_user.username,
             "user_id_code": current_user.user_id_code or "—",
         })
+
+    @app.route("/avisos", methods=["GET"])
+    @login_required
+    def notice_inbox():
+        """Role-scoped notification inbox with persistent read state."""
+        from .services.university_notice_service import (
+            can_access_inbox, inbox_page, unread_notice_count
+        )
+        if not can_access_inbox(current_user):
+            abort(403)
+        base = {
+            "estudiante": "student_base.html",
+            "docente": "professor_base.html",
+            "personal": "personal_base.html",
+        }[current_user.role]
+        page = request.args.get("page", 1, type=int) or 1
+        pagination, read_ids = inbox_page(current_user, page=max(1, page))
+        return render_template(
+            "university_notice_inbox.html",
+            inbox_base=base, active_page="avisos",
+            notice_page=pagination, read_notice_ids=read_ids,
+            notice_unread_count=unread_notice_count(current_user),
+        )
+
+    @app.route("/avisos/<int:notice_id>/leer", methods=["POST"])
+    @login_required
+    def mark_university_notice_read(notice_id):
+        """An authenticated recipient can mark only their own notice as read."""
+        from .services.university_notice_service import (
+            can_access_inbox, mark_notice_read
+        )
+        if not can_access_inbox(current_user):
+            abort(403)
+        if not mark_notice_read(current_user, notice_id):
+            abort(404)
+        page = max(1, request.form.get("page", 1, type=int) or 1)
+        return redirect(url_for("notice_inbox", page=page))
+
+    @app.route("/avisos/leer-todos", methods=["POST"])
+    @login_required
+    def mark_all_university_notices_read():
+        from .services.university_notice_service import (
+            can_access_inbox, mark_all_notices_read
+        )
+        if not can_access_inbox(current_user):
+            abort(403)
+        mark_all_notices_read(current_user)
+        return redirect(url_for("notice_inbox"))
 
     # ✅ ROOT → LOGIN PAGE
     @app.route("/")
