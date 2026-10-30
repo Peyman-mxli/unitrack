@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="{{ landing_lang }}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="{{ 'UniTrack: plataforma de gestión académica, asistencia, control de acceso QR y comunicación para la comunidad UPBC. Proyecto independiente de Peyman Miyandashti.' if es else 'UniTrack: academic management, attendance, QR access and campus communication. An independent project by Peyman Miyandashti.' }}">
+<title>UniTrack | {{ 'Gestión académica en un solo lugar' if es else 'Campus management in one place' }}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#101c38;--muted:#596780;--purple:#7c3aed;--blue:#2777ff;--maroon:#7b001c;--line:#e2e9f5;--pale:#f7f9fe}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:95px}
+body{margin:0;background:#fff;color:var(--ink);font:15px/1.6 "DM Sans",Arial,sans-serif}
+a{color:inherit}
+button,select{font:inherit}
+button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid #ffd86f;outline-offset:3px}
+img{max-width:100%}
+.container{width:min(1270px,calc(100% - 48px));margin:auto}
+.eyebrow{color:var(--purple);letter-spacing:.14em;text-transform:uppercase;font-size:11px;font-weight:900}
+.site-header{background:linear-gradient(90deg,#740018,#8a0021 55%,#5f0017);color:#fff;box-shadow:0 9px 28px rgba(49,3,24,.13);position:sticky;top:0;z-index:30}
+.header-inner{width:min(1440px,calc(100% - 44px));margin:auto;min-height:84px;display:flex;align-items:center;justify-content:space-between;gap:20px}
+.brand{display:flex;gap:11px;align-items:center;text-decoration:none;flex-shrink:0}
+.brand img{width:40px;height:47px;object-fit:contain}
+.brand-divider{height:30px;width:1px;background:#ffffff5b}
+.brand-upbc{font:900 31px/1 "Outfit",Arial,sans-serif;letter-spacing:-.02em}
+.brand-sub{font-size:10px;font-weight:700;opacity:.9;line-height:1.2;max-width:194px}
+.nav-links{display:flex;align-items:center;gap:19px}
+.nav-links a{text-decoration:none;font-size:12.5px;font-weight:800;color:#fff;white-space:nowrap;opacity:.87;transition:opacity .2s}
+.nav-links a:hover,.nav-links a:focus-visible{opacity:1}
+.header-actions{display:flex;align-items:center;gap:9px}
+.lang-form select{background:#fff;color:#650013;border:1px solid #ffffff8f;border-radius:12px;padding:11px 11px;font-size:12px;font-weight:800;cursor:pointer;max-width:135px}
+.button{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:45px;padding:11px 18px;border:1px solid transparent;border-radius:12px;cursor:pointer;font-weight:850;font-size:13px;text-decoration:none;transition:transform .2s,box-shadow .2s,background .2s}
+.button:hover{transform:translateY(-2px)}
+.button-white{background:#fff;color:#7b001c}
+.button-ghost{color:#fff;border-color:#ffffff8b;background:#ffffff16}
+.button-main{background:linear-gradient(100deg,#8f50ff,#6b38f4 56%,#416af4);color:white;box-shadow:0 11px 30px #4314ad55}
+.button-outline{color:#fff;border-color:#ffffffad;background:#ffffff13}
+.menu-button{display:none;border:1px solid #ffffff88;border-radius:11px;background:transparent;color:#fff;font-size:22px;min-width:42px;min-height:42px}
+.hero{position:relative;isolation:isolate;overflow:hidden;min-height:650px;background:linear-gradient(105deg,#172450,#3d438d,#4f3c87)}
+.hero-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 42%;filter:saturate(1.18) contrast(1.055) brightness(1.06);z-index:-2}
+.hero::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(94deg,rgba(18,14,57,.94) 0%,rgba(29,17,81,.85) 25%,rgba(27,23,79,.61) 48%,rgba(14,25,55,.25) 71%,rgba(7,25,55,.16) 100%),linear-gradient(0deg,#140d3d42,transparent 58%)}
+.hero-content{min-height:650px;display:flex;align-items:center;justify-content:space-between;gap:38px;padding-block:78px 92px}
+.hero-copy{width:min(680px,65%);color:white}
+.hero-kicker{display:inline-flex;align-items:center;gap:9px;border:1px solid #e2d7ff7a;background:#ffffff1b;backdrop-filter:blur(10px);padding:7px 13px;border-radius:100px;color:#f1eaff;font-size:12px;font-weight:800}
+.hero-kicker .spark{height:7px;width:7px;border-radius:50%;background:#a7fb9d;box-shadow:0 0 13px #a7fb9d}
+.hero-heading{margin:22px 0 13px;display:flex;align-items:center;gap:18px}
+.hero-icon{width:98px;height:113px;object-fit:contain;filter:drop-shadow(0 15px 20px #14053f88)}
+.hero-heading h1{margin:0;font:900 clamp(60px,7.7vw,106px)/.94 "Outfit",Arial,sans-serif;letter-spacing:-.055em;color:#fff}
+.hero-heading h1 span{color:#bd91ff}
+.hero-subtitle{font:700 clamp(19px,2.2vw,28px)/1.25 "Outfit",Arial,sans-serif;letter-spacing:-.015em;color:#f3ecff;margin:0 0 19px}
+.hero-text{font-size:16px;color:#f0edff;max-width:590px;line-height:1.85;margin:0}
+.hero-ctas{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:26px}
+.hero-ctas .button{font-size:15px;padding:13px 23px;min-height:53px}
+.hero-note{font-size:12px;color:#dfd6ff;opacity:.91;margin-top:19px}
+.role-panel{width:288px;flex-shrink:0;background:rgba(18,22,47,.69);border:1px solid #ffffff47;box-shadow:0 20px 65px #11122c54;backdrop-filter:blur(16px);border-radius:21px;padding:20px;color:white}
+.role-panel-label{font-weight:850;font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:#d5cbff;margin:0 0 13px}
+.role-item{display:flex;gap:13px;align-items:center;padding:10px 2px}
+.role-item+.role-item{border-top:1px solid #ffffff23}
+.role-icon{display:grid;place-items:center;background:#ffffff20;border:1px solid #ffffff30;border-radius:12px;height:44px;width:44px;flex-shrink:0;font-size:21px}
+.role-item strong{display:block;font-size:14px;font-weight:850}
+.role-item small{display:block;color:#d5d8e8;font-size:11px;line-height:1.45}
+.features-rail{position:relative;margin-top:-44px;z-index:3}
+.features-rail-inner{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:13px}
+.mini-feature{display:flex;align-items:flex-start;gap:11px;min-height:112px;padding:19px 16px;border-radius:17px;background:#fff;box-shadow:0 8px 30px #293b621c;border:1px solid #eff1fc}
+.mini-icon{width:43px;height:43px;display:grid;place-items:center;border-radius:13px;font-size:22px;flex-shrink:0}
+.blue{background:#e4efff;color:#1a68d9}.mint{background:#def9ed;color:#14764e}.violet{background:#efe5ff;color:#7531dd}.orange{background:#ffefd8;color:#ba6515}.pink{background:#ffe7ef;color:#d52d65}
+.mini-feature h3{margin:0 0 5px;font-size:13px;line-height:1.3;font-weight:900}
+.mini-feature p{margin:0;color:#657087;font-size:11px;line-height:1.55}
+.section{padding:100px 0}
+.section-pale{background:var(--pale)}
+.section-heading{max-width:740px;margin-bottom:34px}
+.section-heading.centered{text-align:center;margin-inline:auto}
+.section-heading h2{font:900 clamp(29px,4vw,48px)/1.13 "Outfit",Arial,sans-serif;letter-spacing:-.035em;margin:11px 0 12px;color:#101b38}
+.section-heading p{color:#62708b;font-size:16px;margin:0}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:17px}
+.step{background:#fff;border:1px solid var(--line);border-radius:20px;padding:27px;box-shadow:0 8px 28px #293b620e}
+.step-number{width:42px;height:42px;border-radius:14px;background:linear-gradient(135deg,#7640f7,#336df5);display:grid;place-items:center;color:#fff;font-weight:900}
+.step h3{font-size:17px;margin:17px 0 8px;letter-spacing:-.02em}
+.step p{font-size:13px;color:#63708a;margin:0}
+.step-line{display:block;height:3px;width:51px;background:linear-gradient(90deg,#8245ff,#70c1fa);border-radius:4px;margin:0 0 15px}
+.benefits{display:grid;grid-template-columns:1.04fr .96fr;gap:45px;align-items:center}
+.benefit-visual{background:linear-gradient(155deg,#252156,#4b34a5 80%,#8a62ee);border-radius:28px;min-height:385px;padding:38px;color:white;position:relative;overflow:hidden}
+.benefit-visual::after{content:"";position:absolute;right:-100px;bottom:-125px;height:320px;width:320px;background:#ffffff13;border:1px solid #ffffff46;border-radius:50%}
+.benefit-visual img{width:90px;height:90px;object-fit:contain;filter:drop-shadow(0 6px 16px #11094366)}
+.benefit-visual h3{font:900 31px/1.15 "Outfit",Arial,sans-serif;max-width:350px;margin:16px 0 13px}
+.benefit-visual p{max-width:380px;color:#e4dbff}
+.benefit-chips{display:flex;flex-wrap:wrap;gap:9px;margin-top:25px}
+.benefit-chips span{border:1px solid #ffffff55;background:#ffffff1d;padding:8px 11px;border-radius:30px;font-size:12px;font-weight:800}
+.benefit-list{display:grid;gap:19px}
+.benefit-line{display:flex;gap:14px;align-items:flex-start}
+.benefit-check{background:#e9e0ff;color:#5a2bcf;border-radius:12px;width:38px;height:38px;display:grid;place-items:center;font-weight:900;flex-shrink:0}
+.benefit-line strong{display:block;font-size:15px}
+.benefit-line p{font-size:13px;color:#65718b;margin:3px 0 0}
+.projects{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.project{border-radius:23px;padding:29px;min-width:0;box-shadow:0 8px 25px #2437540a;border:1px solid #e9defe;background:linear-gradient(125deg,#fcf9ff,#f4efff)}
+.project.protrack{border-color:#dceaff;background:linear-gradient(125deg,#fbfdff,#edf6ff)}
+.project-head{display:flex;align-items:center;gap:20px;min-height:118px}
+.project-head .unilogo{height:106px;width:97px;object-fit:contain;filter:drop-shadow(0 7px 8px #b5a1e7a6)}
+.project-head .prologo{height:auto;width:min(100%,340px);max-height:107px;object-fit:contain;object-position:left center}
+.project h3{font:900 26px "Outfit",Arial,sans-serif;margin:0}
+.project small{color:#625d7d;font-weight:800}
+.project p{color:#59667d;font-size:14px;line-height:1.76;min-height:84px;margin:13px 0 20px}
+.project a{color:#662ee4;font-weight:900;font-size:13px;text-decoration:none;display:inline-flex;gap:8px}
+.project.protrack a{color:#1a6be3}
+.project a:hover{text-decoration:underline}
+.project-owner{text-align:center;color:#58677f;font-size:13px;margin:22px 0 0}
+.contact-strip{background:linear-gradient(115deg,#1c224f,#432a8e 78%,#653ab6);color:#fff;border-radius:25px;padding:40px;display:flex;justify-content:space-between;align-items:center;gap:30px}
+.contact-strip h2{margin:0 0 7px;font:900 29px/1.2 "Outfit",Arial,sans-serif}
+.contact-strip p{color:#e5defb;margin:0}
+.site-footer{background:#690018;color:white;padding:35px 0 20px}
+.footer-row{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:30px}
+.footer-row strong{font-size:14px}
+.footer-row p,.footer-row a{font-size:12px;color:#f4dfe5;line-height:1.85;text-decoration:none}
+.footer-row a:hover{text-decoration:underline}
+.footer-bottom{border-top:1px solid #ffffff36;padding-top:15px;margin-top:23px;font-size:11px;color:#ebcbd7;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+@media(max-width:1150px){.nav-links{gap:11px}.nav-links a{font-size:11px}.brand-sub{display:none}.features-rail-inner{grid-template-columns:repeat(3,1fr)}.header-actions .button{padding:10px}.role-panel{width:254px}}
+@media(max-width:950px){.menu-button{display:grid;place-items:center}.nav-links{display:none;position:absolute;top:84px;left:0;right:0;padding:20px 25px;background:#73001b;flex-direction:column;align-items:stretch;gap:0;box-shadow:0 17px 22px #29011620}.nav-links.open{display:flex}.nav-links a{padding:11px 6px;font-size:14px}.header-inner{flex-wrap:wrap}.role-panel{display:none}.hero-copy{width:min(700px,100%)}.features-rail-inner{grid-template-columns:repeat(2,1fr)}.steps{grid-template-columns:repeat(2,1fr)}.benefits{grid-template-columns:1fr}.header-actions .button-ghost{display:none}}
+@media(max-width:680px){.container{width:min(100% - 32px,1270px)}.header-inner{width:calc(100% - 26px);gap:10px;min-height:73px}.brand img{width:31px;height:39px}.brand-upbc{font-size:23px}.brand-divider{height:24px}.lang-form select{max-width:112px;padding:8px;font-size:11px}.header-actions{margin-left:auto}.header-actions .button-white{display:none}.nav-links{top:73px}.hero{min-height:560px}.hero-content{min-height:560px;padding-block:56px 95px}.hero-heading{gap:11px}.hero-icon{width:70px;height:83px}.hero-heading h1{font-size:clamp(50px,12vw,79px)}.hero-subtitle{font-size:20px}.hero-text{font-size:14px}.hero-ctas .button{min-height:49px;padding:11px 15px;font-size:13px}.features-rail-inner{grid-template-columns:1fr 1fr;gap:9px}.mini-feature{padding:13px;min-height:110px}.mini-icon{display:none}.mini-feature h3{font-size:12px}.section{padding:69px 0}.steps,.projects{grid-template-columns:1fr}.project{padding:23px}.contact-strip{padding:27px;display:block}.contact-strip .button{margin-top:20px}.footer-row{grid-template-columns:1fr;gap:12px}.hero-photo{object-position:56% center}}
+@media(max-width:380px){.header-actions .lang-form{display:none}.features-rail-inner{grid-template-columns:1fr 1fr}.hero-heading h1{font-size:49px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{transition:none!important}}
+</style>
+</head>
+<body>
+<header class="site-header" id="inicio">
+  <div class="header-inner">
+    <a class="brand" href="#inicio" aria-label="UPBC · UniTrack">
+      <img src="{{ url_for('static', filename='img/unitrack_logo.png') }}" alt="UniTrack">
+      <span class="brand-divider" aria-hidden="true"></span>
+      <strong class="brand-upbc">UPBC</strong>
+      <span class="brand-sub">{{ "Universidad Politécnica de Baja California" if es else "Polytechnic University of Baja California" }}</span>
+    </a>
+    <nav class="nav-links" id="mainNav" aria-label="{{ 'Navegación principal' if es else 'Main navigation' }}">
+      <a href="#inicio">{{ "Inicio" if es else "Home" }}</a>
+      <a href="#como-funciona">{{ "¿Cómo funciona?" if es else "How it works" }}</a>
+      <a href="#caracteristicas">{{ "Características" if es else "Features" }}</a>
+      <a href="#beneficios">{{ "Beneficios" if es else "Benefits" }}</a>
+      <a href="#proyectos">{{ "Mis proyectos" if es else "My projects" }}</a>
+      <a href="#contacto">{{ "Contacto" if es else "Contact" }}</a>
+    </nav>
+    <div class="header-actions">
+      <form class="lang-form" action="{{ url_for('home') }}" method="GET">
+        <label for="landingLanguage" class="visually-hidden" style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)">{{ "Idioma" if es else "Language" }}</label>
+        <select name="lang" id="landingLanguage" onchange="this.form.submit()">
+          <option value="es" {% if es %}selected{% endif %}>🌐 Español</option>
+          <option value="en" {% if not es %}selected{% endif %}>🌐 English</option>
+        </select>
+      </form>
+      <a class="button button-white" href="{{ url_for('auth.login_page') }}">{{ "Iniciar sesión" if es else "Sign in" }}</a>
+      <a class="button button-ghost" href="{{ url_for('auth.register_page') }}">{{ "Crear cuenta" if es else "Sign up" }}</a>
+      <button class="menu-button" id="navToggle" type="button" aria-controls="mainNav" aria-expanded="false" aria-label="{{ 'Abrir menú' if es else 'Open menu' }}">☰</button>
+    </div>
+  </div>
+</header>
+
+<main>
+<section class="hero" aria-label="{{ 'Bienvenido a UniTrack' if es else 'Welcome to UniTrack' }}">
+  <img class="hero-photo"
+       src="{{ url_for('static', filename='img/upbc-campus-enhanced.jpg') }}"
+       data-fallback="https://www.elimparcial.com/resizer/v2/M7HPOPHKDNAM7BN7QSHL5XX52Q.jpg?auth=adf1e672c47ee6ddc0c59bdc16f3eef3270a337a50df093831d3295f0b265961&amp;height=630&amp;quality=70&amp;smart=true&amp;width=1200"
+       alt="{{ 'Fachada de la Universidad Politécnica de Baja California en Mexicali' if es else 'Polytechnic University of Baja California campus facade in Mexicali' }}"
+       onerror="if(!this.dataset.failed){this.dataset.failed='1';this.src=this.dataset.fallback;}else{this.onerror=null;this.src='https://universidadesgratuitas.com/storage/2020/03/Sede-de-la-Universidad-Politecnica-de-Baja-California-UPBC.jpg';}">
+  <div class="container hero-content">
+    <div class="hero-copy">
+      <span class="hero-kicker"><span class="spark"></span>{{ "Tecnología para la comunidad UPBC · Mexicali" if es else "Technology for UPBC community · Mexicali" }}</span>
+      <div class="hero-heading">
+        <img class="hero-icon" src="{{ url_for('static', filename='img/UPBCmark.png') }}" alt="">
+        <h1>Uni<span>Track</span></h1>
+      </div>
+      <p class="hero-subtitle">{{ "Tu vida universitaria, organizada en un solo lugar." if es else "Your university life, organized in one place." }}</p>
+      <p class="hero-text">{{ "Un proyecto de gestión académica que reúne acceso al campus con código QR, asistencia, clases y avisos para estudiantes, docentes y personal, con herramientas especiales de administración." if es else "An academic management project bringing together QR campus access, attendance, classes, and notices for students, teachers, and staff, alongside administration tools." }}</p>
+      <div class="hero-ctas">
+        <a class="button button-main" href="{{ url_for('auth.login_page') }}">↗ {{ "Iniciar sesión" if es else "Sign in" }}</a>
+        <a class="button button-outline" href="#como-funciona">▶ {{ "¿Cómo funciona?" if es else "How it works" }}</a>
+        <a class="button button-outline" href="{{ url_for('auth.register_page') }}">＋ {{ "Crear cuenta" if es else "Create account" }}</a>
+      </div>
+      <p class="hero-note">{{ "Desarrollado por Peyman Miyandashti · Proyecto independiente, no es el portal oficial de UPBC." if es else "Developed by Peyman Miyandashti · Independent project, not the official UPBC portal." }}</p>
+    </div>
+    <aside class="role-panel" aria-label="{{ 'Módulos por tipo de usuario' if es else 'Role modules' }}">
+      <p class="role-panel-label">{{ "Una plataforma, cuatro experiencias" if es else "One platform, four experiences" }}</p>
+      <div class="role-item"><span class="role-icon">🎓</span><div><strong>{{ "Estudiantes" if es else "Students" }}</strong><small>{{ "Su QR, asistencia y avisos" if es else "QR, attendance and notices" }}</small></div></div>
+      <div class="role-item"><span class="role-icon">👩‍🏫</span><div><strong>{{ "Docentes" if es else "Teachers" }}</strong><small>{{ "Clases, asistencia y acceso" if es else "Classes, attendance and access" }}</small></div></div>
+      <div class="role-item"><span class="role-icon">🧑‍💼</span><div><strong>{{ "Personal" if es else "Staff" }}</strong><small>{{ "Acceso al campus y comunicación" if es else "Campus access and communication" }}</small></div></div>
+      <div class="role-item"><span class="role-icon">🛡️</span><div><strong>{{ "Administradores" if es else "Administrators" }}</strong><small>{{ "Control, usuarios e informes" if es else "Management, users and reports" }}</small></div></div>
+    </aside>
+  </div>
+</section>
+
+<section class="features-rail container" id="caracteristicas" aria-label="{{ 'Características de UniTrack' if es else 'UniTrack features' }}">
+  <div class="features-rail-inner">
+    <div class="mini-feature"><span class="mini-icon blue">🎓</span><div><h3>{{ "Gestión académica" if es else "Academic management" }}</h3><p>{{ "Clases y seguimiento de actividades" if es else "Classes and activity tracking" }}</p></div></div>
+    <div class="mini-feature"><span class="mini-icon mint">▦</span><div><h3>{{ "Acceso con QR" if es else "QR campus access" }}</h3><p>{{ "Entradas y salidas registradas" if es else "Recorded check-ins and exits" }}</p></div></div>
+    <div class="mini-feature"><span class="mini-icon violet">🔔</span><div><h3>{{ "Avisos" if es else "Notices" }}</h3><p>{{ "Comunicación según el rol" if es else "Role-based announcements" }}</p></div></div>
+    <div class="mini-feature"><span class="mini-icon orange">▥</span><div><h3>{{ "Historial" if es else "History" }}</h3><p>{{ "Consulta de registros y asistencias" if es else "Access and attendance records" }}</p></div></div>
+    <div class="mini-feature"><span class="mini-icon pink">♢</span><div><h3>{{ "Seguridad" if es else "Security" }}</h3><p>{{ "Permisos por tipo de cuenta" if es else "Role-specific permissions" }}</p></div></div>
+  </div>
+</section>
+
+<section class="section section-pale" id="como-funciona">
+  <div class="container">
+    <div class="section-heading centered">
+      <span class="eyebrow">{{ "Simple y conectado" if es else "Simple and connected" }}</span>
+      <h2>{{ "¿Cómo funciona UniTrack?" if es else "How does UniTrack work?" }}</h2>
+      <p>{{ "La misma plataforma se adapta a cada miembro de la comunidad universitaria." if es else "The same platform adapts to each member of the campus community." }}</p>
+    </div>
+    <div class="steps">
+      <article class="step"><span class="step-number">01</span><h3>{{ "Crea tu cuenta" if es else "Create your account" }}</h3><span class="step-line"></span><p>{{ "Regístrate con la información requerida y completa la validación de tu rol." if es else "Register with the required information and validate your role." }}</p></article>
+      <article class="step"><span class="step-number">02</span><h3>{{ "Inicia sesión" if es else "Sign in" }}</h3><span class="step-line"></span><p>{{ "Usa tu correo o nombre de usuario y contraseña para abrir tu panel." if es else "Use your email or username and password to open your dashboard." }}</p></article>
+      <article class="step"><span class="step-number">03</span><h3>{{ "Utiliza tus herramientas" if es else "Use your tools" }}</h3><span class="step-line"></span><p>{{ "Consulta clases, muestra tu QR y revisa la asistencia o el historial de acceso según tu rol." if es else "Review classes, show your QR, and check attendance or access history for your role." }}</p></article>
+      <article class="step"><span class="step-number">04</span><h3>{{ "Mantente informado" if es else "Stay informed" }}</h3><span class="step-line"></span><p>{{ "Lee los avisos en tu bandeja y sigue tus registros de forma organizada." if es else "Read announcements in your inbox and keep your records organized." }}</p></article>
+    </div>
+    <div style="text-align:center;margin-top:30px"><a href="{{ url_for('auth.login_page') }}" class="button button-main">{{ "Ir a iniciar sesión" if es else "Go to sign in" }} →</a></div>
+  </div>
+</section>
+
+<section class="section" id="beneficios">
+  <div class="container benefits">
+    <div class="benefit-visual">
+      <img src="{{ url_for('static', filename='img/UPBCmark.png') }}" alt="">
+      <h3>{{ "Más organización para una comunidad conectada" if es else "More organized, more connected campus life" }}</h3>
+      <p>{{ "Menos pasos dispersos. Una experiencia sencilla para estudiantes, docentes, trabajadores y administración." if es else "Fewer disconnected tasks. One streamlined experience for students, faculty, staff, and administration." }}</p>
+      <div class="benefit-chips"><span>✓ QR</span><span>✓ {{ "Asistencia" if es else "Attendance" }}</span><span>✓ {{ "Avisos" if es else "Notices" }}</span><span>✓ {{ "Historial" if es else "History" }}</span></div>
+    </div>
+    <div>
+      <div class="section-heading"><span class="eyebrow">{{ "Beneficios" if es else "Benefits" }}</span><h2>{{ "Diseñado para hacer lo importante más sencillo." if es else "Built to make what matters simpler." }}</h2><p>{{ "UniTrack reúne funciones universitarias cotidianas en un mismo entorno." if es else "UniTrack brings everyday campus workflows into one environment." }}</p></div>
+      <div class="benefit-list">
+        <div class="benefit-line"><span class="benefit-check">✓</span><div><strong>{{ "Acceso con seguimiento" if es else "Accountable campus access" }}</strong><p>{{ "Cada entrada y salida con QR se refleja individualmente en el historial." if es else "Every QR check-in and check-out appears as an individual event." }}</p></div></div>
+        <div class="benefit-line"><span class="benefit-check">✓</span><div><strong>{{ "Información según tu rol" if es else "Information for your role" }}</strong><p>{{ "Cada persona usa las opciones y avisos que corresponden a su cuenta." if es else "Each person sees tools and notices appropriate to their account." }}</p></div></div>
+        <div class="benefit-line"><span class="benefit-check">✓</span><div><strong>{{ "Comunicación en un mismo lugar" if es else "Communication in one place" }}</strong><p>{{ "Los avisos dirigidos a la comunidad aparecen también en un centro de mensajes." if es else "Community announcements also appear in a dedicated message center." }}</p></div></div>
+        <div class="benefit-line"><span class="benefit-check">✓</span><div><strong>{{ "Interfaz adaptable" if es else "Responsive interface" }}</strong><p>{{ "Uso desde computadoras y teléfonos, con soporte para español e inglés." if es else "Use it on desktops and phones, in Spanish or English." }}</p></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section section-pale" id="proyectos">
+  <div class="container">
+    <div class="section-heading centered">
+      <span class="eyebrow">{{ "Creación y tecnología" if es else "Built with purpose" }}</span>
+      <h2>{{ "Dos proyectos, una misma visión." if es else "Two projects, one shared vision." }}</h2>
+      <p>{{ "UniTrack y ProTrack MX son dos proyectos de software creados por Peyman Miyandashti para explorar nuevas formas de apoyar la gestión educativa." if es else "UniTrack and ProTrack MX are two software projects created by Peyman Miyandashti to explore better ways to support education management." }}</p>
+    </div>
+    <div class="projects">
+      <article class="project">
+        <div class="project-head"><img class="unilogo" src="{{ url_for('static',filename='img/UPBCmark.png') }}" alt="UniTrack"><div><h3>UniTrack</h3><small>{{ "Plataforma de gestión universitaria" if es else "University management platform" }}</small></div></div>
+        <p>{{ "Proyecto independiente desarrollado para un entorno académico inspirado en UPBC. Incluye control de acceso mediante QR, asistencia, avisos institucionales y herramientas para distintos roles." if es else "An independently developed academic project inspired by UPBC. It brings together QR access control, attendance, community notices and role-based tools." }}</p>
+        <a href="#como-funciona">{{ "Conocer cómo funciona UniTrack" if es else "Explore how UniTrack works" }} →</a>
+      </article>
+      <article class="project protrack">
+        <div class="project-head"><img class="prologo" src="{{ url_for('static',filename='img/protrack-mx-brand.svg') }}" alt="ProTrack MX · Gestión Académica para un Mejor Mañana"></div>
+        <p>{{ "Mi otro proyecto: una plataforma de gestión académica para organizar instituciones, grupos, estudiantes, asistencia, actividades, evaluaciones y reportes. ProTrack MX y UniTrack son creaciones propias, con objetivos complementarios." if es else "My other project: an academic management platform for organizing institutions, classes, students, attendance, activities, evaluations and reports. ProTrack MX and UniTrack are independently created projects with complementary goals." }}</p>
+        <a href="https://github.com/Peyman-mxli/" target="_blank" rel="noopener noreferrer">{{ "Conocer al desarrollador en GitHub" if es else "Meet the developer on GitHub" }} ↗</a>
+      </article>
+    </div>
+    <p class="project-owner">{{ "Ambas aplicaciones son proyectos personales de Peyman Miyandashti y no representan productos oficiales de UPBC." if es else "Both applications are personal projects by Peyman Miyandashti and are not official UPBC products." }}</p>
+  </div>
+</section>
+
+<section class="section" id="contacto">
+  <div class="container">
+    <div class="contact-strip">
+      <div><h2>{{ "¿Listo para conocer UniTrack?" if es else "Ready to explore UniTrack?" }}</h2><p>{{ "Ingresa a tu cuenta, revisa las funciones o conoce más sobre el creador de estos proyectos." if es else "Sign in, explore the features or learn more about the developer behind these projects." }}</p></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap"><a class="button button-white" href="{{ url_for('auth.login_page') }}">{{ "Iniciar sesión" if es else "Sign in" }} →</a><a class="button button-outline" href="https://github.com/Peyman-mxli/" target="_blank" rel="noopener noreferrer">GitHub ↗</a></div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-row">
+      <div><strong>UniTrack · UPBC</strong><p>{{ "Proyecto independiente de tecnología educativa desarrollado por Peyman Miyandashti." if es else "Independent education technology project developed by Peyman Miyandashti." }}</p></div>
+      <div><strong>{{ "Universidad Politécnica de Baja California" if es else "Polytechnic University of Baja California" }}</strong><p>Calle de la Claridad S/N, Col. Plutarco Elías Calles<br>Mexicali, Baja California, México</p></div>
+      <div><strong>{{ "Enlaces" if es else "Links" }}</strong><p><a href="{{ url_for('auth.login_page') }}">{{ "Iniciar sesión" if es else "Sign in" }}</a><br><a href="{{ url_for('auth.register_page') }}">{{ "Crear cuenta" if es else "Create account" }}</a><br><a href="#como-funciona">{{ "Cómo funciona" if es else "How it works" }}</a></p></div>
+    </div>
+    <div class="footer-bottom">
+      <span>© {{ year }} UniTrack · {{ "Proyecto de Peyman Miyandashti" if es else "A project by Peyman Miyandashti" }}.</span>
+      <span>{{ "Proyecto independiente; no es un portal oficial de la universidad." if es else "Independent project; not an official university website." }} · <a href="https://www.elimparcial.com/mxl/mexicali/2021/07/15/preparan-regreso-en-la-upbc/" target="_blank" rel="noopener noreferrer">{{ "Referencia fotográfica: El Imparcial" if es else "Photo reference: El Imparcial" }}</a></span>
+    </div>
+  </div>
+</footer>
+<script>
+(function(){
+  var menu=document.getElementById("navToggle"), nav=document.getElementById("mainNav");
+  if(menu&&nav){
+    menu.addEventListener("click",function(){
+      var open=nav.classList.toggle("open");
+      menu.setAttribute("aria-expanded",String(open));
+      menu.textContent=open?"✕":"☰";
+    });
+    nav.querySelectorAll("a").forEach(function(link){link.addEventListener("click",function(){nav.classList.remove("open");menu.setAttribute("aria-expanded","false");menu.textContent="☰";});});
+  }
+})();
+</script>
+</body>
+</html>
