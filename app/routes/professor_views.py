@@ -258,13 +258,26 @@ def dashboard():
 # =========================
 # ACCESS CONTROL (GLOBAL)
 # =========================
-@professor_views_bp.route("/access-control")
+@professor_views_bp.route("/access-control", methods=["GET", "POST"])
 @login_required
 def access_control_page():
     if not _is_professor_user():
         return _reject()
 
     _sync_professor_language()
+
+    scan_result = None
+    if request.method == "POST":
+        qr_text = (request.form.get("pass_code") or request.form.get("qr_text") or "").strip()
+        data, status_code = process_access_scan_qr_text(qr_text)
+        scan_result = {
+            "success": bool(data.get("success")),
+            "message": data.get("message", ""),
+            "name": (data.get("student_name") or data.get("professor_name")
+                     or data.get("staff_name") or data.get("admin_name") or ""),
+            "action": data.get("action", ""),
+            "status_code": status_code,
+        }
 
     status = get_user_current_access_status(current_user.id)
     records = build_access_table_rows(current_user)
@@ -284,6 +297,8 @@ def access_control_page():
         selected_date=None,
         access_message=request.args.get("success"),
         access_error=request.args.get("error"),
+        operator_scan_url=url_for("professor_views.access_control_page"),
+        scan_result=scan_result,
         access_qr_image=access_qr_image,
         access_qr_payload=access_qr_payload,
         access_qr_id_code=access_qr_id_code,
@@ -298,39 +313,17 @@ def access_control_page():
 @professor_views_bp.route("/access-control/check-in", methods=["POST"])
 @login_required
 def access_control_check_in():
-    if not _is_professor_user():
-        return _reject()
-
-    _sync_professor_language()
-
-    try:
-        create_check_in(student_id=current_user.id)
-        return _redirect_success("Checked in successfully")
-    except Exception as e:
-        return _redirect_error(str(e))
+    """Campus access must be verified by an authorized operator."""
+    return "El acceso debe ser registrado mediante QR por personal autorizado.", 403
 
 
-# =========================
-# CHECK OUT
-# =========================
 @professor_views_bp.route("/access-control/check-out", methods=["POST"])
 @login_required
 def access_control_check_out():
-    if not _is_professor_user():
-        return _reject()
-
-    _sync_professor_language()
-
-    try:
-        create_check_out(student_id=current_user.id)
-        return _redirect_success("Checked out successfully")
-    except Exception as e:
-        return _redirect_error(str(e))
+    """Campus access must be verified by an authorized operator."""
+    return "El acceso debe ser registrado mediante QR por personal autorizado.", 403
 
 
-# =========================
-# MOBILE SCAN (PUBLIC)
-# =========================
 @professor_views_bp.route("/access-control/mobile-scan", methods=["GET"])
 def access_control_mobile_scan():
     """Public QR preview does not modify access records."""
@@ -342,52 +335,14 @@ def access_control_mobile_scan():
 @professor_views_bp.route("/access-control/scanner", methods=["GET", "POST"])
 @login_required
 def access_control_scanner():
+    """The operator scanner now lives inside Control de Acceso."""
     if not _is_professor_user():
         return _reject()
-
-    _sync_professor_language()
-
-    qr_text_value = ""
-    scan_result = None
-
     if request.method == "POST":
-        qr_text_value = (request.form.get("qr_text") or "").strip()
-
-        # 🔥 FIX: use SAME global processor as student
-        response_data, status_code = process_access_scan_qr_text(qr_text_value)
-
-        scan_result = {
-            "success": response_data.get("success", False),
-            "message": response_data.get("message", ""),
-            "action": response_data.get("action", ""),
-            "professor_name": (
-                response_data.get("professor_name")
-                or response_data.get("user_name")
-                or response_data.get("student_name")
-                or "--"
-            ),
-            "username": response_data.get("username", ""),
-            "status": response_data.get("status", ""),
-            "check_in_time": response_data.get("check_in_time", ""),
-            "check_out_time": response_data.get("check_out_time", ""),
-            "status_code": status_code,
-        }
-
-    return render_template(
-        "professor_qr_scanner.html",
-        active_page="scanner",
-        professor_name=_professor_name(),
-        role_label="Professor",
-        account_role_label="Professor",
-        account_type_label="Professor",
-        qr_text_value=qr_text_value,
-        scan_result=scan_result,
-    )
+        return redirect(url_for("professor_views.access_control_page"), code=303)
+    return redirect(url_for("professor_views.access_control_page"))
 
 
-# =========================
-# CONFIGURATION
-# =========================
 @professor_views_bp.route("/configuration")
 @login_required
 def configuration_page():
