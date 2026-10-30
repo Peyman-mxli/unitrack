@@ -961,10 +961,10 @@ def process_access_scan_qr_text(qr_text):
 
     from app.services.scan_token_service import resolve_scan_token, consume_scan_token, is_temporary_access_code
     user = None
+    token_record = None
     if "scan_token=" in qr_text or qr_text.startswith("eyJ") or is_temporary_access_code(qr_text):
         try:
             user, token_record = resolve_scan_token(qr_text)
-            consume_scan_token(token_record)
         except ValueError as exc:
             return {"success": False, "message": str(exc),
                     "processed_at": _server_now_iso()}, 403
@@ -1040,34 +1040,85 @@ def process_access_scan_qr_text(qr_text):
             "processed_at": _server_now_iso(),
         }, 400
 
-    open_log = get_open_access_log_for_student(user.id)
+    from app.models.access_scan_pair_model import AccessScanPair
+    from sqlalchemy import update
 
     try:
-        if open_log:
-            updated_log = create_check_out(
-                student_id=user.id,
-                notes="QR scanner automatic check-out"
+        # Consume the first use atomically with the access-log operation.
+        # On the next scan, the same signed QR can ONLY close its matched log.
+        if token_record is not None and token_record.consumed_at is not None:
+            pair = db.session.execute(
+                db.select(AccessScanPair).where(
+                    AccessScanPair.scan_token_id == token_record.id
+                )
+            ).scalar_one_or_none()
+            open_log = get_open_access_log_for_student(user.id)
+            if not pair or not open_log or pair.access_log_id != open_log.id:
+                raise ValueError("QR does not match the active campus entry.")
+            # Avoid a rapid duplicate camera submission immediately undoing
+            # a successful entry (the user must deliberately present it again).
+            if (datetime.utcnow() - pair.checked_in_at).total_seconds() < 8:
+                return {
+                    "success": False,
+                    "message": "Entrada registrada. Espera unos segundos para marcar la salida.",
+                    "processed_at": _server_now_iso(),
+                }, 409
+            stamp = datetime.utcnow()
+            updated = db.session.execute(
+                update(AccessScanPair)
+                .where(
+                    AccessScanPair.id == pair.id,
+                    AccessScanPair.checked_out_at.is_(None),
+                )
+                .values(checked_out_at=stamp)
             )
-
+            if updated.rowcount != 1:
+                raise ValueError("This QR checkout has already been processed.")
+            log = create_check_out(
+                student_id=user.id, notes="QR scanner paired check-out", commit=False
+            )
+            db.session.commit()
             return _build_scan_success_response(
-                user=user,
-                action="check_out",
-                log_object=updated_log
+                user=user, action="check_out", log_object=log
             ), 200
 
-        new_log = create_check_in(
+        if token_record is not None:
+            consume_scan_token(token_record)
+
+        open_log = get_open_access_log_for_student(user.id)
+        if open_log:
+            log = create_check_out(
+                student_id=user.id,
+                notes="QR scanner automatic check-out",
+                commit=(token_record is None),
+            )
+            if token_record is not None:
+                db.session.commit()
+            return _build_scan_success_response(
+                user=user, action="check_out", log_object=log
+            ), 200
+
+        log = create_check_in(
             student_id=user.id,
             access_method="qr",
-            notes="QR scanner automatic check-in"
+            notes="QR scanner automatic check-in",
+            commit=(token_record is None),
         )
+        if token_record is not None:
+            db.session.add(AccessScanPair(
+                scan_token_id=token_record.id,
+                access_log_id=log.id,
+                user_id=user.id,
+                checked_in_at=datetime.utcnow(),
+            ))
+            db.session.commit()
 
         return _build_scan_success_response(
-            user=user,
-            action="check_in",
-            log_object=new_log
+            user=user, action="check_in", log_object=log
         ), 200
 
     except ValueError as exc:
+        db.session.rollback()
         return {
             "success": False,
             "message": str(exc),
@@ -1075,12 +1126,13 @@ def process_access_scan_qr_text(qr_text):
         }, 400
 
     except Exception:
+        db.session.rollback()
+        current_app.logger.exception("Paired university QR access failed")
         return {
             "success": False,
             "message": "Unexpected scanner error while processing the QR.",
             "processed_at": _server_now_iso(),
         }, 500
-
 
 @student_views_bp.route("/dashboard")
 @login_required
