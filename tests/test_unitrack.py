@@ -186,10 +186,16 @@ class UniTrackTests(unittest.TestCase):
         from app.models.access_scan_pair_model import AccessScanPair
         from app.models.access_log_model import AccessLog
         from app.services.scan_token_service import issue_access_credential
+        from werkzeug.security import generate_password_hash
         with self.app.app_context():
-            person = self.db.session.execute(
-                self.db.select(User).where(User.username == "StudentA")
-            ).scalar_one()
+            person = User(
+                username="LongSessionMember", email="long-session@example.test",
+                first_name="Long", last_name="Session", phone="0000000000",
+                role="estudiante", language="es", is_active_user=True,
+                password_hash=generate_password_hash("TestingPassword123!"),
+            )
+            self.db.session.add(person)
+            self.db.session.commit()
             qr, _ = issue_access_credential(person)
             user_id = person.id
         admin = self._signed_in_client("Admin")
@@ -224,10 +230,16 @@ class UniTrackTests(unittest.TestCase):
         from app.models.user_model import User
         from app.models.access_log_model import AccessLog
         from app.services.scan_token_service import issue_access_credential
+        from werkzeug.security import generate_password_hash
         with self.app.app_context():
-            student = self.db.session.execute(
-                self.db.select(User).where(User.username == "StudentA")
-            ).scalar_one()
+            student = User(
+                username="DuplicateScanMember", email="duplicate-scan@example.test",
+                first_name="Duplicate", last_name="Scan", phone="0000000000",
+                role="estudiante", language="es", is_active_user=True,
+                password_hash=generate_password_hash("TestingPassword123!"),
+            )
+            self.db.session.add(student)
+            self.db.session.commit()
             signed_qr, _code = issue_access_credential(student)
             student_id = student.id
         client = self._signed_in_client("Admin")
