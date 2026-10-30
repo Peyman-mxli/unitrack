@@ -145,6 +145,76 @@ class UniTrackTests(unittest.TestCase):
         response = client.get("/attendance/classes")
         self.assertEqual(response.status_code, 200)
 
+    def test_admin_dashboard_shows_population_presence_and_notices(self):
+        client = self._signed_in_client()
+        result = client.get("/admin/dashboard")
+        self.assertEqual(result.status_code, 200)
+        self.assertIn("Personas registradas por tipo".encode("utf-8"), result.data)
+        self.assertIn("Monitor de usuarios".encode("utf-8"), result.data)
+        self.assertIn("Dentro del campus".encode("utf-8"), result.data)
+        self.assertIn("Avisos para la comunidad".encode("utf-8"), result.data)
+        self.assertIn(b"StudentA", result.data)
+        self.assertIn(b"TeacherA", result.data)
+        self.assertIn(b"StaffA", result.data)
+        self.assertNotIn("Clases y asistencia".encode("utf-8"), result.data)
+        filtered = client.get("/admin/dashboard?monitor_role=estudiante&monitor_status=offline")
+        self.assertEqual(filtered.status_code, 200)
+        self.assertIn(b"StudentA", filtered.data)
+
+    def test_role_targeted_notices_and_admin_only_publishing(self):
+        from app.models.university_notice_model import UniversityNotice
+        admin = self._signed_in_client()
+        page = admin.get("/admin/dashboard")
+        match = re.search(rb'name="csrf_token" value="([^"]+)"', page.data)
+        self.assertIsNotNone(match)
+        token = match.group(1).decode("utf-8")
+        form = {"title": "Solo alumnos", "body": "Por favor consulten su horario actualizado.",
+                "audience": "estudiante", "csrf_token": token}
+        posted = admin.post("/admin/notices/create", data=form)
+        self.assertEqual(posted.status_code, 302)
+        with self.app.app_context():
+            notice = self.db.session.execute(
+                self.db.select(UniversityNotice).where(UniversityNotice.title == "Solo alumnos")
+            ).scalar_one()
+            notice_id = notice.id
+            self.assertTrue(notice.is_active)
+            self.assertEqual(notice.audience, "estudiante")
+
+        student = self._signed_in_client("StudentA")
+        teacher = self._signed_in_client("TeacherA")
+        worker = self._signed_in_client("StaffA")
+        self.assertIn("Solo alumnos".encode("utf-8"), student.get("/student/dashboard").data)
+        self.assertNotIn("Solo alumnos".encode("utf-8"), teacher.get("/professor/dashboard").data)
+        self.assertNotIn("Solo alumnos".encode("utf-8"), worker.get("/personal/dashboard").data)
+
+        student_page = student.get("/student/dashboard")
+        student_token = re.search(rb'name="csrf_token" value="([^"]+)"', student_page.data)
+        self.assertIsNotNone(student_token)
+        unauthorized = student.post("/admin/notices/create", data={
+            "title": "Fake notice", "body": "This user should not be able to post this",
+            "audience": "all", "csrf_token": student_token.group(1).decode("utf-8"),
+        })
+        self.assertIn(unauthorized.status_code, (302, 403))
+        with self.app.app_context():
+            fake = self.db.session.execute(
+                self.db.select(UniversityNotice).where(UniversityNotice.title == "Fake notice")
+            ).scalar_one_or_none()
+            self.assertIsNone(fake)
+
+        archived = admin.post(f"/admin/notices/{notice_id}/archive",
+                              data={"csrf_token": token})
+        self.assertEqual(archived.status_code, 302)
+        with self.app.app_context():
+            self.assertFalse(self.db.session.get(UniversityNotice, notice_id).is_active)
+        self.assertNotIn("Solo alumnos".encode("utf-8"), student.get("/student/dashboard").data)
+
+    def test_notice_form_protected_by_csrf(self):
+        client = self._signed_in_client()
+        response = client.post("/admin/notices/create", data={
+            "title": "Missing CSRF", "body": "Should never be published", "audience": "all"
+        })
+        self.assertEqual(response.status_code, 400)
+
     def test_admin_access_control_contains_camera_and_confirm_button(self):
         client = self._signed_in_client()
         page = client.get("/admin/access-control")
