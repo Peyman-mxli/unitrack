@@ -264,7 +264,7 @@ def dashboard():
 # =========================
 # ACCESS CONTROL (REAL)
 # =========================
-@personal_views_bp.route("/access-control")
+@personal_views_bp.route("/access-control", methods=["GET", "POST"])
 @login_required
 def access_control_page():
     if not _is_personal_user():
@@ -273,6 +273,19 @@ def access_control_page():
     _sync_personal_language()
     language = _current_language()
     role_label = "Personal" if language == "es" else "Staff"
+
+    scan_result = None
+    if request.method == "POST":
+        qr_text = (request.form.get("pass_code") or request.form.get("qr_text") or "").strip()
+        data, status_code = process_access_scan_qr_text(qr_text)
+        scan_result = {
+            "success": bool(data.get("success")),
+            "message": data.get("message", ""),
+            "name": (data.get("student_name") or data.get("professor_name")
+                     or data.get("staff_name") or data.get("admin_name") or ""),
+            "action": data.get("action", ""),
+            "status_code": status_code,
+        }
 
     status = get_user_current_access_status(current_user.id)
     records = build_access_table_rows(current_user)
@@ -290,6 +303,8 @@ def access_control_page():
         account_role_label=role_label,
         account_type_label=role_label,
         current_access_status=status,
+        operator_scan_url=url_for("personal_views.access_control_page"),
+        scan_result=scan_result,
         access_qr_image=access_qr_image,
         access_qr_payload=access_qr_payload,
         access_qr_id_code=access_qr_id_code,
@@ -306,43 +321,17 @@ def access_control_page():
 @personal_views_bp.route("/access-control/check-in", methods=["POST"])
 @login_required
 def access_control_check_in():
-    if not _is_personal_user():
-        return _reject()
-
-    _sync_personal_language()
-    language = _current_language()
-
-    try:
-        create_check_in(personal_id=current_user.id)
-        success_message = "Entrada registrada correctamente" if language == "es" else "Checked in successfully"
-        return redirect(url_for("personal_views.access_control_page", success=success_message))
-    except Exception as e:
-        return redirect(url_for("personal_views.access_control_page", error=str(e)))
+    """Campus access must be verified by an authorized operator."""
+    return "El acceso debe ser registrado mediante QR por personal autorizado.", 403
 
 
-# =========================
-# CHECK OUT (REAL)
-# =========================
 @personal_views_bp.route("/access-control/check-out", methods=["POST"])
 @login_required
 def access_control_check_out():
-    if not _is_personal_user():
-        return _reject()
-
-    _sync_personal_language()
-    language = _current_language()
-
-    try:
-        create_check_out(personal_id=current_user.id)
-        success_message = "Salida registrada correctamente" if language == "es" else "Checked out successfully"
-        return redirect(url_for("personal_views.access_control_page", success=success_message))
-    except Exception as e:
-        return redirect(url_for("personal_views.access_control_page", error=str(e)))
+    """Campus access must be verified by an authorized operator."""
+    return "El acceso debe ser registrado mediante QR por personal autorizado.", 403
 
 
-# =========================
-# MOBILE SCAN (PUBLIC)
-# =========================
 @personal_views_bp.route("/access-control/mobile-scan", methods=["GET"])
 def access_control_mobile_scan():
     """Public QR preview does not modify access records."""
@@ -354,53 +343,14 @@ def access_control_mobile_scan():
 @personal_views_bp.route("/access-control/scanner", methods=["GET", "POST"])
 @login_required
 def access_control_scanner():
+    """The operator scanner now lives inside Control de Acceso."""
     if not _is_personal_user():
         return _reject()
-
-    _sync_personal_language()
-    language = _current_language()
-    role_label = "Personal" if language == "es" else "Staff"
-
-    qr_text_value = ""
-    scan_result = None
-
     if request.method == "POST":
-        qr_text_value = (request.form.get("qr_text") or "").strip()
-
-        response_data, status_code = process_access_scan_qr_text(qr_text_value)
-
-        scan_result = {
-            "success": response_data.get("success", False),
-            "message": response_data.get("message", ""),
-            "action": response_data.get("action", ""),
-            "staff_name": (
-                response_data.get("staff_name")
-                or response_data.get("user_name")
-                or response_data.get("student_name")
-                or "--"
-            ),
-            "username": response_data.get("username", ""),
-            "status": response_data.get("status", ""),
-            "check_in_time": response_data.get("check_in_time", ""),
-            "check_out_time": response_data.get("check_out_time", ""),
-            "status_code": status_code,
-        }
-
-    return render_template(
-        "personal_qr_scanner.html",
-        active_page="scanner",
-        staff_name=_staff_name(),
-        role_label=role_label,
-        account_role_label=role_label,
-        account_type_label=role_label,
-        qr_text_value=qr_text_value,
-        scan_result=scan_result,
-    )
+        return redirect(url_for("personal_views.access_control_page"), code=303)
+    return redirect(url_for("personal_views.access_control_page"))
 
 
-# =========================
-# CONFIGURATION
-# =========================
 @personal_views_bp.route("/configuration")
 @login_required
 def configuration_page():
