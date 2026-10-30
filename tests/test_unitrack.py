@@ -521,6 +521,9 @@ class UniTrackTests(unittest.TestCase):
         self.assertIn(b"QRHistory Target</td>", history)
         first_row = history.split(b"QRHistory Target</td>", 1)[1].split(b"</tr>", 1)[0]
         self.assertIn("Dentro del campus".encode("utf-8"), first_row)
+        self.assertEqual(history.count(b"QRHistory Target</td>"), 1)
+        self.assertIn("Entradas registradas".encode("utf-8"), history)
+        self.assertIn("Salidas registradas".encode("utf-8"), history)
 
         with self.app.app_context():
             log = self.db.session.execute(self.db.select(AccessLog).where(
@@ -538,6 +541,8 @@ class UniTrackTests(unittest.TestCase):
         history = second.data.split(b'<div class="history-card">', 1)[1]
         row = history.split(b"QRHistory Target</td>", 1)[1].split(b"</tr>", 1)[0]
         self.assertIn("Fuera del campus".encode("utf-8"), row)
+        self.assertEqual(history.count(b"QRHistory Target</td>"), 2)
+        self.assertIn(b">1 / 1</td>", row)
         with self.app.app_context():
             log = self.db.session.execute(self.db.select(AccessLog).where(
                 AccessLog.student_id == person_id
@@ -550,6 +555,37 @@ class UniTrackTests(unittest.TestCase):
         filtered = admin.get("/admin/access-control", query_string={"date": date_text})
         self.assertIn(b"QRHistory Target</td>", filtered.data)
         self.assertIn(check_out_text, filtered.data)
+
+        # The second visit is a new entry and exit, each with its own row.
+        with self.app.app_context():
+            person = self.db.session.get(User, person_id)
+            second_qr, _ = issue_access_credential(person)
+        new_payload = {"csrf_token": payload["csrf_token"], "qr_text": second_qr}
+        third = admin.post("/admin/access-control", data=new_payload)
+        self.assertIn("Escaneo correcto".encode("utf-8"), third.data)
+        events = third.data.split(b'<div class="history-card">', 1)[1]
+        self.assertEqual(events.count(b"QRHistory Target</td>"), 3)
+
+        with self.app.app_context():
+            newest = self.db.session.execute(self.db.select(AccessLog).where(
+                AccessLog.student_id == person_id,
+                AccessLog.check_out_time.is_(None),
+            )).scalar_one()
+            pair = self.db.session.execute(self.db.select(AccessScanPair).where(
+                AccessScanPair.access_log_id == newest.id
+            )).scalar_one()
+            pair.checked_in_at -= timedelta(seconds=5)
+            self.db.session.commit()
+
+        fourth = admin.post("/admin/access-control", data=new_payload)
+        self.assertIn("Escaneo correcto".encode("utf-8"), fourth.data)
+        events = fourth.data.split(b'<div class="history-card">', 1)[1]
+        self.assertEqual(events.count(b"QRHistory Target</td>"), 4)
+        self.assertEqual(events.count(b">2 / 2</td>"), 4)
+        full_page = admin.get("/admin/attendance-history", query_string={"search": "QRHistoryTarget"})
+        self.assertEqual(full_page.status_code, 200)
+        self.assertEqual(full_page.data.count(b"QRHistory Target</td>"), 4)
+        self.assertIn("Total de movimientos".encode("utf-8"), full_page.data)
 
     def test_admin_access_control_contains_camera_and_confirm_button(self):
         client = self._signed_in_client()
