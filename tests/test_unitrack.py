@@ -286,9 +286,9 @@ class UniTrackTests(unittest.TestCase):
 
     def test_admin_and_teacher_camera_script_present(self):
         for username, path in (
-            ("Admin", "/admin/access-control/scanner"),
-            ("TeacherA", "/professor/access-control/scanner"),
-            ("StaffA", "/personal/access-control/scanner")
+            ("Admin", "/admin/access-control"),
+            ("TeacherA", "/professor/access-control"),
+            ("StaffA", "/personal/access-control")
         ):
             with self.subTest(username=username):
                 client = self._signed_in_client(username)
@@ -298,6 +298,60 @@ class UniTrackTests(unittest.TestCase):
                 self.assertEqual(response.data.count(b"js/vendor/jsQR.js"), 1)
                 self.assertIn(b"data-qr-start", response.data)
                 self.assertIn(b"data-qr-video", response.data)
+
+    def test_student_has_one_access_page_with_personal_qr_and_history(self):
+        client = self._signed_in_client("StudentA")
+        page = client.get("/student/access-control")
+        self.assertEqual(page.status_code, 200)
+        self.assertIn(b'id="studentPersonalAccess"', page.data)
+        self.assertIn(b"data:image/png;base64,", page.data)
+        self.assertIn(b"EST-", page.data)
+        self.assertIn("Historial de Acceso".encode("utf-8"), page.data)
+        self.assertNotIn(b'href="/student/access-control/scanner"', page.data)
+        self.assertNotIn(b'url_for(\'student_views.access_control_check_in\')', page.data)
+        self.assertNotIn(b'data-qr-start', page.data)
+        old = client.get("/student/access-control/scanner")
+        self.assertEqual(old.status_code, 302)
+        self.assertTrue(old.headers["Location"].endswith("/student/access-control"))
+
+    def test_student_cannot_self_check_in_or_out(self):
+        from app.models.access_log_model import AccessLog
+        client = self._signed_in_client("StudentA")
+        page = client.get("/student/access-control")
+        csrf = re.search(rb'name="csrf_token" value="([^"]+)"', page.data)
+        self.assertIsNotNone(csrf)
+        fields = {"csrf_token": csrf.group(1).decode("utf-8")}
+        with self.app.app_context():
+            initial = self.db.session.execute(
+                self.db.select(self.db.func.count(AccessLog.id))
+            ).scalar_one()
+        for path in (
+            "/student/access-control/check-in",
+            "/student/access-control/check-out",
+            "/student/access-control/scanner",
+        ):
+            response = client.post(path, data=fields)
+            self.assertEqual(response.status_code, 403, path)
+        with self.app.app_context():
+            final = self.db.session.execute(
+                self.db.select(self.db.func.count(AccessLog.id))
+            ).scalar_one()
+        self.assertEqual(initial, final)
+
+    def test_operator_scanner_is_inside_control_de_acceso(self):
+        for username, prefix in (("TeacherA", "/professor"), ("StaffA", "/personal")):
+            with self.subTest(role=username):
+                client = self._signed_in_client(username)
+                page = client.get(prefix + "/access-control")
+                self.assertEqual(page.status_code, 200)
+                self.assertIn(b'id="operatorAccessScanner"', page.data)
+                self.assertIn(b'name="pass_code"', page.data)
+                self.assertIn(b'data-qr-start', page.data)
+                self.assertEqual(page.data.count(b"js/qr-camera.js"), 1)
+                self.assertNotIn((prefix + "/access-control/scanner").encode(), page.data)
+                old = client.get(prefix + "/access-control/scanner")
+                self.assertEqual(old.status_code, 302)
+                self.assertEqual(old.headers["Location"].split("?")[0], prefix + "/access-control")
 
     def test_camera_decoding_fallback_is_self_hosted(self):
         client = self._signed_in_client()
