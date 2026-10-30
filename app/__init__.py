@@ -903,9 +903,22 @@ def create_app():
         mark_all_notices_read(current_user)
         return redirect(url_for("notice_inbox"))
 
-    # ✅ ROOT → LOGIN PAGE
-    @app.route("/")
+    # ✅ PUBLIC LANDING → EXISTING AUTHENTICATION PAGES
+    @app.route("/", methods=["GET"])
     def home():
-        return redirect(url_for("auth.login_page"))
+        """Public welcome page; login/register routes keep their current UI and flow."""
+        from datetime import datetime
+        requested_lang = (request.args.get("lang") or "").strip().lower()
+        if requested_lang in {"es", "en"}:
+            session["language"] = requested_lang
+        elif session.get("language") not in {"es", "en"}:
+            session["language"] = "es"
+        language = session["language"]
+        return render_template(
+            "public_landing.html",
+            landing_lang=language,
+            es=(language == "es"),
+            year=datetime.now().year,
+        )
 
     return app
