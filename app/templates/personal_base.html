@@ -692,7 +692,7 @@ padding:10px 10px 16px 10px;
 <nav class="sidebar-nav">
 <a href="{{ url_for('personal_views.dashboard') }}" class="{% if active_page == 'dashboard' %}active{% endif %}">{{ "Panel" if is_spanish else "Dashboard" }}</a>
 <a href="{{ url_for('personal_views.access_control_page') }}" class="{% if active_page == 'access_control' %}active{% endif %}">{{ "Control de Acceso" if is_spanish else "Access Control" }}</a>
-<a href="{{ url_for('personal_views.access_control_scanner') }}" class="{% if active_page == 'scanner' %}active{% endif %}">{{ "Escáner QR" if is_spanish else "QR Scanner" }}</a>
+
 <a href="{{ url_for('personal_views.configuration_page') }}" class="{% if active_page == 'configuration' %}active{% endif %}">{{ "Configuración" if is_spanish else "Configuration" }}</a>
 </nav>
 
