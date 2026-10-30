@@ -6,7 +6,7 @@
 {% block page_eyebrow %}{{ t('Admin Overview') }}{% endblock %}
 {% block page_title %}{{ t('Admin Dashboard') }}{% endblock %}
 {% block page_subtitle %}
-{{ t('Monitor validation codes, access activity, and live system totals from one control center.') }}
+{{ "Supervisa usuarios, presencia en línea, acceso al campus y comunicados institucionales." if current_language == "es" else "Monitor accounts, online presence, campus access and institution-wide notices." }}
 {% endblock %}
 
 {% block page_actions %}
@@ -549,323 +549,130 @@
 {% endblock %}
 
 {% block content %}
-<div class="dashboard-grid">
-    <section class="hero-panel panel-card">
-        <h3 class="hero-title">{{ t('Welcome to the UniTrack Admin Control Center') }}</h3>
-        <p class="hero-text">
-            {{ t('This dashboard is the first admin version aligned with the student design system. From here, administrators will manage validation codes, review live access totals, monitor active users, and control access operations for students, teachers, staff, and admins.') }}
-        </p>
+{% set es = current_language == 'es' %}
+<div class="dashboard-grid" id="admin-overview">
+  <section class="hero-panel panel-card">
+    <h2 class="hero-title">{{ "Centro de administración de UniTrack" if es else "UniTrack Administration Center" }}</h2>
+    <p class="hero-text">{{ "Consulta cuántas personas están registradas, cuáles han tenido actividad reciente en la aplicación y quiénes permanecen dentro del campus. La presencia en línea no equivale a asistencia." if es else "See account totals, recent online activity and who remains on campus. Online activity and campus attendance are different metrics." }}</p>
+    <div class="hero-actions">
+      <a href="{{ url_for('admin_views.admin_users') }}" class="btn btn-primary">{{ "Administrar usuarios" if es else "Manage users" }}</a>
+      <a href="/admin/attendance-history" class="btn btn-secondary">{{ "Historial de asistencia" if es else "Attendance history" }}</a>
+      <a href="/admin/access-control" class="btn btn-secondary">{{ "Escanear acceso" if es else "Scan campus access" }}</a>
+      <a href="#admin-notices" class="btn btn-secondary">{{ "Enviar aviso" if es else "Send notice" }}</a>
+    </div>
+  </section>
+  <section class="stat-card"><p class="stat-label">{{ "Cuentas registradas" if es else "Registered accounts" }}</p><p class="stat-value">{{ total_registered }}</p><p class="stat-foot">{{ "Todos los roles" if es else "All roles" }}</p></section>
+  <section class="stat-card"><p class="stat-label">{{ "En línea" if es else "Online" }}</p><p class="stat-value">{{ current_online }}</p><p class="stat-foot">{{ "Actividad en los últimos 5 minutos" if es else "Activity in the last 5 minutes" }}</p></section>
+  <section class="stat-card"><p class="stat-label">{{ "Dentro del campus" if es else "On campus" }}</p><p class="stat-value">{{ current_campus }}</p><p class="stat-foot">{{ "Registros de entrada sin salida" if es else "Check-ins without a recorded exit" }}</p></section>
+  <section class="stat-card"><p class="stat-label">{{ "Entradas de hoy" if es else "Today's entries" }}</p><p class="stat-value">{{ today_check_ins or 0 }}</p><p class="stat-foot">{{ "Total de accesos registrados" if es else "Recorded access events" }}</p></section>
 
-        <div class="hero-summary">
-            <div class="hero-mini-card">
-                <p class="hero-mini-label">{{ t('Created Codes') }}</p>
-                <p class="hero-mini-value">{{ total_validation_codes or 0 }}</p>
-                <p class="hero-mini-note">{{ t('All generated codes in the system') }}</p>
-            </div>
+  <section class="section-panel panel-card" id="admin-population">
+    <h3 class="panel-title">{{ "Personas registradas por tipo" if es else "Registered people by role" }}</h3>
+    <p class="panel-subtitle">{{ "En línea = actividad reciente; en campus = entrada registrada y sin salida. Una cuenta desactivada se muestra por separado." if es else "Online means recent activity; on campus means a recorded entry without an exit. Disabled accounts are counted separately." }}</p>
+    <div class="table-wrap">
+      <table class="dashboard-table">
+        <thead><tr>
+          <th>{{ "Tipo" if es else "Role" }}</th><th>{{ "Registrados" if es else "Registered" }}</th>
+          <th>{{ "En línea" if es else "Online" }}</th><th>{{ "Desconectados" if es else "Offline" }}</th>
+          <th>{{ "En campus" if es else "On campus" }}</th><th>{{ "Desactivados" if es else "Disabled" }}</th>
+        </tr></thead>
+        <tbody>
+        {% for role, label in [('estudiante', ('Estudiantes' if es else 'Students')), ('docente', ('Docentes' if es else 'Teachers')), ('personal', ('Trabajadores' if es else 'Staff')), ('administrativo', ('Administradores' if es else 'Administrators'))] %}
+          <tr>
+            <td><strong>{{ label }}</strong></td>
+            <td>{{ role_counts[role].total }}</td><td>{{ role_counts[role].online }}</td>
+            <td>{{ role_counts[role].offline }}</td><td>{{ role_counts[role].campus }}</td>
+            <td>{{ role_counts[role].disabled }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
 
-            <div class="hero-mini-card">
-                <p class="hero-mini-label">{{ t('Used Codes') }}</p>
-                <p class="hero-mini-value">{{ used_validation_codes or 0 }}</p>
-                <p class="hero-mini-note">{{ t('Codes already consumed by users') }}</p>
-            </div>
+  <section class="section-panel panel-card" id="admin-user-monitor">
+    <h3 class="panel-title">{{ "Monitor de usuarios" if es else "User monitoring" }}</h3>
+    <p class="panel-subtitle">{{ "Estado calculado en el momento de abrir esta página. Actualiza para consultar los últimos datos. La fecha de actividad se muestra en UTC." if es else "Status when the page loaded. Refresh for updated information. Activity time uses UTC." }}</p>
+    <form method="GET" action="{{ url_for('admin_views.admin_dashboard') }}" class="search-row" style="grid-template-columns:1fr 1fr auto;">
+      <select class="select-field" name="monitor_role" aria-label="{{ 'Filtrar por rol' if es else 'Filter by role' }}">
+        <option value="">{{ "Todos los roles" if es else "All roles" }}</option>
+        {% for role, label in [('estudiante','Estudiantes'),('docente','Docentes'),('personal','Trabajadores'),('administrativo','Administradores')] %}
+          <option value="{{ role }}" {% if monitor_role == role %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <select class="select-field" name="monitor_status" aria-label="{{ 'Filtrar por estado' if es else 'Filter by status' }}">
+        <option value="">{{ "Todos los estados" if es else "All statuses" }}</option>
+        <option value="online" {% if monitor_status == "online" %}selected{% endif %}>{{ "En línea" if es else "Online" }}</option>
+        <option value="offline" {% if monitor_status == "offline" %}selected{% endif %}>{{ "Desconectado" if es else "Offline" }}</option>
+        <option value="campus" {% if monitor_status == "campus" %}selected{% endif %}>{{ "Dentro del campus" if es else "On campus" }}</option>
+        <option value="disabled" {% if monitor_status == "disabled" %}selected{% endif %}>{{ "Desactivado" if es else "Disabled" }}</option>
+      </select>
+      <button class="btn btn-primary" type="submit">{{ "Filtrar" if es else "Filter" }}</button>
+    </form>
+    <p class="panel-subtitle">{{ total_matched_users }} {{ "resultados (hasta 300 visibles)." if es else "matches (up to 300 shown)." }} <a href="/admin/users">{{ "Ver usuarios" if es else "View users" }}</a></p>
+    <div class="table-wrap">
+      <table class="dashboard-table">
+        <thead><tr><th>{{ "Nombre" if es else "Name" }}</th><th>{{ "Tipo" if es else "Role" }}</th><th>{{ "Aplicación" if es else "App status" }}</th><th>{{ "Campus" if es else "Campus" }}</th><th>{{ "Última actividad" if es else "Last activity" }}</th></tr></thead>
+        <tbody>
+          {% for member in all_user_statuses %}
+          <tr>
+            <td><strong>{{ member.name }}</strong><div style="font-size:12px;color:#64748b;">@{{ member.username }}</div></td>
+            <td>{{ {'estudiante': ('Estudiante' if es else 'Student'),'docente': ('Docente' if es else 'Teacher'),'personal': ('Trabajador' if es else 'Staff'),'administrativo': ('Administrador' if es else 'Admin')}.get(member.role,member.role) }}</td>
+            <td>{% if not member.active %}<span class="badge badge-danger">{{ "Desactivado" if es else "Disabled" }}</span>{% elif member.online %}<span class="badge badge-success">{{ "En línea" if es else "Online" }}</span>{% else %}<span class="badge badge-neutral">{{ "Desconectado" if es else "Offline" }}</span>{% endif %}</td>
+            <td>{% if member.campus %}<span class="badge badge-success">{{ "Dentro" if es else "Inside" }}</span>{% else %}<span class="badge badge-neutral">{{ "Sin entrada activa" if es else "No open entry" }}</span>{% endif %}</td>
+            <td>{{ member.last_seen }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5">{{ "No hay usuarios con esos filtros." if es else "No users match these filters." }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
 
-            <div class="hero-mini-card">
-                <p class="hero-mini-label">{{ t('Active Users Today') }}</p>
-                <p class="hero-mini-value">{{ active_users_today or 0 }}</p>
-                <p class="hero-mini-note">{{ t('Users currently active in today’s flow') }}</p>
-            </div>
-        </div>
-    </section>
-
-    <section class="stat-card">
-        <p class="stat-label">{{ t('Students Signed In') }}</p>
-        <p class="stat-value">{{ total_students_signed_in or 0 }}</p>
-        <p class="stat-foot">{{ t('Registered student accounts currently tracked') }}</p>
-    </section>
-
-    <section class="stat-card">
-        <p class="stat-label">{{ t('Unused Codes') }}</p>
-        <p class="stat-value">{{ unused_validation_codes or 0 }}</p>
-        <p class="stat-foot">{{ t('Available codes not yet consumed') }}</p>
-    </section>
-
-    <section class="stat-card">
-        <p class="stat-label">{{ t('Today Check-Ins') }}</p>
-        <p class="stat-value">{{ today_check_ins or 0 }}</p>
-        <p class="stat-foot">{{ t('All check-in records detected today') }}</p>
-    </section>
-
-    <section class="stat-card">
-        <p class="stat-label">{{ t('Today Check-Outs') }}</p>
-        <p class="stat-value">{{ today_check_outs or 0 }}</p>
-        <p class="stat-foot">{{ t('All check-out records detected today') }}</p>
-    </section>
-
-    <section class="section-panel panel-card">
-        <h3 class="panel-title">{{ t('Today Activity by Role') }}</h3>
-        <p class="panel-subtitle">
-            {{ t('Quick role breakdown for daily access and live activity totals.') }}
-        </p>
-
-        <div class="role-stats">
-            <div class="role-box">
-                <h4>{{ t('Students') }}</h4>
-                <p>
-                    {{ t('Checked In:') }} <strong>{{ students_checked_in_today or 0 }}</strong><br>
-                    {{ t('Checked Out:') }} <strong>{{ students_checked_out_today or 0 }}</strong><br>
-                    {{ t('Active Today:') }} <strong>{{ active_students_today or 0 }}</strong>
-                </p>
-            </div>
-
-            <div class="role-box">
-                <h4>{{ t('Teachers') }}</h4>
-                <p>
-                    {{ t('Checked In:') }} <strong>{{ teachers_checked_in_today or 0 }}</strong><br>
-                    {{ t('Checked Out:') }} <strong>{{ teachers_checked_out_today or 0 }}</strong><br>
-                    {{ t('Active Today:') }} <strong>{{ active_teachers_today or 0 }}</strong>
-                </p>
-            </div>
-
-            <div class="role-box">
-                <h4>{{ t('Staff') }}</h4>
-                <p>
-                    {{ t('Checked In:') }} <strong>{{ staff_checked_in_today or 0 }}</strong><br>
-                    {{ t('Checked Out:') }} <strong>{{ staff_checked_out_today or 0 }}</strong><br>
-                    {{ t('Active Today:') }} <strong>{{ active_staff_today or 0 }}</strong>
-                </p>
-            </div>
-        </div>
-    </section>
-
-    <section class="two-column panel-card">
-        <h3 class="panel-title">{{ t('Validation Code Overview') }}</h3>
-        <p class="panel-subtitle">
-            {{ t('Initial admin dashboard block for code activity and role-based creation tracking.') }}
-        </p>
-
-        <div class="table-wrap">
-            <table class="dashboard-table">
-                <thead>
-                    <tr>
-                        <th>{{ t('Code') }}</th>
-                        <th>{{ t('Role') }}</th>
-                        <th>{{ t('Status') }}</th>
-                        <th>{{ t('Expires') }}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% if recent_validation_codes %}
-                        {% for code in recent_validation_codes %}
-                            <tr>
-                                <td>{{ code.code }}</td>
-                                <td>{{ t({'estudiante':'Student', 'docente':'Professor', 'personal':'Staff', 'administrativo':'Admin'}.get(code.role, code.role)) }}</td>
-                                <td>
-                                    {% if code.is_used %}
-                                        <span class="badge badge-danger">{{ t('Used') }}</span>
-                                    {% elif code.expires_at and code.expires_at < now %}
-                                        <span class="badge badge-warning">{{ t('Expired') }}</span>
-                                    {% else %}
-                                        <span class="badge badge-success">{{ t('Active') }}</span>
-                                    {% endif %}
-                                </td>
-                                <td>{{ code.expires_at or t('No limit') }}</td>
-                            </tr>
-                        {% endfor %}
-                    {% else %}
-                        <tr>
-                            <td colspan="4">{{ t('No validation codes available yet.') }}</td>
-                        </tr>
-                    {% endif %}
-                </tbody>
-            </table>
-        </div>
-    </section>
-
-    <section class="two-column panel-card">
-        <h3 class="panel-title">{{ t('Quick Actions') }}</h3>
-        <p class="panel-subtitle">
-            {{ t('Fast navigation for the first admin build. These sections can be expanded later without changing the design system.') }}
-        </p>
-
-        <div class="quick-grid">
-            <div class="quick-card">
-                <h4>{{ t('Create New Validation Code') }}</h4>
-                <p>{{ t('Open the validation-code section to create role-based codes with time expiration.') }}</p>
-                <a href="/admin/validation-codes">{{ t('Open Validation Codes') }}</a>
-            </div>
-
-            <div class="quick-card">
-                <h4>{{ t('Review Active Users') }}</h4>
-                <p>{{ t('Open user monitoring to review who is active and how many role accounts exist.') }}</p>
-                <a href="/admin/users">{{ t('Open Users') }}</a>
-            </div>
-
-            <div class="quick-card">
-                <h4>{{ t('Access Control Monitor') }}</h4>
-                <p>{{ t('Check live check-in and check-out flow for all tracked roles and today’s activity.') }}</p>
-                <a href="/admin/access-control">{{ t('Open Access Control') }}</a>
-            </div>
-        </div>
-    </section>
-
-    <section class="section-panel panel-card">
-        <h3 class="panel-title">{{ t('Access Search') }}</h3>
-        <p class="panel-subtitle">
-            {{ t('Search by name, ID, role, and date to review access records.') }}
-        </p>
-
-        <form method="GET" action="{{ url_for('admin_views.admin_dashboard') }}" class="search-row">
-            <input type="text" class="input-field" name="access_search" value="{{ access_search }}"
-                   placeholder="{{ t('Search by full name or ID') }}">
-            <select class="select-field" name="access_role">
-                <option value="">{{ t('All Roles') }}</option>
-                <option value="estudiante" {% if selected_access_role == 'estudiante' %}selected{% endif %}>{{ t('Student') }}</option>
-                <option value="docente" {% if selected_access_role == 'docente' %}selected{% endif %}>{{ t('Teacher') }}</option>
-                <option value="personal" {% if selected_access_role == 'personal' %}selected{% endif %}>{{ t('Staff') }}</option>
-                <option value="administrativo" {% if selected_access_role == 'administrativo' %}selected{% endif %}>{{ t('Admin') }}</option>
-            </select>
-            <input type="date" class="input-field" name="access_date" value="{{ selected_access_date }}">
-            <input type="time" class="input-field" name="access_time" value="{{ selected_access_time }}">
-            <button type="submit" class="btn btn-primary">{{ t('Search') }}</button>
-        </form>
-
-        <div class="table-wrap">
-            <table class="dashboard-table">
-                <thead>
-                    <tr>
-                        <th>{{ t('Name') }}</th>
-                        <th>{{ t('Role') }}</th>
-                        <th>{{ t('ID') }}</th>
-                        <th>{{ t('Check In') }}</th>
-                        <th>{{ t('Check Out') }}</th>
-                        <th>{{ t('Hours') }}</th>
-                        <th>{{ t('Status') }}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% if recent_access_records %}
-                        {% for record in recent_access_records %}
-                            <tr>
-                                <td>{{ t(record.full_name) if record.full_name == 'System Administrator' else record.full_name }}</td>
-                                <td>{{ t({'estudiante':'Student', 'docente':'Professor', 'personal':'Staff', 'administrativo':'Admin'}.get(record.role, record.role)) }}</td>
-                                <td>{{ record.user_id }}</td>
-                                <td>{{ record.check_in_time or "-" }}</td>
-                                <td>{{ record.check_out_time or "-" }}</td>
-                                <td>{{ record.total_hours or "-" }}</td>
-                                <td>
-                                    {% if record.status == "active" %}
-                                        <span class="badge badge-success">{{ t('Active') }}</span>
-                                    {% elif record.status == "closed" %}
-                                        <span class="badge badge-neutral">{{ t('Closed') }}</span>
-                                    {% else %}
-                                        <span class="badge badge-warning">{{ t(record.status or 'Pending') }}</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    {% else %}
-                        <tr>
-                            <td colspan="7">{{ t('No access history data available yet.') }}</td>
-                        </tr>
-                    {% endif %}
-                </tbody>
-            </table>
-        </div>
-    </section>
-
-    <section class="three-column panel-card">
-        <h3 class="panel-title">{{ t('Live Presence Feed') }}</h3>
-        <p class="panel-subtitle">
-            {{ t('People currently active or recently updated in the system.') }}
-        </p>
-
-        <div class="activity-list">
-            {% if live_presence_feed %}
-                {% for item in live_presence_feed %}
-                    <div class="activity-card">
-                        <div class="activity-top">
-                            <h4 class="activity-name">{{ t(item.full_name) if item.full_name == 'System Administrator' else item.full_name }}</h4>
-                            <span class="badge badge-success">{{ t({'estudiante':'Student', 'docente':'Professor', 'personal':'Staff', 'administrativo':'Admin'}.get(item.role, item.role)) }}</span>
-                        </div>
-                        <p class="activity-meta">
-                            {{ t('ID:') }} {{ item.user_id }}<br>
-                            {{ t('Last Action:') }} {{ t({'check_in': 'Check In', 'check_out': 'Check Out'}.get(item.last_action, item.last_action)) }}<br>
-                            {{ t('Time:') }} {{ item.last_time }}
-                        </p>
-                    </div>
-                {% endfor %}
-            {% else %}
-                <div class="activity-card">
-                    <div class="activity-top">
-                        <h4 class="activity-name">{{ t('No live activity yet') }}</h4>
-                        <span class="badge badge-neutral">{{ t('Waiting') }}</span>
-                    </div>
-                    <p class="activity-meta">
-                        {{ t('Live presence data will appear here once access activity is available.') }}
-                    </p>
-                </div>
-            {% endif %}
-        </div>
-    </section>
-
-    <section class="three-column panel-card">
-        <h3 class="panel-title">{{ t('System Notes') }}</h3>
-        <p class="panel-subtitle">
-            {{ t('Planned admin-only control features based on your system design.') }}
-        </p>
-
-        <div class="activity-list">
-            <div class="activity-card">
-                <div class="activity-top">
-                    <h4 class="activity-name">{{ t('Role-Based Code Expiration') }}</h4>
-                    <span class="badge badge-success">{{ t('Ready') }}</span>
-                </div>
-                <p class="activity-meta">
-                    {{ t('Validation codes are designed to support role selection and time limits like 24 or 48 hours.') }}
-                </p>
-            </div>
-
-            <div class="activity-card">
-                <div class="activity-top">
-                    <h4 class="activity-name">{{ t('Admin Access Participation') }}</h4>
-                    <span class="badge badge-neutral">{{ t('Included') }}</span>
-                </div>
-                <p class="activity-meta">
-                    {{ t('Admins will also use the same access-control flow, QR logic, and history structure as other roles.') }}
-                </p>
-            </div>
-        </div>
-    </section>
-
-    <section class="three-column panel-card">
-        <h3 class="panel-title">{{ t('Recent Admin Activity') }}</h3>
-        <p class="panel-subtitle">
-            {{ t('Latest admin operations and important updates.') }}
-        </p>
-
-        <div class="activity-list">
-            {% if recent_admin_activity %}
-                {% for item in recent_admin_activity %}
-                    <div class="activity-card">
-                        <div class="activity-top">
-                            <h4 class="activity-name">{{ item.title }}</h4>
-                            <span class="badge badge-neutral">{{ item.time }}</span>
-                        </div>
-                        <p class="activity-meta">{{ item.description }}</p>
-                    </div>
-                {% endfor %}
-            {% else %}
-                <div class="activity-card">
-                    <div class="activity-top">
-                        <h4 class="activity-name">{{ t('No admin activity yet') }}</h4>
-                        <span class="badge badge-neutral">{{ t('Empty') }}</span>
-                    </div>
-                    <p class="activity-meta">
-                        {{ t('New admin actions will appear here once dashboard logic is connected.') }}
-                    </p>
-                </div>
-            {% endif %}
-        </div>
-    </section>
+  <section class="section-panel panel-card" id="admin-notices">
+    <h3 class="panel-title">{{ "Avisos para la comunidad" if es else "Community notices" }}</h3>
+    <p class="panel-subtitle">{{ "Envía un comunicado dentro de UniTrack a todos o solo a estudiantes, docentes o trabajadores. Los destinatarios lo verán cuando abran o actualicen su página." if es else "Post an in-app announcement to everyone or a selected group. Recipients see it when they open or refresh UniTrack." }}</p>
+    <form method="POST" action="{{ url_for('admin_views.admin_create_notice') }}" style="display:grid;gap:12px;max-width:850px;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label for="notice_title"><strong>{{ "Asunto" if es else "Subject" }}</strong></label>
+      <input class="input-field" id="notice_title" name="title" minlength="3" maxlength="120" required placeholder="{{ 'Ejemplo: Aviso de acceso al campus' if es else 'e.g., Campus access notice' }}">
+      <label for="notice_audience"><strong>{{ "Destinatarios" if es else "Recipients" }}</strong></label>
+      <select class="select-field" id="notice_audience" name="audience" required>
+        <option value="all">{{ "Todos los usuarios" if es else "Everyone" }}</option>
+        <option value="estudiante">{{ "Solo estudiantes" if es else "Students only" }}</option>
+        <option value="docente">{{ "Solo docentes" if es else "Teachers only" }}</option>
+        <option value="personal">{{ "Solo trabajadores" if es else "Staff only" }}</option>
+        <option value="administrativo">{{ "Solo administradores" if es else "Admins only" }}</option>
+      </select>
+      <label for="notice_body"><strong>{{ "Mensaje" if es else "Message" }}</strong></label>
+      <textarea id="notice_body" name="body" minlength="5" maxlength="2000" rows="5" required
+                style="width:100%;box-sizing:border-box;border:1px solid #dbe4f0;border-radius:12px;padding:13px;font:inherit;"
+                placeholder="{{ 'Escribe el aviso que recibirán los usuarios...' if es else 'Write the announcement...' }}"></textarea>
+      <button type="submit" class="btn btn-primary" style="justify-self:start;">{{ "Publicar aviso" if es else "Publish notice" }}</button>
+    </form>
+    <h4 class="panel-title" style="margin-top:24px;">{{ "Avisos recientes" if es else "Recent notices" }}</h4>
+    <div class="table-wrap">
+      <table class="dashboard-table">
+        <thead><tr><th>{{ "Aviso" if es else "Notice" }}</th><th>{{ "Destinatarios" if es else "Recipients" }}</th><th>{{ "Fecha" if es else "Date" }}</th><th>{{ "Estado" if es else "Status" }}</th><th>{{ "Acción" if es else "Action" }}</th></tr></thead>
+        <tbody>
+          {% for notice in recent_notices %}
+          <tr>
+            <td><strong>{{ notice.title }}</strong><div style="white-space:pre-wrap;overflow-wrap:anywhere;max-width:430px;">{{ notice.body }}</div></td>
+            <td>{{ {'all':('Todos' if es else 'Everyone'),'estudiante':('Estudiantes' if es else 'Students'),'docente':('Docentes' if es else 'Teachers'),'personal':('Trabajadores' if es else 'Staff'),'administrativo':('Administradores' if es else 'Admins')}.get(notice.audience,notice.audience) }}</td>
+            <td>{{ notice.created_at.strftime('%d/%m/%Y %H:%M UTC') }}</td>
+            <td>{% if notice.is_active %}<span class="badge badge-success">{{ "Publicado" if es else "Published" }}</span>{% else %}<span class="badge badge-neutral">{{ "Archivado" if es else "Archived" }}</span>{% endif %}</td>
+            <td>{% if notice.is_active %}
+              <form method="POST" action="{{ url_for('admin_views.admin_archive_notice', notice_id=notice.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-secondary" type="submit">{{ "Archivar" if es else "Archive" }}</button>
+              </form>
+            {% else %}—{% endif %}</td>
+          </tr>
+          {% else %}<tr><td colspan="5">{{ "Todavía no se han publicado avisos." if es else "No notices have been published." }}</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
 </div>
 {% endblock %}
