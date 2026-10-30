@@ -14,7 +14,7 @@ BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
 
-from flask import Flask, redirect, url_for, session, request, abort, jsonify
+from flask import Flask, redirect, url_for, session, request, abort, jsonify, render_template
 from flask_login import LoginManager, current_user, logout_user, login_required
 from flask_migrate import Migrate
 
