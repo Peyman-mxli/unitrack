@@ -953,6 +953,7 @@ Polytechnic University of Baja California
 <nav class="sidebar-nav">
 <a href="/student/dashboard" class="{% if active_page == 'dashboard' %}active{% endif %}">{{ t("dashboard") }}</a>
 <a href="/student/access-control" class="{% if active_page == 'access_control' %}active{% endif %}">{{ t("access_control") }}</a>
+{% include "_university_notice_nav.html" %}
 
 <a href="/student/attendance-history" class="{% if active_page == 'attendance_history' %}active{% endif %}">{{ t("attendance_history") }}</a>
 <a href="/student/configuration" class="{% if active_page == 'configuration' %}active{% endif %}">{{ t("configuration") }}</a>
