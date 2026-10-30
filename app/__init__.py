@@ -662,6 +662,27 @@ def create_app():
             session["csrf_token"] = token
         return token
 
+    def _get_visible_university_notices():
+        """Only logged-in, active users may read notices for their own role."""
+        if not current_user.is_authenticated or not getattr(current_user, "is_active_user", False):
+            return []
+        try:
+            from .models.university_notice_model import UniversityNotice
+            from app.database import db
+            role = str(getattr(current_user, "role", "") or "").lower()
+            return db.session.execute(
+                db.select(UniversityNotice)
+                .where(
+                    UniversityNotice.is_active.is_(True),
+                    UniversityNotice.audience.in_(("all", role)),
+                )
+                .order_by(UniversityNotice.created_at.desc(), UniversityNotice.id.desc())
+                .limit(5)
+            ).scalars().all()
+        except Exception:
+            app.logger.exception("University notice read failed")
+            return []
+
     @app.context_processor
     def inject_global_translations():
         return {
@@ -669,6 +690,7 @@ def create_app():
             "display_user_name": display_user_name,
             "csrf_token": csrf_token,
             "current_language": get_current_language(),
+            "global_notices": _get_visible_university_notices(),
         }
 
     # ✅ REGISTER BLUEPRINTS
@@ -688,6 +710,7 @@ def create_app():
         from .models.scan_token_model import ScanToken
         from .models.validation_revocation_model import ValidationCodeRevocation
         from .models.user_presence_model import UserPresence
+        from .models.university_notice_model import UniversityNotice
         from .models.auth_attempt_model import AuthAttempt
 
         db.create_all()
