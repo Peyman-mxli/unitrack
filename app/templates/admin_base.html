@@ -995,7 +995,9 @@
                         {% endif %}
                     {% endwith %}
 
-                    {% block content %}
+                    {% include "_university_notices.html" %}
+
+{% block content %}
                     <div class="content-card">
                         {{ t('admin') }} — {{ t('content goes here.') }}
                     </div>
