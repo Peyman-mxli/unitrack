@@ -564,7 +564,7 @@
 
     <div class="qr-card">
         <h3 style="margin:0; color:#081a43;">{{ t('Your Access QR Code') }}
-        <p style="margin:10px 0;color:#475569;font-size:13px;">{{ "QR y código únicos. Vigentes 5 minutos y de un solo uso; actualiza esta página después de utilizarlos." if current_language == "es" else "Unique QR and code. Valid for 5 minutes and one use; refresh this page after using them." }}</p>
+        <p style="margin:10px 0;color:#475569;font-size:13px;">{{ "QR personal: úsalo para registrar Entrada dentro de 5 minutos y muestra el mismo QR para registrar Salida (hasta 24 horas después). Un tercer uso se rechaza." if current_language == "es" else "Your personal QR: scan it for entry within 5 minutes, then scan the same QR for exit (up to 24 hours later). A third use is rejected." }}</p>
         <a href="{{ url_for('professor_views.access_control_page') }}" style="display:inline-block;margin:5px 0 12px;padding:9px 13px;border-radius:9px;background:#7c3aed;color:white;text-decoration:none;font-weight:800;">{{ "Generar nuevo QR" if current_language == "es" else "Get new QR" }}</a></h3>
 
         <div class="qr-box">
@@ -615,7 +615,7 @@
 
         <div class="card">
             <div style="font-size:13px; font-weight:900; margin-bottom:8px; color:#081a43;">
-                {{ "Código temporal para entrar" if current_language == "es" else "Temporary Access Code" }}
+                {{ "Código para entrada y salida" if current_language == "es" else "Temporary Access Code" }}
             </div>
 
             <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
