@@ -309,10 +309,72 @@ class UniTrackTests(unittest.TestCase):
         self.assertIn("Historial de Acceso".encode("utf-8"), page.data)
         self.assertNotIn(b'href="/student/access-control/scanner"', page.data)
         self.assertNotIn(b'url_for(\'student_views.access_control_check_in\')', page.data)
-        self.assertNotIn(b'data-qr-start', page.data)
+        self.assertIn(b'id="studentAccessCamera"', page.data)
+        self.assertIn(b'data-qr-start', page.data)
+        self.assertIn(b'data-qr-video', page.data)
+        self.assertIn(b'name="pass_code"', page.data)
+        self.assertIn(b'js/qr-camera.js', page.data)
+        self.assertEqual(page.data.count(b"js/qr-camera.js"), 1)
+        self.assertEqual(page.data.count(b"js/vendor/jsQR.js"), 1)
         old = client.get("/student/access-control/scanner")
         self.assertEqual(old.status_code, 302)
         self.assertTrue(old.headers["Location"].endswith("/student/access-control"))
+
+    def test_student_camera_and_code_verify_without_recording_entry(self):
+        from app.models.user_model import User
+        from app.models.access_log_model import AccessLog
+        from app.models.scan_token_model import ScanToken
+        from app.services.scan_token_service import issue_access_credential
+
+        with self.app.app_context():
+            student = self.db.session.execute(
+                self.db.select(User).where(User.username == "StudentA")
+            ).scalar_one()
+            other = self.db.session.execute(
+                self.db.select(User).where(User.username == "TeacherA")
+            ).scalar_one()
+            signed_qr, temporary_code = issue_access_credential(student)
+            other_qr, _other_code = issue_access_credential(other)
+            student_id = student.id
+            old_count = self.db.session.execute(
+                self.db.select(self.db.func.count(AccessLog.id))
+            ).scalar_one()
+
+        client = self._signed_in_client("StudentA")
+        page = client.get("/student/access-control")
+        csrf = re.search(rb'name="csrf_token" value="([^"]+)"', page.data)
+        self.assertIsNotNone(csrf)
+        token = csrf.group(1).decode("utf-8")
+
+        good_qr = client.post("/student/access-control", data={
+            "qr_text": signed_qr, "csrf_token": token,
+        })
+        self.assertEqual(good_qr.status_code, 200)
+        self.assertIn("Código verificado".encode("utf-8"), good_qr.data)
+
+        good_code = client.post("/student/access-control", data={
+            "pass_code": temporary_code, "csrf_token": token,
+        })
+        self.assertEqual(good_code.status_code, 200)
+        self.assertIn("Código verificado".encode("utf-8"), good_code.data)
+
+        wrong_user = client.post("/student/access-control", data={
+            "qr_text": other_qr, "csrf_token": token,
+        })
+        self.assertEqual(wrong_user.status_code, 200)
+        self.assertIn("Verificación rechazada".encode("utf-8"), wrong_user.data)
+
+        with self.app.app_context():
+            new_count = self.db.session.execute(
+                self.db.select(self.db.func.count(AccessLog.id))
+            ).scalar_one()
+            self.assertEqual(old_count, new_count)
+            still_live = self.db.session.execute(
+                self.db.select(ScanToken).where(ScanToken.user_id == student_id)
+                .order_by(ScanToken.id.desc())
+            ).scalars().first()
+            self.assertIsNotNone(still_live)
+            self.assertIsNone(still_live.consumed_at)
 
     def test_student_cannot_self_check_in_or_out(self):
         from app.models.access_log_model import AccessLog
