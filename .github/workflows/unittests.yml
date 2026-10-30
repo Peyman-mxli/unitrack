@@ -49,7 +49,23 @@ jobs:
           if (!decoded || decoded.data !== "unitrack-camera-decoder-test") {
             throw new Error("Bundled jsQR failed to decode a real QR image");
           }
-          console.log("Local jsQR successfully decoded QR image");
+          const corners = decoded.location && [
+            decoded.location.topLeftCorner, decoded.location.topRightCorner,
+            decoded.location.bottomRightCorner, decoded.location.bottomLeftCorner
+          ];
+          if (!corners || corners.some(p => !Number.isFinite(p.x) ||
+              !Number.isFinite(p.y) || p.x < 0 || p.y < 0 ||
+              p.x > 400 || p.y > 400)) {
+            throw new Error("jsQR did not return four usable QR bounding corners");
+          }
+          const minX = Math.min(...corners.map(p => p.x));
+          const maxX = Math.max(...corners.map(p => p.x));
+          const minY = Math.min(...corners.map(p => p.y));
+          const maxY = Math.max(...corners.map(p => p.y));
+          if (maxX - minX < 30 || maxY - minY < 30) {
+            throw new Error("Invalid QR outline dimensions");
+          }
+          console.log("Local jsQR decoded a QR and its four bounding corners");
           JS
       - name: Run isolated integration tests
         env:
