@@ -823,16 +823,20 @@ def create_app():
         unchanged while entry/exit history updates from another operator.
         """
         from app.services.access_log_service import (
-            get_user_current_access_status, build_access_table_rows
+            get_user_current_access_status, build_access_table_rows,
+            build_personal_access_events, count_personal_access_events,
         )
         if getattr(current_user, "role", None) not in {
             "estudiante", "docente", "personal", "administrativo"
         }:
             abort(403)
         rows = build_access_table_rows(current_user)[:50]
+        events = build_personal_access_events(current_user)
         return jsonify({
             "status": get_user_current_access_status(current_user.id),
             "records": rows,
+            "events": events[:100],
+            "event_counts": count_personal_access_events(events),
             "name": f"{current_user.first_name} {current_user.last_name}".strip(),
             "username": current_user.username,
             "user_id_code": current_user.user_id_code or "—",
