@@ -1096,16 +1096,43 @@ def dashboard_page():
     )
 
 
-@student_views_bp.route("/access-control", methods=["GET"])
+@student_views_bp.route("/access-control", methods=["GET", "POST"])
 @login_required
 @role_required("estudiante")
 def access_control_page():
     """
-    Student access control page.
+    Student QR and camera verification on one Control de Acceso page.
+    A student may verify their own valid credential, but a scan here NEVER
+    writes an entry/exit or consumes a code. Campus operators do that.
     """
 
     _sync_student_language_from_session()
     student_name = _student_full_name(current_user)
+
+    scan_result = None
+    if request.method == "POST":
+        from app.services.scan_token_service import resolve_scan_token
+        submitted = (request.form.get("pass_code") or request.form.get("qr_text") or "").strip()
+        if not submitted:
+            scan_result = {"success": False, "message": "Ingresa un código QR o un código temporal válido."}
+        else:
+            try:
+                scanned_user, _scanned_credential = resolve_scan_token(submitted)
+                if scanned_user.id != current_user.id:
+                    scan_result = {
+                        "success": False,
+                        "message": "Este código pertenece a otra cuenta. Presenta tu propio QR.",
+                    }
+                else:
+                    scan_result = {
+                        "success": True,
+                        "message": "Tu QR o código temporal es válido. Para registrar entrada o salida, preséntalo al personal autorizado.",
+                    }
+            except ValueError:
+                scan_result = {
+                    "success": False,
+                    "message": "Código inválido, caducado o ya utilizado. Genera un nuevo QR.",
+                }
 
     selected_date = request.args.get("date", "").strip()
     access_message = request.args.get("message", "").strip()
@@ -1146,6 +1173,7 @@ def access_control_page():
     return render_template(
         "student_access_control.html",
         student_name=student_name,
+        scan_result=scan_result,
         active_page="access_control",
         demo_records=filtered_records,
         quick_stats=quick_stats,
