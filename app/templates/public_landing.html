@@ -147,7 +147,7 @@ img{max-width:100%}
           <option value="en" {% if not es %}selected{% endif %}>🌐 English</option>
         </select>
       </form>
-      <a class="button button-white" href="{{ url_for('auth.login_page') }}">{{ "Iniciar sesión" if es else "Sign in" }}</a>
+      <a class="button button-ghost" href="{{ url_for('auth.login_page') }}">{{ "Iniciar sesión" if es else "Sign in" }}</a>
       <a class="button button-ghost" href="{{ url_for('auth.register_page') }}">{{ "Crear cuenta" if es else "Sign up" }}</a>
       <button class="menu-button" id="navToggle" type="button" aria-controls="mainNav" aria-expanded="false" aria-label="{{ 'Abrir menú' if es else 'Open menu' }}">☰</button>
     </div>
