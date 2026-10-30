@@ -13,6 +13,12 @@
 .history-tablewrap{overflow-x:auto}.history-table{width:100%;border-collapse:collapse;background:white}
 .history-table th,.history-table td{padding:12px 14px;border-bottom:1px solid #e2e8f0;text-align:left;white-space:nowrap}
 .history-table th{background:#eaf0ff}
+.access-event-summary{display:flex;gap:12px;flex-wrap:wrap;margin:12px 0 16px}
+.access-event-stat{background:#fff;border:1px solid #dce3f3;border-radius:12px;padding:12px 18px;min-width:145px}
+.access-event-stat small{display:block;color:#475569;font-size:12px;font-weight:700}
+.access-event-stat strong{font-size:25px}
+.access-event-entry{color:#15803d;font-weight:800}
+.access-event-exit{color:#b91c1c;font-weight:800}
 </style>
 <div class="history-sheet">
 <form method="GET" action="{{ url_for('admin_views.admin_attendance_history') }}" class="history-form">
@@ -25,16 +31,34 @@
   <button type="submit">{{ "Buscar" if es else "Search" }}</button>
   <a href="{{ url_for('admin_views.admin_attendance_history') }}">{{ "Restablecer" if es else "Reset" }}</a>
 </form>
-<h2>{{ "Historial de acceso al campus" if es else "Campus Access History" }} ({{ access_history|length }})</h2>
+<h2>{{ "Historial de acceso al campus" if es else "Campus Access History" }} ({{ access_event_counts.total }})</h2>
+<p style="color:#475569;margin:0;">{{ "Cada entrada y cada salida es un movimiento independiente." if es else "Each check-in and check-out is an individual event." }}</p>
+<div class="access-event-summary">
+  <div class="access-event-stat"><small>{{ "Entradas registradas" if es else "Recorded entries" }}</small><strong class="access-event-entry">{{ access_event_counts.check_ins }}</strong></div>
+  <div class="access-event-stat"><small>{{ "Salidas registradas" if es else "Recorded exits" }}</small><strong class="access-event-exit">{{ access_event_counts.check_outs }}</strong></div>
+  <div class="access-event-stat"><small>{{ "Total de movimientos" if es else "Total events" }}</small><strong>{{ access_event_counts.total }}</strong></div>
+</div>
 <div class="history-tablewrap"><table class="history-table">
-<thead><tr><th>{{ "Nombre" if es else "Name" }}</th><th>{{ "Rol" if es else "Role" }}</th><th>ID</th><th>{{ "Fecha" if es else "Date" }}</th><th>{{ "Entrada" if es else "Check In" }}</th><th>{{ "Salida" if es else "Check Out" }}</th><th>{{ "Estado" if es else "Status" }}</th></tr></thead>
+<thead><tr>
+<th>#</th><th>{{ "Nombre" if es else "Name" }}</th><th>{{ "Rol" if es else "Role" }}</th><th>ID</th>
+<th>{{ "Fecha" if es else "Date" }}</th><th>{{ "Hora" if es else "Time" }}</th>
+<th>{{ "Movimiento" if es else "Action" }}</th><th>{{ "Duración" if es else "Duration" }}</th>
+<th>{{ "Estado después del evento" if es else "Status after event" }}</th>
+<th>{{ "Entradas / Salidas del usuario" if es else "User entries / exits" }}</th>
+</tr></thead>
 <tbody>
 {% for row in access_history %}
 <tr>
-<td>{{ display_user_name(row.user) }}</td><td>{{ t({'estudiante':'Student','docente':'Professor','personal':'Staff','administrativo':'Admin'}.get(row.user.role,row.user.role)) }}</td>
-<td>{{ row.user.user_id_code or row.user.username }}</td><td>{{ row.log.access_date }}</td><td>{{ row.log.check_in_time or '—' }}</td><td>{{ row.log.check_out_time or '—' }}</td><td>{{ t('Inside Campus') if not row.log.check_out_time else t('Outside Campus') }}</td>
+<td>{{ loop.index }}</td>
+<td>{{ row.name }}</td>
+<td>{{ t({'estudiante':'Student','docente':'Professor','personal':'Staff','administrativo':'Admin'}.get(row.role,row.role)) }}</td>
+<td>{{ row.user_id_code }}</td><td>{{ row.date }}</td><td>{{ row.time }}</td>
+<td>{% if row.action == 'check_in' %}<span class="access-event-entry">{{ "Entrada" if es else "Check-in" }}</span>{% else %}<span class="access-event-exit">{{ "Salida" if es else "Check-out" }}</span>{% endif %}</td>
+<td>{{ row.duration }}</td>
+<td>{{ t('Inside Campus') if row.status == 'checked_in' else t('Outside Campus') }}</td>
+<td>{{ row.user_check_ins }} / {{ row.user_check_outs }}</td>
 </tr>
-{% else %}<tr><td colspan="7">{{ "No hay registros de acceso." if es else "No access records found." }}</td></tr>{% endfor %}
+{% else %}<tr><td colspan="10">{{ "No hay registros de acceso." if es else "No access records found." }}</td></tr>{% endfor %}
 </tbody></table></div>
 </div>
 <div class="history-sheet">
