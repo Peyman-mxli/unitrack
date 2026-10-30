@@ -22,30 +22,30 @@ img{max-width:100%}
 .eyebrow{color:var(--purple);letter-spacing:.14em;text-transform:uppercase;font-size:12px;font-weight:900}
 
 /* ProTrack-style header: full-width, distinct brand/navigation/actions columns. */
-.site-header{background:#fff;color:#162641;border-bottom:1px solid #e5ebf5;box-shadow:0 3px 18px #1a356014;position:sticky;top:0;z-index:30}
+.site-header{background:linear-gradient(90deg,#740018,#8a0021 55%,#5f0017);color:#fff;border-bottom:1px solid #ffffff20;box-shadow:0 9px 28px rgba(49,3,24,.13);position:sticky;top:0;z-index:30}
 .header-inner{width:calc(100% - clamp(44px,7vw,136px));max-width:1840px;margin:auto;min-height:100px;display:grid;grid-template-columns:minmax(255px,1fr) auto minmax(380px,1fr);align-items:center;column-gap:clamp(20px,2vw,38px)}
 .brand{display:flex;gap:12px;align-items:center;min-width:0;text-decoration:none}
 .brand img{width:62px;height:68px;object-fit:contain;flex:0 0 auto;filter:drop-shadow(0 3px 5px #1b1f5a20)}
 .brand-copy{display:flex;flex-direction:column;min-width:0;line-height:1}
-.brand-title{font:900 clamp(34px,2.5vw,40px)/.98 "Outfit",Arial,sans-serif;letter-spacing:-.045em;color:#111c3d;white-space:nowrap}
-.brand-title span{color:#2476fa}
-.brand-sub{display:block;font-size:11px;font-weight:800;color:#5b6884;line-height:1.35;max-width:280px;margin-top:4px}
+.brand-title{font:900 clamp(34px,2.5vw,40px)/.98 "Outfit",Arial,sans-serif;letter-spacing:-.045em;color:#fff;white-space:nowrap}
+.brand-title span{color:#fff}
+.brand-sub{display:block;font-size:11px;font-weight:800;color:#ffebf1;line-height:1.35;max-width:280px;margin-top:4px}
 .nav-links{display:flex;align-items:center;justify-content:center;gap:clamp(15px,1.35vw,25px);min-width:0;align-self:stretch}
-.nav-links a{display:inline-flex;align-items:center;position:relative;text-decoration:none;font-size:clamp(15px,.94vw,17px);font-weight:800;color:#34425b;white-space:nowrap;transition:color .18s ease}
-.nav-links a:hover,.nav-links a:focus-visible,.nav-links .nav-home{color:#176bfb}
-.nav-links .nav-home::after{content:"";position:absolute;left:0;right:0;bottom:24px;height:3px;border-radius:9px;background:#2476fa}
+.nav-links a{display:inline-flex;align-items:center;position:relative;text-decoration:none;font-size:clamp(15px,.94vw,17px);font-weight:800;color:#fff;white-space:nowrap;transition:color .18s ease}
+.nav-links a:hover,.nav-links a:focus-visible,.nav-links .nav-home{color:#fff;opacity:1}
+.nav-links .nav-home::after{content:"";position:absolute;left:0;right:0;bottom:24px;height:3px;border-radius:9px;background:#fff}
 .header-actions{display:flex;align-items:center;justify-content:flex-end;gap:9px;min-width:0}
 .lang-form{margin:0}
-.lang-form select{background:#fff;color:#25334f;border:1px solid #d8e3f3;border-radius:12px;padding:0 12px;min-width:156px;height:49px;font-size:14px;font-weight:800;cursor:pointer}
+.lang-form select{background:#fff;color:#650013;border:1px solid #ffffff8f;border-radius:12px;padding:0 12px;min-width:156px;height:49px;font-size:14px;font-weight:800;cursor:pointer}
 .button{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:48px;padding:11px 18px;border:1px solid transparent;border-radius:11px;cursor:pointer;font-weight:850;font-size:15px;text-decoration:none;transition:transform .2s,box-shadow .2s,background .2s;white-space:nowrap}
 .button:hover{transform:translateY(-2px)}
 .button-white{background:#fff;color:#7b001c}
-.header-actions .button-ghost{color:#126df2;border:1px solid #bcd4ff;background:#f4f8ff;box-shadow:none;min-width:132px}
-.header-actions .button-ghost:hover{background:#e6f1ff;border-color:#4c96ff}
+.header-actions .button-ghost{color:#fff;border:1px solid #ffffff8b;background:#ffffff16;box-shadow:none;min-width:132px}
+.header-actions .button-ghost:hover{background:#ffffff30;border-color:#fff}
 .button-ghost{color:#fff;border-color:#ffffffa0;background:#ffffff18}
 .button-main{background:linear-gradient(100deg,#8f50ff,#6b38f4 56%,#416af4);color:white;box-shadow:0 11px 30px #4314ad55}
 .button-outline{color:#fff;border-color:#ffffffad;background:#ffffff13}
-.menu-button{display:none;border:1px solid #cddbf1;border-radius:11px;background:#f5f8fe;color:#1655a7;font-size:22px;width:46px;height:46px;align-items:center;justify-content:center;cursor:pointer}
+.menu-button{display:none;border:1px solid #ffffff88;border-radius:11px;background:#ffffff16;color:#fff;font-size:22px;width:46px;height:46px;align-items:center;justify-content:center;cursor:pointer}
 
 /* Full-width campus photo, with the same generous hero proportions as ProTrack. */
 .hero{position:relative;isolation:isolate;overflow:hidden;min-height:690px;background:linear-gradient(105deg,#172450,#3d438d,#4f3c87)}
@@ -130,10 +130,10 @@ img{max-width:100%}
 /* Switch to an accessible dropdown BEFORE desktop columns become cramped. */
 @media(max-width:1510px){
   .header-inner{grid-template-columns:minmax(0,1fr) auto;min-height:82px}
-  .nav-links{display:none;position:absolute;top:100%;left:0;right:0;padding:16px max(28px,5vw) 22px;flex-direction:column;align-items:stretch;gap:0;background:#fff;border-top:1px solid #e7edf7;box-shadow:0 16px 28px #0a21451c}
+  .nav-links{display:none;position:absolute;top:100%;left:0;right:0;padding:16px max(28px,5vw) 22px;flex-direction:column;align-items:stretch;gap:0;background:#73001b;border-top:1px solid #ffffff35;box-shadow:0 16px 28px #22011340}
   .nav-links.open{display:flex}
   .nav-links a{display:block;font-size:16px;padding:12px 10px;border-radius:8px}
-  .nav-links a:hover{background:#edf5ff}
+  .nav-links a:hover{background:#ffffff20}
   .nav-links .nav-home::after{display:none}
   .menu-button{display:flex}
   .brand-title{font-size:34px}
