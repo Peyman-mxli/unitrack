@@ -659,7 +659,7 @@
 <section class="operator-qr-card" aria-labelledby="operatorOwnQrTitle">
     <h2 id="operatorOwnQrTitle">{{ "Mi QR personal de acceso" if current_language == "es" else "My Personal Access QR" }}</h2>
     <p class="qr-instructions">
-        {{ "Cada usuario tiene un QR y un código temporal diferentes. Muestra este QR al encargado de la entrada. Es válido durante 5 minutos y se utiliza una sola vez." if current_language == "es" else "Every user receives a different QR and temporary code. Show yours to an entrance operator. It lasts 5 minutes and works once." }}
+        {{ "Cada persona tiene su propio QR. El primer escaneo registra Entrada (dentro de 5 minutos); el segundo escaneo del mismo QR registra Salida (dentro de 24 horas). Un tercer uso se rechaza." if current_language == "es" else "Each person has their own QR. The first scan records entry (within 5 minutes); the second scan of the same QR records exit (within 24 hours). A third use is rejected." }}
     </p>
     <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
         {% if access_qr_image %}
