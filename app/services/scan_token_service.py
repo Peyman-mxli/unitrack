@@ -1,7 +1,8 @@
-"""Signed, per-person QR credentials with matching one-time manual access codes.
+"""Signed per-person QR and backup codes for paired entrance/exit scans.
 
-Both QR and backup code resolve to the SAME ScanToken record and expire/are
-consumed together. A permanent public user ID cannot grant campus access.
+Unused credentials expire after five minutes. After an authorized first
+check-in, the SAME signed credential can check out its matching entry once
+within 24 hours, then is permanently closed. Permanent IDs remain invalid.
 """
 import hashlib
 import secrets
@@ -15,6 +16,7 @@ from app.models.user_model import User
 from app.models.scan_token_model import ScanToken
 
 QR_TOKEN_LIFETIME_SECONDS = 300
+QR_CHECKOUT_LIFETIME_SECONDS = 24 * 60 * 60
 _CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 _CODE_LENGTH = 16
 # Every person receives a random secret, plus a visible three-letter role.
@@ -75,10 +77,10 @@ def _normalize_code(value):
 
 
 def issue_access_credential(user):
-    """Issue one short-lived QR token and matching 16-character manual code.
+    """Create a unique QR and matching manual code for the account.
 
-    The DB only stores the code hash, not the plaintext. Both consume the
-    same record, so one successful scan invalidates the other method.
+    The first scan must occur within five minutes. After check-in the same
+    credential can complete its paired checkout once within 24 hours.
     """
     if not user or not user.is_active_user:
         raise ValueError("An active account is required for QR creation.")
@@ -125,6 +127,29 @@ def is_temporary_access_code(value):
     return bool(_normalize_code(value))
 
 
+def _check_credential_state(record, now):
+    """Reject used/expired codes unless they have an open paired entry."""
+    if not record:
+        raise ValueError("Invalid QR or temporary access code.")
+    if record.consumed_at is None:
+        if record.expires_at < now:
+            raise ValueError("This QR or temporary code has expired. Generate a new one.")
+        return
+
+    from app.models.access_scan_pair_model import AccessScanPair
+    from app.models.access_log_model import AccessLog
+    pair = db.session.execute(
+        db.select(AccessScanPair).where(AccessScanPair.scan_token_id == record.id)
+    ).scalar_one_or_none()
+    if not pair or pair.checked_out_at is not None or pair.user_id != record.user_id:
+        raise ValueError("QR code has already been used. Generate a new one.")
+    if record.issued_at < now - timedelta(seconds=QR_CHECKOUT_LIFETIME_SECONDS):
+        raise ValueError("The checkout QR has expired. Generate a new one.")
+    entry = db.session.get(AccessLog, pair.access_log_id)
+    if not entry or entry.student_id != record.user_id or entry.check_out_time is not None:
+        raise ValueError("This QR's corresponding entry is already closed.")
+
+
 def resolve_scan_token(qr_text):
     """Identify and verify a signed QR OR its matching temporary backup code."""
     supplied = str(qr_text or "").strip()
@@ -135,8 +160,7 @@ def resolve_scan_token(qr_text):
         record = db.session.execute(db.select(ScanToken).where(
             ScanToken.token_hash == digest
         )).scalar_one_or_none()
-        if not record or record.consumed_at is not None or record.expires_at < now:
-            raise ValueError("Access code has already been used or has expired.")
+        _check_credential_state(record, now)
         user = db.session.get(User, record.user_id)
         if not user or not user.is_active_user:
             raise ValueError("User account is unavailable.")
@@ -148,7 +172,7 @@ def resolve_scan_token(qr_text):
     if not token:
         raise ValueError("Scan a signed QR or enter a valid temporary access code.")
     try:
-        payload = _serializer().loads(token, max_age=QR_TOKEN_LIFETIME_SECONDS)
+        payload = _serializer().loads(token, max_age=QR_CHECKOUT_LIFETIME_SECONDS)
     except SignatureExpired as exc:
         raise ValueError("This QR code has expired. Refresh the QR display.") from exc
     except (BadSignature, TypeError, ValueError) as exc:
@@ -172,8 +196,7 @@ def resolve_scan_token(qr_text):
     record = db.session.execute(db.select(ScanToken).where(
         ScanToken.token_hash == nonce_hash, ScanToken.user_id == user.id
     )).scalar_one_or_none()
-    if not record or record.consumed_at is not None or record.expires_at < now:
-        raise ValueError("QR code has already been used or has expired.")
+    _check_credential_state(record, now)
     return user, record
 
 
