@@ -563,6 +563,48 @@ def build_user_access_records(user, selected_date=""):
     ]
 
 
+def build_global_access_records(selected_date=""):
+    """Show admin the campus-wide QR history, not only the admin's own visits.
+
+    Read-only: each access row is a paired entry / exit; other users' QR scans
+    must appear immediately after the scanner POST finishes.
+    """
+    from app.services.access_log_service import (
+        build_access_display_name,
+        format_date_for_display,
+        format_time_for_display,
+        calculate_hours_text,
+    )
+
+    query = (
+        db.select(AccessLog, User)
+        .join(User, AccessLog.student_id == User.id)
+        .order_by(AccessLog.check_in_time.desc(), AccessLog.id.desc())
+    )
+    if selected_date:
+        try:
+            query = query.where(
+                AccessLog.access_date == datetime.strptime(selected_date, "%m/%d/%Y").date()
+            )
+        except ValueError:
+            return []
+
+    result = []
+    for log, user in db.session.execute(query.limit(500)).all():
+        result.append({
+            "name": build_access_display_name(user),
+            "username": user.username or "--",
+            "user_id_code": user.user_id_code or user.username or "--",
+            "role": str(user.role or "").lower(),
+            "date": format_date_for_display(log.access_date),
+            "check_in": format_time_for_display(log.check_in_time),
+            "check_out": format_time_for_display(log.check_out_time),
+            "hours": calculate_hours_text(log.check_in_time, log.check_out_time),
+            "status": "checked_out" if log.check_out_time is not None else "checked_in",
+        })
+    return result
+
+
 def perform_access_check_in_for_user(user, notes=""):
     """
     Register a check-in using the global access service.
@@ -1571,7 +1613,8 @@ def admin_access_control():
     access_error = str(request.args.get("error", "")).strip()
 
     current_access_status = get_user_current_access_status(current_user.id)
-    access_records = build_user_access_records(current_user, selected_date)
+    access_records = build_user_access_records(current_user)
+    global_access_records = build_global_access_records(selected_date)
 
     from app.services.scan_token_service import issue_access_credential
     access_token, access_qr_id_code = issue_access_credential(current_user)
@@ -1592,6 +1635,7 @@ def admin_access_control():
         access_qr_id_code=access_qr_id_code,
         current_access_status=current_access_status,
         access_records=access_records,
+        global_access_records=global_access_records,
         demo_records=access_records,
         current_server_time=datetime.utcnow(),
     )
