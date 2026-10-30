@@ -208,6 +208,23 @@ class UniTrackTests(unittest.TestCase):
             self.assertFalse(self.db.session.get(UniversityNotice, notice_id).is_active)
         self.assertNotIn("Solo alumnos".encode("utf-8"), student.get("/student/dashboard").data)
 
+        teacher_notice = admin.post("/admin/notices/create", data={
+            "title": "Solo docentes",
+            "body": "Revisar el calendario de clases.",
+            "audience": "docente",
+            "csrf_token": token,
+        })
+        self.assertEqual(teacher_notice.status_code, 302)
+        self.assertIn("Solo docentes".encode("utf-8"), teacher.get("/professor/dashboard").data)
+        self.assertNotIn("Solo docentes".encode("utf-8"), student.get("/student/dashboard").data)
+        self.assertNotIn("Solo docentes".encode("utf-8"), worker.get("/personal/dashboard").data)
+        with self.app.app_context():
+            teacher_record = self.db.session.execute(
+                self.db.select(UniversityNotice).where(UniversityNotice.title == "Solo docentes")
+            ).scalar_one()
+            teacher_record.is_active = False
+            self.db.session.commit()
+
     def test_notice_form_protected_by_csrf(self):
         client = self._signed_in_client()
         response = client.post("/admin/notices/create", data={
