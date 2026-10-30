@@ -1,0 +1,11 @@
+{# Shared role-restricted notice inbox navigation with persistent unread count. #}
+<a href="{{ url_for('notice_inbox') }}"
+   class="{% if active_page == 'avisos' %}active{% endif %}"
+   style="display:flex;align-items:center;justify-content:space-between;gap:12px;"
+   aria-label="{{ 'Avisos, ' ~ notice_unread_count ~ ' sin leer' if current_language == 'es' else 'Notices, ' ~ notice_unread_count ~ ' unread' }}">
+  <span>🔔 {{ "Avisos" if current_language == "es" else "Notices" }}</span>
+  <span data-notice-sidebar-count
+        style="flex-shrink:0;background:{{ '#7c3aed' if notice_unread_count else '#e2e8f0' }};color:{{ '#fff' if notice_unread_count else '#475569' }};
+               border-radius:20px;min-width:26px;padding:3px 7px;text-align:center;
+               font-size:12px;font-weight:900;" aria-hidden="true">{{ notice_unread_count }}</span>
+</a>
