@@ -14,8 +14,8 @@ BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
 
-from flask import Flask, redirect, url_for, session, request, abort
-from flask_login import LoginManager, current_user, logout_user
+from flask import Flask, redirect, url_for, session, request, abort, jsonify
+from flask_login import LoginManager, current_user, logout_user, login_required
 from flask_migrate import Migrate
 
 from config import Config
@@ -813,6 +813,30 @@ def create_app():
         if environment == "production":
             response.headers.setdefault("Strict-Transport-Security", "max-age=31536000")
         return response
+
+    @app.route("/api/access-control/live", methods=["GET"])
+    @login_required
+    def live_personal_access_history():
+        """Read-only status and history for the currently signed-in person.
+
+        No QR or access token is created here; the displayed credential stays
+        unchanged while entry/exit history updates from another operator.
+        """
+        from app.services.access_log_service import (
+            get_user_current_access_status, build_access_table_rows
+        )
+        if getattr(current_user, "role", None) not in {
+            "estudiante", "docente", "personal", "administrativo"
+        }:
+            abort(403)
+        rows = build_access_table_rows(current_user)[:50]
+        return jsonify({
+            "status": get_user_current_access_status(current_user.id),
+            "records": rows,
+            "name": f"{current_user.first_name} {current_user.last_name}".strip(),
+            "username": current_user.username,
+            "user_id_code": current_user.user_id_code or "—",
+        })
 
     # ✅ ROOT → LOGIN PAGE
     @app.route("/")
