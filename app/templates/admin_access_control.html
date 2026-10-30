@@ -488,8 +488,9 @@
 }
 </style>
 
-{% set records = access_records if access_records is defined and access_records else demo_records if demo_records is defined and demo_records else [] %}
-{% set latest_record = records[0] if records else None %}
+{% set records = global_access_records if global_access_records is defined else [] %}
+{% set own_records = access_records if access_records is defined else [] %}
+{% set latest_record = own_records[0] if own_records else None %}
 
 {% set current_status_raw = current_access_status if current_access_status is defined and current_access_status else {} %}
 {% set current_status_value = (
@@ -767,8 +768,9 @@
 <div class="history-card">
     <div class="history-header">
         <div>
-            <h3 class="history-title">{{ t('Access History') }}</h3>
-            <p class="history-subtitle">{{ t('Review your recorded check-ins and check-outs.') }}</p>
+            <h3 class="history-title">{{ 'Historial de acceso al campus' if current_language == 'es' else 'Campus Access History' }}</h3>
+            <p class="history-subtitle">{{ 'Entradas y salidas de estudiantes, docentes, personal y administradores.' if current_language == 'es' else 'Check-ins and check-outs for students, teachers, staff and administrators.' }}</p>
+            <a href="{{ url_for('admin_views.admin_attendance_history') }}">{{ 'Ver historial completo' if current_language == 'es' else 'View full history' }}</a>
         </div>
 
         <div class="history-count">
@@ -782,7 +784,8 @@
             <thead>
                 <tr>
                     <th>#</th>
-                    <th>{{ t('Admin') }}</th>
+                    <th>{{ 'Usuario' if current_language == 'es' else 'User' }}</th>
+                    <th>{{ 'Rol' if current_language == 'es' else 'Role' }}</th>
                     <th>{{ t('ID / Username') }}</th>
                     <th>{{ t('Date') }}</th>
                     <th>{{ t('Check-In') }}</th>
@@ -795,14 +798,15 @@
                 {% for record in records %}
                 <tr>
                     <td>{{ loop.index }}</td>
-                    <td>{{ display_user_name(admin_name, current_user.username) }}</td>
-                    <td>{{ current_user.username }}</td>
+                    <td>{{ record.name }}</td>
+                    <td>{{ t({'estudiante':'Student','docente':'Professor','personal':'Staff','administrativo':'Admin'}.get(record.role, record.role)) }}</td>
+                    <td>{{ record.user_id_code }}</td>
                     <td>{{ record.date }}</td>
                     <td>{{ record.check_in }}</td>
                     <td>{{ record.check_out }}</td>
                     <td>{{ record.hours }}</td>
                     <td>
-                        {% if normalized_status in ["checked_in", "inside"] %}
+                        {% if record.status == "checked_in" %}
                             <span class="status-badge status-green">{{ t('Inside Campus') }}</span>
                         {% else %}
                             <span class="status-badge status-red">{{ t('Outside Campus') }}</span>
