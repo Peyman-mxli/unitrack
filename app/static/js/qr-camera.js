@@ -1,5 +1,7 @@
-/* UniTrack camera QR reader. Local jsQR library avoids browser-specific native QR APIs.
- * Camera access requires HTTPS or localhost. Never automatically register access. */
+/* UniTrack QR camera with a detection outline.
+ * jsQR supplies the four actual QR corners; the shared form decides whether
+ * to verify a personal pass or record campus access for an operator.
+ * Camera access requires HTTPS or localhost. */
 (() => {
   "use strict";
 
@@ -14,6 +16,10 @@
     const stopButton = widget.querySelector("[data-qr-stop]");
     const photoButton = widget.querySelector("[data-qr-photo]");
     const video = widget.querySelector("[data-qr-video]");
+    const stage = widget.querySelector("[data-qr-stage]");
+    const overlay = widget.querySelector("[data-qr-overlay]");
+    const outline = widget.querySelector("[data-qr-outline]");
+    const detectedBadge = widget.querySelector("[data-qr-detected-badge]");
     const status = widget.querySelector("[data-qr-status]");
     const cameraChoice = widget.querySelector("[data-qr-camera-choice]");
     const canvas = document.createElement("canvas");
@@ -58,18 +64,49 @@
     let timeoutId = null;
     let inFlight = false;
     let lastDevice = "";
+    let detectionTimer = null;
 
     const announce = (message) => { status.textContent = message; };
+    const resetOutline = () => {
+      outline.setAttribute("points", "");
+      outline.style.opacity = "0";
+      detectedBadge.hidden = true;
+    };
+
+    const highlightQr = (result) => {
+      // jsQR decodes a downscaled canvas, so map its four corners back into
+      // the video's natural pixels. The SVG's xMidYMid slice matches the
+      // video's object-fit:cover crop in the responsive camera window.
+      const loc = result?.location;
+      if (!loc || !video.videoWidth || !video.videoHeight) return;
+      const corners = [
+        loc.topLeftCorner, loc.topRightCorner,
+        loc.bottomRightCorner, loc.bottomLeftCorner
+      ];
+      if (corners.some(point => !point || !Number.isFinite(point.x) || !Number.isFinite(point.y))) return;
+      const scaleX = video.videoWidth / canvas.width;
+      const scaleY = video.videoHeight / canvas.height;
+      overlay.setAttribute("viewBox", `0 0 ${video.videoWidth} ${video.videoHeight}`);
+      outline.setAttribute("points", corners.map(point => (
+        `${(point.x * scaleX).toFixed(2)},${(point.y * scaleY).toFixed(2)}`
+      )).join(" "));
+      outline.style.opacity = "1";
+      detectedBadge.hidden = false;
+    };
 
     const stop = () => {
       scanning = false;
       if (timeoutId !== null) window.clearTimeout(timeoutId);
       timeoutId = null;
+      if (detectionTimer !== null) window.clearTimeout(detectionTimer);
+      detectionTimer = null;
+      resetOutline();
       if (stream) stream.getTracks().forEach((track) => track.stop());
       stream = null;
       video.pause();
       video.srcObject = null;
       video.hidden = true;
+      stage.hidden = true;
       startButton.hidden = false;
       stopButton.hidden = true;
       startButton.disabled = false;
@@ -87,21 +124,36 @@
       });
     };
 
-    const foundQr = (value, automatic = false) => {
+    const foundQr = (value, automatic = false, result = null) => {
       if (!value || !value.trim()) return;
       field.value = value.trim();
-      stop();
-      field.focus();
-      announce(automatic ? messages.detectedAuto : messages.detected);
-      // An authorized operator has deliberately started the camera.
-      // Successful detection now submits the existing CSRF-protected form
-      // automatically, recording one entry or exit. File uploads still
-      // require explicit confirmation.
-      if (automatic) {
+
+      if (!automatic) {
+        // Uploaded QR images fill the field and require manual confirmation.
+        stop();
+        field.focus();
+        announce(messages.detected);
+        return;
+      }
+
+      // Freeze the detected frame so the person can SEE the green bounding
+      // box around the QR before their existing form is submitted.
+      scanning = false;
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
+      timeoutId = null;
+      highlightQr(result);
+      video.pause();
+      announce(messages.detectedAuto);
+      detectionTimer = window.setTimeout(() => {
+        detectionTimer = null;
+        stop();
+        field.focus();
+        // Reuse the same CSRF-protected form. Student pages only VERIFY their
+        // own pass; operator pages register campus entry or exit.
         const submit = form.querySelector('button[type="submit"]');
         if (typeof form.requestSubmit === "function") form.requestSubmit(submit || undefined);
         else if (submit) submit.click();
-      }
+      }, 1000);
     };
 
     const tick = () => {
@@ -111,7 +163,7 @@
         if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
           const result = drawFrame(video, video.videoWidth, video.videoHeight);
           if (result?.data) {
-            foundQr(result.data, true);
+            foundQr(result.data, true, result);
             return;
           }
         }
@@ -176,6 +228,8 @@
         video.srcObject = stream;
         await video.play();
         scanning = true;
+        resetOutline();
+        stage.hidden = false;
         video.hidden = false;
         startButton.hidden = true;
         stopButton.hidden = false;
