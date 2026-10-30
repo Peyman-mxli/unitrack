@@ -226,6 +226,91 @@ class UniTrackTests(unittest.TestCase):
             ).order_by(AccessLog.id.desc())).scalars().first()
             self.assertIsNotNone(log.check_out_time)
 
+    def test_professor_history_live_without_new_qr_generation(self):
+        from app.models.user_model import User
+        from app.models.access_scan_pair_model import AccessScanPair
+        from app.models.scan_token_model import ScanToken
+        from app.models.access_log_model import AccessLog
+        from app.services.scan_token_service import issue_access_credential
+        with self.app.app_context():
+            user = User(
+                username="LiveHistoryTeacher", email="live-history-teacher@example.test",
+                first_name="Live", last_name="History", role="docente",
+                phone="0000000000", language="es", is_active_user=True,
+                password_hash="not-used-in-this-test",
+            )
+            self.db.session.add(user)
+            self.db.session.commit()
+            qr, _ = issue_access_credential(user)
+            user_id = user.id
+
+        # Read-only endpoint is protected even when guessed by an outsider.
+        public = self.app.test_client().get("/api/access-control/live")
+        self.assertNotEqual(public.status_code, 200)
+
+        admin = self._signed_in_client("Admin")
+        page = admin.get("/admin/access-control")
+        csrf = re.search(rb'name="csrf_token" value="([^"]+)"', page.data)
+        form = {"csrf_token": csrf.group(1).decode(), "qr_text": qr}
+        first = admin.post("/admin/access-control", data=form)
+        self.assertIn("Escaneo correcto".encode(), first.data)
+        with self.app.app_context():
+            pair = self.db.session.execute(self.db.select(AccessScanPair).where(
+                AccessScanPair.user_id == user_id
+            )).scalar_one()
+            pair.checked_in_at -= timedelta(seconds=20)
+            before_tokens = self.db.session.execute(
+                self.db.select(self.db.func.count(ScanToken.id)).where(ScanToken.user_id == user_id)
+            ).scalar_one()
+            self.db.session.commit()
+
+        # Person can view their own status via the existing authenticated
+        # endpoint without refreshing the page or minting a new QR.
+        from flask_login import login_user
+        from flask import session as flask_session
+        teacher = self.app.test_client()
+        with teacher:
+            with self.app.app_context():
+                user = self.db.session.get(User, user_id)
+                login_user(user)
+                # Flask's login manager needs a request; test client login
+                # is established by directly setting its session.
+            with teacher.session_transaction() as session_state:
+                session_state["_user_id"] = str(user_id)
+                session_state["_fresh"] = True
+            before = teacher.get("/api/access-control/live")
+            self.assertEqual(before.status_code, 200)
+            self.assertEqual(before.get_json()["status"]["status"], "checked_in")
+            self.assertIsNone(before.get_json()["records"][0]["check_out"] if before.get_json()["records"][0]["check_out"] is None else None)  # live view exists
+
+        second = admin.post("/admin/access-control", data=form)
+        self.assertIn("Escaneo correcto".encode(), second.data)
+        after = teacher.get("/api/access-control/live")
+        self.assertEqual(after.status_code, 200)
+        self.assertEqual(after.get_json()["status"]["status"], "checked_out")
+        self.assertNotEqual(after.get_json()["records"][0]["check_out"], "--")
+        with self.app.app_context():
+            after_tokens = self.db.session.execute(
+                self.db.select(self.db.func.count(ScanToken.id)).where(ScanToken.user_id == user_id)
+            ).scalar_one()
+            self.assertEqual(before_tokens, after_tokens)
+
+    def test_professor_student_staff_pages_have_live_history_widget(self):
+        for username, path in (
+            ("StudentA", "/student/access-control"),
+            ("TeacherA", "/professor/access-control"),
+            ("StaffA", "/personal/access-control"),
+        ):
+            with self.subTest(username=username):
+                page = self._signed_in_client(username).get(path)
+                self.assertEqual(page.status_code, 200)
+                self.assertIn(b"data-live-campus-history", page.data)
+                self.assertIn(b"js/access-history-live.js", page.data)
+        script = self.app.test_client().get("/static/js/access-history-live.js")
+        self.assertEqual(script.status_code, 200)
+        self.assertIn(b"/api/access-control/live", script.data)
+        self.assertIn(b"replaceChildren", script.data)
+
     def test_immediate_duplicate_scan_never_checks_out(self):
         from app.models.user_model import User
         from app.models.access_log_model import AccessLog
