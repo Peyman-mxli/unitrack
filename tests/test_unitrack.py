@@ -106,6 +106,42 @@ class UniTrackTests(unittest.TestCase):
         self.assertIn(b'name="csrf_token"', login.data)
         self.assertIn(b'name="csrf_token"', register.data)
 
+    def test_public_landing_feature_cards_link_to_explanations_and_logo_goes_top(self):
+        """All five feature cards and every top-nav link resolve to actual sections."""
+        client = self.app.test_client()
+        for language in ("es", "en"):
+            with self.subTest(language=language):
+                response = client.get("/?lang=" + language)
+                self.assertEqual(response.status_code, 200)
+                html = response.data.decode("utf-8")
+                for slug in ("gestion", "qr", "avisos", "historial", "seguridad"):
+                    target = "detalle-" + slug
+                    self.assertIn('class="mini-feature" href="#' + target + '"', html)
+                    self.assertIn('class="feature-detail" id="' + target + '"', html)
+                self.assertEqual(html.count('class="mini-feature" href="#detalle-'), 5)
+                self.assertEqual(html.count('class="feature-detail" id="detalle-'), 5)
+
+                nav = re.search(r'<nav class="nav-links" id="mainNav".*?</nav>', html, re.S)
+                self.assertIsNotNone(nav)
+                destinations = re.findall(r'href="#([^"]+)"', nav.group())
+                self.assertEqual(destinations, [
+                    "inicio", "caracteristicas", "beneficios",
+                    "como-funciona", "proyectos", "contacto"
+                ])
+                for section_id in destinations:
+                    self.assertIn('id="' + section_id + '"', html)
+
+                self.assertIn('class="brand" href="#inicio" data-return-top', html)
+                self.assertIn('href="#inicio" class="nav-home" data-return-top', html)
+                self.assertIn('window.scrollTo(0,0);', html)
+                self.assertIn('root.style.scrollBehavior="auto"', html)
+                self.assertIn('--landing-nav-offset', html)
+                self.assertIn('class="menu-button" id="navToggle"', html)
+                # Keep burgundy brand and existing auth links unchanged.
+                self.assertIn('.site-header{background:linear-gradient(90deg,#740018,#8a0021 55%,#5f0017)', html)
+                self.assertIn('href="/auth/login-page"', html)
+                self.assertIn('href="/auth/register-page"', html)
+
     def test_login_username_case_insensitive(self):
         from app.services.user_service import get_user_by_username
         with self.app.app_context():
