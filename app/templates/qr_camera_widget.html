@@ -21,7 +21,7 @@
           style="max-width:400px;padding:10px;border:1px solid #cbd5e1;border-radius:9px;"></select>
   <p data-qr-status role="status" aria-live="polite"
      style="font-size:13px;color:#334155;margin:2px 0;">
-    {{ "La cámara verifica el QR automáticamente. Si seleccionas una imagen, pulsa el botón inferior para confirmar." if current_language == 'es' else "The camera automatically checks the QR. If you select an image, use the button below to confirm." }}
+    {{ "Apunta la cámara al QR. Cuando se detecte, verás un recuadro verde durante un segundo antes de verificarlo. Si eliges una imagen, confirma con el botón inferior." if current_language == 'es' else "Point the camera at a QR. A green outline will appear for one second before verification. For an uploaded image, confirm with the button below." }}
   </p>
   <div data-qr-stage hidden style="position:relative;width:440px;max-width:100%;aspect-ratio:4/3;
        overflow:hidden;border-radius:12px;background:#0f172a;isolation:isolate;">
