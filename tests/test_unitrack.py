@@ -487,6 +487,70 @@ class UniTrackTests(unittest.TestCase):
         })
         self.assertEqual(response.status_code, 400)
 
+    def test_admin_history_shows_other_user_checkin_and_checkout(self):
+        """A scan of someone else's QR must appear in the admin history."""
+        from app.models.user_model import User
+        from app.models.access_log_model import AccessLog
+        from app.models.access_scan_pair_model import AccessScanPair
+        from app.services.scan_token_service import issue_access_credential
+        from werkzeug.security import generate_password_hash
+
+        with self.app.app_context():
+            person = User(
+                username="QRHistoryTarget", email="qr-history-target@example.test",
+                first_name="QRHistory", last_name="Target",
+                role="estudiante", phone="0000000000", language="es",
+                password_hash=generate_password_hash("TestingPassword123!"),
+                is_active_user=True,
+            )
+            self.db.session.add(person)
+            self.db.session.commit()
+            person_id = person.id
+            qr_text, _ = issue_access_credential(person)
+
+        admin = self._signed_in_client("Admin")
+        page = admin.get("/admin/access-control")
+        csrf = re.search(rb'name="csrf_token" value="([^"]+)"', page.data)
+        self.assertIsNotNone(csrf)
+        payload = {"csrf_token": csrf.group(1).decode(), "qr_text": qr_text}
+
+        first = admin.post("/admin/access-control", data=payload)
+        self.assertEqual(first.status_code, 200)
+        self.assertIn("Escaneo correcto".encode("utf-8"), first.data)
+        history = first.data.split(b'<div class="history-card">', 1)[1]
+        self.assertIn(b"QRHistory Target</td>", history)
+        first_row = history.split(b"QRHistory Target</td>", 1)[1].split(b"</tr>", 1)[0]
+        self.assertIn("Dentro del campus".encode("utf-8"), first_row)
+
+        with self.app.app_context():
+            log = self.db.session.execute(self.db.select(AccessLog).where(
+                AccessLog.student_id == person_id
+            )).scalar_one()
+            pair = self.db.session.execute(self.db.select(AccessScanPair).where(
+                AccessScanPair.access_log_id == log.id
+            )).scalar_one()
+            pair.checked_in_at -= timedelta(seconds=5)
+            self.db.session.commit()
+
+        second = admin.post("/admin/access-control", data=payload)
+        self.assertEqual(second.status_code, 200)
+        self.assertIn("Escaneo correcto".encode("utf-8"), second.data)
+        history = second.data.split(b'<div class="history-card">', 1)[1]
+        row = history.split(b"QRHistory Target</td>", 1)[1].split(b"</tr>", 1)[0]
+        self.assertIn("Fuera del campus".encode("utf-8"), row)
+        with self.app.app_context():
+            log = self.db.session.execute(self.db.select(AccessLog).where(
+                AccessLog.student_id == person_id
+            )).scalar_one()
+            self.assertIsNotNone(log.check_out_time)
+            check_out_text = log.check_out_time.strftime("%I:%M %p").encode()
+            date_text = log.access_date.strftime("%m/%d/%Y")
+
+        self.assertIn(check_out_text, row)
+        filtered = admin.get("/admin/access-control", query_string={"date": date_text})
+        self.assertIn(b"QRHistory Target</td>", filtered.data)
+        self.assertIn(check_out_text, filtered.data)
+
     def test_admin_access_control_contains_camera_and_confirm_button(self):
         client = self._signed_in_client()
         page = client.get("/admin/access-control")
