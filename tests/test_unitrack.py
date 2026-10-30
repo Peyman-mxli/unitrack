@@ -63,7 +63,8 @@ class UniTrackTests(unittest.TestCase):
 
         # ProTrack-style header is a single aligned grid on wide screens,
         # switching to a dropdown menu BEFORE buttons collide on smaller ones.
-        self.assertIn(b"background:#fff;color:#162641", landing.data)
+        self.assertIn(b"background:linear-gradient(90deg,#740018,#8a0021 55%,#5f0017)", landing.data)
+        self.assertIn(b".header-actions .button-ghost{color:#fff", landing.data)
         self.assertIn(b"grid-template-columns:minmax(255px,1fr) auto minmax(380px,1fr)", landing.data)
         self.assertIn(b'class="brand-title">Uni', landing.data)
         self.assertIn(b'class="nav-links" id="mainNav"', landing.data)
