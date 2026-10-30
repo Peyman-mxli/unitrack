@@ -42,6 +42,46 @@ class UniTrackTests(unittest.TestCase):
             cls.db.engine.dispose()
         cls.folder.cleanup()
 
+    def test_public_landing_preserves_existing_login_and_registration(self):
+        """The new homepage is public; existing auth forms remain unchanged."""
+        client = self.app.test_client()
+        landing = client.get("/")
+        self.assertEqual(landing.status_code, 200)
+        self.assertIn(b'lang="es"', landing.data)
+        self.assertIn(b"UniTrack", landing.data)
+        self.assertIn(b"ProTrack MX", landing.data)
+        self.assertIn("Peyman Miyandashti".encode("utf-8"), landing.data)
+        self.assertIn(b'img/upbc-campus-enhanced.jpg', landing.data)
+        self.assertIn(b'img/protrack-mx-brand.svg', landing.data)
+        self.assertIn(b'href="/auth/login-page"', landing.data)
+        self.assertIn(b'href="/auth/register-page"', landing.data)
+        self.assertIn(b'id="como-funciona"', landing.data)
+        self.assertIn(b'id="beneficios"', landing.data)
+        self.assertIn(b'id="proyectos"', landing.data)
+        self.assertIn(b'id="caracteristicas"', landing.data)
+        self.assertIn("Proyecto independiente".encode("utf-8"), landing.data)
+
+        english = client.get("/?lang=en")
+        self.assertEqual(english.status_code, 200)
+        self.assertIn(b'lang="en"', english.data)
+        self.assertIn(b"How does UniTrack work?", english.data)
+        spanish = client.get("/?lang=es")
+        self.assertIn("¿Cómo funciona UniTrack?".encode("utf-8"), spanish.data)
+
+        # The actual ProTrack brand file exists and loads locally.
+        logo = client.get("/static/img/protrack-mx-brand.svg")
+        self.assertEqual(logo.status_code, 200)
+        self.assertIn(b"data:image/png;base64,", logo.data)
+
+        login = client.get("/auth/login-page")
+        register = client.get("/auth/register-page")
+        self.assertEqual(login.status_code, 200)
+        self.assertEqual(register.status_code, 200)
+        self.assertIn(b'name="login"', login.data)
+        self.assertIn(b'name="password"', login.data)
+        self.assertIn(b'name="csrf_token"', login.data)
+        self.assertIn(b'name="csrf_token"', register.data)
+
     def test_login_username_case_insensitive(self):
         from app.services.user_service import get_user_by_username
         with self.app.app_context():
