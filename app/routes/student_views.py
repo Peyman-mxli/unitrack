@@ -1212,6 +1212,12 @@ def access_control_page():
     for index, record in enumerate(filtered_records, start=1):
         record["row"] = index
 
+    from app.services.access_log_service import (
+        build_personal_access_events, count_personal_access_events
+    )
+    access_events = build_personal_access_events(current_user, selected_date=parsed_date)
+    access_event_counts = count_personal_access_events(access_events)
+
     quick_stats = get_student_access_quick_stats(current_user.id)
     current_access_status = get_student_current_access_status(current_user.id)
 
@@ -1228,6 +1234,10 @@ def access_control_page():
         scan_result=scan_result,
         active_page="access_control",
         demo_records=filtered_records,
+        access_events=access_events,
+        access_event_counts=access_event_counts,
+        history_page_url=url_for("student_views.access_control_page"),
+        date_filter_error=("Fecha no válida. Usa MM/DD/AAAA." if selected_date and parsed_date is None else ""),
         quick_stats=quick_stats,
         current_access_status=current_access_status,
         selected_date=selected_date,
