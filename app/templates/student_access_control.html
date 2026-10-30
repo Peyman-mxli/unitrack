@@ -563,27 +563,6 @@
     </div>
 </section>
 
-<section class="summary-card" aria-labelledby="studentCurrentStatus">
-    <h2 id="studentCurrentStatus" style="color:#081a43;margin:0 0 12px;font-size:21px;">
-        {{ "Mi estado de acceso" if is_spanish else "My Access Status" }}
-    </h2>
-    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
-        {% if current_access_status and current_access_status.status == "checked_in" %}
-        <span class="status-badge status-green">{{ "Dentro del campus" if is_spanish else "Inside campus" }}</span>
-        {% else %}
-        <span class="status-badge status-red">{{ "Fuera del campus" if is_spanish else "Outside campus" }}</span>
-        {% endif %}
-        <span style="color:#475569;font-size:13px;">
-            {{ "Tu entrada o salida se registra cuando personal autorizado verifica tu QR o código temporal." if is_spanish else "Your entry or exit is recorded when authorized staff verify your QR or temporary code." }}
-        </span>
-    </div>
-    <div class="summary-grid" style="margin-top:16px;">
-        <div class="summary-box"><div class="summary-label">{{ "Última entrada" if is_spanish else "Last check-in" }}</div><div class="summary-value">{{ current_access_status.last_check_in if current_access_status and current_access_status.last_check_in else "--" }}</div></div>
-        <div class="summary-box"><div class="summary-label">{{ "Última salida" if is_spanish else "Last check-out" }}</div><div class="summary-value">{{ current_access_status.last_check_out if current_access_status and current_access_status.last_check_out else "--" }}</div></div>
-        <div class="summary-box"><div class="summary-label">{{ "Horas de hoy" if is_spanish else "Hours today" }}</div><div class="summary-value">{{ current_access_status.hours_today if current_access_status and current_access_status.hours_today else "--" }}</div></div>
-    </div>
-</section>
-
 <div class="history-card">
     <div class="history-header">
         <div>
