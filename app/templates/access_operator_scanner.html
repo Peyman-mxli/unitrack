@@ -1,0 +1,53 @@
+{# Shared operator scanner: staff and professors scan other people's QR
+   on their own Control de Acceso page. The student page NEVER includes this. #}
+<section id="operatorAccessScanner" class="qr-card" style="margin:0 0 20px;padding:22px;">
+    <h2 style="font-size:23px;color:#081a43;margin:0 0 8px;">
+        {{ "Escáner QR de acceso" if current_language == "es" else "Campus Access QR Scanner" }}
+    </h2>
+    <p style="color:#475569;font-size:14px;margin:0 0 16px;">
+        {{ "Escanea con la cámara el QR de la persona para registrar automáticamente su entrada o salida. También puedes ingresar su código temporal de acceso." if current_language == "es" else "Scan the person's QR with the camera to automatically register entry or exit. You can also enter their temporary access code." }}
+    </p>
+    <form method="POST" action="{{ operator_scan_url }}" id="operatorAccessQrForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label for="operator_access_qr_text" style="display:block;font-weight:800;margin-bottom:8px;">
+            {{ "Contenido del QR" if current_language == "es" else "QR content" }}
+        </label>
+        <textarea name="qr_text" id="operator_access_qr_text" required
+                  placeholder="{{ 'El lector pondrá aquí el QR detectado' if current_language == 'es' else 'Scanned QR appears here' }}"
+                  style="width:100%;box-sizing:border-box;min-height:65px;border-radius:12px;border:1px solid #dbe4f0;padding:12px;"></textarea>
+        {% include "qr_camera_widget.html" %}
+        <button type="submit" style="border:0;border-radius:11px;background:#16a34a;color:white;
+                font-weight:800;padding:12px 20px;cursor:pointer;">
+            {{ "Confirmar acceso" if current_language == "es" else "Confirm Access" }}
+        </button>
+    </form>
+    <form method="POST" action="{{ operator_scan_url }}" style="margin-top:18px;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label for="operator_access_manual_code" style="display:block;font-weight:800;margin-bottom:8px;">
+            {{ "Ingresar código temporal" if current_language == "es" else "Enter temporary code" }}
+        </label>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <input id="operator_access_manual_code" name="pass_code" type="text" required
+                   autocomplete="off" maxlength="24" spellcheck="false"
+                   placeholder="EST-XXXX-XXXX-XXXX-XXXX"
+                   style="flex:1;min-width:220px;border-radius:11px;padding:12px;
+                          border:1px solid #dbe4f0;font-weight:800;font-family:monospace;">
+            <button type="submit" style="border:0;border-radius:11px;background:#7c3aed;color:white;
+                    font-weight:800;padding:12px 20px;cursor:pointer;">
+                {{ "Registrar con código" if current_language == "es" else "Register with code" }}
+            </button>
+        </div>
+    </form>
+    {% if scan_result %}
+    <div role="status" style="padding:14px;border-radius:12px;margin-top:15px;
+         background:{{ '#ecfdf5' if scan_result.success else '#fef2f2' }};
+         color:{{ '#166534' if scan_result.success else '#991b1b' }};">
+        <strong>{{ ("Escaneo correcto" if current_language == "es" else "Scan successful") if scan_result.success else ("Escaneo rechazado" if current_language == "es" else "Scan rejected") }}</strong>
+        <p style="margin:6px 0 0;">{{ t(scan_result.message) }}</p>
+        {% if scan_result.success %}
+        {% if scan_result.name %}<p>{{ scan_result.name }}</p>{% endif %}
+        {% if scan_result.action %}<p>{{ t({'check_in':'Check In','check_out':'Check Out'}.get(scan_result.action, scan_result.action)) }}</p>{% endif %}
+        {% endif %}
+    </div>
+    {% endif %}
+</section>
