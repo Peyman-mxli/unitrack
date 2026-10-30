@@ -287,6 +287,68 @@ class UniTrackTests(unittest.TestCase):
             ).scalar_one()
             self.assertEqual(before_tokens, after_tokens)
 
+    def test_role_access_history_shows_each_event_with_counts(self):
+        """All three role pages share the event-by-event design and own-user scope."""
+        from app.models.user_model import User
+        from app.services.access_log_service import create_check_in, create_check_out
+        from werkzeug.security import generate_password_hash
+
+        for username, role, prefix in (
+            ("EventStudent", "estudiante", "/student"),
+            ("EventTeacher", "docente", "/professor"),
+            ("EventStaff", "personal", "/personal"),
+        ):
+            with self.app.app_context():
+                account = User(
+                    username=username,
+                    email=username.lower() + "@example.test",
+                    first_name=username, last_name="History",
+                    role=role, language="es", phone="0000000000",
+                    password_hash=generate_password_hash("TestingPassword123!"),
+                    is_active_user=True,
+                )
+                self.db.session.add(account)
+                self.db.session.commit()
+                uid = account.id
+                create_check_in(student_id=uid)
+                create_check_out(student_id=uid)
+                create_check_in(student_id=uid)
+
+            with self.subTest(role=role):
+                client = self._signed_in_client(username)
+                page = client.get(prefix + "/access-control")
+                self.assertEqual(page.status_code, 200)
+                self.assertIn(b"data-live-campus-history", page.data)
+                self.assertIn(b"data-access-count-in>2</strong>", page.data)
+                self.assertIn(b"data-access-count-out>1</strong>", page.data)
+                self.assertIn(b"data-access-count-total>3</strong>", page.data)
+                self.assertEqual(page.data.count(b"<tr>"), page.data.count(b"</tr>"))
+                self.assertIn("Historial de Acceso".encode("utf-8"), page.data)
+                self.assertIn("Entrada".encode("utf-8"), page.data)
+                self.assertIn("Salida".encode("utf-8"), page.data)
+
+                live = client.get("/api/access-control/live")
+                self.assertEqual(live.status_code, 200)
+                body = live.get_json()
+                self.assertEqual(body["event_counts"], {
+                    "check_ins": 2, "check_outs": 1, "total": 3
+                })
+                self.assertEqual(len(body["events"]), 3)
+                self.assertEqual(
+                    [entry["action"] for entry in body["events"]],
+                    ["check_in", "check_out", "check_in"],
+                )
+                self.assertEqual(
+                    {entry["username"] for entry in body["events"]}, {username}
+                )
+
+                filtered = client.get(prefix + "/access-control", query_string={
+                    "date": "01/01/2000"
+                })
+                self.assertEqual(filtered.status_code, 200)
+                self.assertIn(b"data-access-count-total>0</strong>", filtered.data)
+                self.assertIn(b'data-access-empty', filtered.data)
+
     def test_professor_student_staff_pages_have_live_history_widget(self):
         for username, path in (
             ("StudentA", "/student/access-control"),
