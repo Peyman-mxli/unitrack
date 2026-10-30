@@ -662,7 +662,7 @@
                 <div>{{ current_user.username if current_user.username else "--" }}</div>
 
                 <div style="font-weight:800;">{{ t('Status:') }}</div>
-                <div>
+                <div data-live-campus-status>
                     {% if current_access_status and current_access_status.status == "checked_in" %}
                         <span class="status-badge status-green">{{ t('Inside Campus') }}</span>
                     {% else %}
@@ -671,13 +671,13 @@
                 </div>
 
                 <div style="font-weight:800;">{{ t('Last Check-In:') }}</div>
-                <div>{{ current_access_status.last_check_in if current_access_status and current_access_status.last_check_in else "--" }}</div>
+                <div data-live-last-in>{{ current_access_status.last_check_in if current_access_status and current_access_status.last_check_in else "--" }}</div>
 
                 <div style="font-weight:800;">{{ t('Last Check-Out:') }}</div>
-                <div>{{ current_access_status.last_check_out if current_access_status and current_access_status.last_check_out else "--" }}</div>
+                <div data-live-last-out>{{ current_access_status.last_check_out if current_access_status and current_access_status.last_check_out else "--" }}</div>
 
                 <div style="font-weight:800;">{{ t('Hours Today:') }}</div>
-                <div>{{ current_access_status.hours_today if current_access_status and current_access_status.hours_today else "--" }}</div>
+                <div data-live-hours>{{ current_access_status.hours_today if current_access_status and current_access_status.hours_today else "--" }}</div>
 
             </div>
         </div>
@@ -685,7 +685,7 @@
 
 </div>
 
-<div class="history-table-card">
+<div class="history-table-card" data-live-campus-history>
     <div class="history-table-header">
         <div>
             <h2 class="history-table-title">{{ t('Access History') }}</h2>
@@ -822,4 +822,5 @@ async function copyTextValue(id, button){
 }
 </script>
 
+<script src="{{ url_for('static', filename='js/access-history-live.js') }}" defer></script>
 {% endblock %}
