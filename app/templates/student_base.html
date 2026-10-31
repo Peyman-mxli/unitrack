@@ -933,7 +933,7 @@ Polytechnic University of Baja California
 </div>
 
 {% if current_user.photo_path %}
-<img src="{{ url_for('static', filename=current_user.photo_path) }}" class="student-photo" alt="Student Photo">
+<img src="{{ url_for('private_profile_photo') }}" class="student-photo" alt="Student Photo">
 {% else %}
 <img src="{{ url_for('static', filename='img/unitrack_logo.png') }}" class="student-photo" alt="Student Photo">
 {% endif %}
