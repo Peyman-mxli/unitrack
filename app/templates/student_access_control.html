@@ -551,7 +551,7 @@
         <div class="summary-avatar">
             {% if current_user.photo_path %}
                 <img
-                    src="{{ url_for('static', filename=current_user.photo_path) }}"
+                    src="{{ url_for('private_profile_photo') }}"
                     alt="{{ 'Foto del Estudiante' if is_spanish else 'Student Photo' }}"
                 >
             {% else %}
