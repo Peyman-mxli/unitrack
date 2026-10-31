@@ -24,14 +24,17 @@ if (-not (Test-Path -LiteralPath (Join-Path $original ".git") -PathType Containe
 }
 Push-Location $original
 try {
-    # Do not silently discard user edits. We keep the entire old checkout,
-    # but require a clean working tree before switching locations.
-    $status = @(& git status --porcelain)
+    # The whole original checkout is archived without modifying its files,
+    # so it is SAFE to reconnect even with tracked or untracked local changes.
+    # Never reapply those changes automatically: they may reintroduce old
+    # private data or conflict with the cleaned remote history.
+    $localChanges = @(& git status --porcelain --untracked-files=normal)
     if ($LASTEXITCODE -ne 0) { throw "Unable to read the current Git status." }
-    if ($status.Count -gt 0) {
-        throw "Local Git changes exist. They must be backed up or committed before reconnecting. No files were changed."
-    }
 } finally { Pop-Location }
+if ($localChanges.Count -gt 0) {
+    Write-Host "Found $($localChanges.Count) local Git changes. They will be preserved in the archived old checkout." -ForegroundColor Yellow
+    Write-Host "Modified code will NOT be copied into the clean Git history automatically." -ForegroundColor Yellow
+}
 
 $stamp = Get-Date -Format "yyyyMMdd-HHmmss"
 $fresh = Join-Path $parent "$name-clean-$stamp"
@@ -105,6 +108,19 @@ try {
 }
 Write-Host "Clean UniTrack history installed at $original" -ForegroundColor Green
 Write-Host "Your previous checkout is SAFE at $archived" -ForegroundColor Yellow
+if ($localChanges.Count -gt 0) {
+    $inventory = Join-Path $archived "LOCAL-CHANGES-NOT-MERGED.txt"
+    $lines = @(
+        "Old local Git changes preserved in this archived checkout.",
+        "These changes were NOT automatically applied to the fresh copy.",
+        "Old project: $archived",
+        "Current clean project: $original",
+        "",
+        "Git status before reconnect:"
+    ) + $localChanges
+    [System.IO.File]::WriteAllLines($inventory, [string[]]$lines, (New-Object System.Text.UTF8Encoding($false)))
+    Write-Host "Local modification inventory: $inventory" -ForegroundColor Yellow
+}
 Write-Host "Database, configuration and upload folders have been preserved." -ForegroundColor Green
 
 Set-Location $original
