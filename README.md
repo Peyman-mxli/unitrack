@@ -12,9 +12,29 @@
 
 ## 🌐 Live Demo
 
-🔗 https://unitrack-6ozt.onrender.com
+🔗 https://unitrack-c0zt.onrender.com
 
 > Note: Render free tier may take a little time to wake up after inactivity.
+
+> **Official current deployment:** [https://unitrack-c0zt.onrender.com](https://unitrack-c0zt.onrender.com). The older `unitrack-6ozt.onrender.com` address is not the connected production service. The current site is deployed automatically from the `main` branch of this GitHub repository.
+
+### Open the latest UniTrack from another computer
+
+For the **hosted platform**, visit the official link above; you do not need to install Python or clone GitHub. If a browser still shows an older interface, verify that the address ends in `unitrack-c0zt.onrender.com`, then force-refresh using **Ctrl + Shift + R**.
+
+For **local development on a second Windows computer**, use a *new folder*, not an old checkout whose history may have diverged during the security cleanup:
+
+```powershell
+cd C:\\
+git clone --branch main https://github.com/Peyman-mxli/unitrack.git unitrack-latest
+cd C:\\unitrack-latest
+py -3.11 -m venv .venv
+.\\.venv\\Scripts\\python.exe -m pip install -r requirements.txt
+.\\.venv\\Scripts\\python.exe run.py
+```
+
+This downloads the current **source code**. It does not download private account records, profile photographs, secret keys, or attendance stored in the local `unitrack.db` on another computer. Those are intentionally excluded from the public GitHub repository. If you need the **same data** on more than one computer, use one persistent central database with controlled access and backups; never commit a database containing real students to GitHub.
+
 
 ---
 
