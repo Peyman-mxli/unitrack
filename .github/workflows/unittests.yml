@@ -148,48 +148,60 @@ jobs:
           [System.IO.File]::WriteAllText($verify, 'import sqlite3; assert sqlite3.connect("unitrack.db").execute("SELECT COUNT(*) FROM safety_test").fetchone()[0] == 1', (New-Object System.Text.UTF8Encoding($false)))
           & .\.venv\Scripts\python.exe $verify
           if ($LASTEXITCODE -ne 0) { throw "The updater changed the original test database" }
-      - name: Test safe re-clone after Git history rewrite
+      - name: Test locked-folder-safe history reconnect
         shell: powershell
         run: |
-          # This uses an isolated TEMP folder, never the developer's actual data.
+          # The OLD checkout stays exactly where it was; no rename required.
           $testRoot = Join-Path $env:TEMP "unitrack-ci-history-reconnect"
+          $newRoot = "$testRoot-reconnected"
           git clone --branch main --single-branch "https://github.com/Peyman-mxli/unitrack.git" $testRoot
-          if ($LASTEXITCODE -ne 0) { throw "Could not clone for reconnect test" }
-          $testPhoto = Join-Path $testRoot "private_uploads\\profile_photos\\test-keep.jpg"
-          New-Item -ItemType Directory -Path (Split-Path $testPhoto -Parent) -Force | Out-Null
-          [System.IO.File]::WriteAllText($testPhoto, 'private-photo-test-data', (New-Object System.Text.UTF8Encoding($false)))
-          $testDb = Join-Path $testRoot "unitrack.db"
-          Copy-Item -LiteralPath .\\unitrack.db -Destination $testDb -Force
-          # Simulate the developer's real problem: dirty tracked code and
-          # an untracked local project file before the history reconnect.
-          $dirtyReadme = Join-Path $testRoot "README.md"
+          if ($LASTEXITCODE -ne 0) { throw "Could not prepare old checkout" }
+
+          $oldPhoto = Join-Path $testRoot "private_uploads\\profile_photos\\test-keep.jpg"
+          New-Item -ItemType Directory -Path (Split-Path $oldPhoto -Parent) -Force | Out-Null
+          [System.IO.File]::WriteAllText($oldPhoto, 'private-photo-test-data', (New-Object System.Text.UTF8Encoding($false)))
+          $oldDb = Join-Path $testRoot "unitrack.db"
+          Copy-Item -LiteralPath .\\unitrack.db -Destination $oldDb -Force
+
+          $readme = Join-Path $testRoot "README.md"
           $dirtyTag = "UNITRACK_CI_UNCOMMITTED_LOCAL_CHANGE"
-          Add-Content -LiteralPath $dirtyReadme -Value $dirtyTag
-          $untrackedNote = Join-Path $testRoot "local-only-untracked-note.txt"
-          [System.IO.File]::WriteAllText($untrackedNote, "local work is important", (New-Object System.Text.UTF8Encoding($false)))
-          $script = (Resolve-Path .\\scripts\\reconnect_after_history_cleanup.ps1).Path
-          Set-Location $env:TEMP
-          & powershell -NoProfile -ExecutionPolicy Bypass -File $script -ProjectRoot $testRoot -SkipStart
-          if ($LASTEXITCODE -ne 0) { throw "Safe history reconnect failed" }
-          if (-not (Test-Path -LiteralPath $testPhoto)) {
-            throw "History reconnect did not preserve a private photo"
+          Add-Content -LiteralPath $readme -Value $dirtyTag
+          $localFile = Join-Path $testRoot "local-only-untracked-note.txt"
+          [System.IO.File]::WriteAllText($localFile, "local work is important", (New-Object System.Text.UTF8Encoding($false)))
+
+          # A Windows handle is intentionally kept open inside the old tree.
+          # The new flow must not attempt to rename or remove that directory.
+          $locked = Join-Path $testRoot ".old-directory-is-busy"
+          [System.IO.File]::WriteAllText($locked, 'locked', (New-Object System.Text.UTF8Encoding($false)))
+          $handle = [System.IO.File]::Open($locked, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::None)
+          try {
+            $script = (Resolve-Path .\\scripts\\reconnect_after_history_cleanup.ps1).Path
+            Set-Location $env:TEMP
+            & powershell -NoProfile -ExecutionPolicy Bypass -File $script -ProjectRoot $testRoot -SkipStart
+            if ($LASTEXITCODE -ne 0) { throw "Locked-folder-safe reconnect failed" }
+          } finally {
+            $handle.Dispose()
           }
-          if (-not (Test-Path -LiteralPath $testDb)) {
-            throw "History reconnect did not preserve the local database"
+
+          if (-not (Test-Path -LiteralPath (Join-Path $newRoot "unitrack.db"))) {
+            throw "New checkout lost SQLite database"
           }
-          $backups = @(Get-ChildItem $env:TEMP -Directory -Filter "unitrack-ci-history-reconnect-history-backup-*")
-          if ($backups.Count -lt 1) { throw "Original checkout backup is missing" }
-          $oldCopy = $backups | Sort-Object Name -Descending | Select-Object -First 1
-          if (-not ((Get-Content -LiteralPath (Join-Path $oldCopy.FullName "README.md") -Raw).Contains($dirtyTag))) {
-            throw "Dirty tracked local code was not retained in the archive"
+          if (-not (Test-Path -LiteralPath (Join-Path $newRoot "private_uploads\\profile_photos\\test-keep.jpg"))) {
+            throw "New checkout lost private photo"
           }
-          if (-not (Test-Path -LiteralPath (Join-Path $oldCopy.FullName "local-only-untracked-note.txt"))) {
-            throw "Untracked local work was not retained in the archive"
+          if (-not (Test-Path -LiteralPath (Join-Path $testRoot ".git"))) {
+            throw "Original checkout disappeared"
           }
-          if (-not (Test-Path -LiteralPath (Join-Path $oldCopy.FullName "LOCAL-CHANGES-NOT-MERGED.txt"))) {
-            throw "Local changes inventory was not created"
+          if (-not (Test-Path -LiteralPath $localFile)) {
+            throw "Original untracked local work was lost"
           }
-          if ((Get-Content -LiteralPath (Join-Path $testRoot "README.md") -Raw).Contains($dirtyTag)) {
-            throw "Old modified source code contaminated clean Git history"
+          if (-not ((Get-Content -LiteralPath $readme -Raw).Contains($dirtyTag))) {
+            throw "Original tracked local edits were lost"
           }
-          Write-Host "History reconnect preserved local edits, photos and DB without contaminating clean code."
+          if ((Get-Content -LiteralPath (Join-Path $newRoot "README.md") -Raw).Contains($dirtyTag)) {
+            throw "Dirty old code was imported into the clean checkout"
+          }
+          if (-not (Test-Path -LiteralPath (Join-Path $newRoot "LOCAL-CHANGES-FROM-OLD-CHECKOUT.txt"))) {
+            throw "Local changes review report is missing"
+          }
+          Write-Host "Locked-folder recovery preserved both DB/photos and all original local edits."
