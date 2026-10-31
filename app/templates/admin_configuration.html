@@ -446,7 +446,7 @@
                         <img
                             id="profilePreview"
                             class="profile-avatar"
-                            src="{% if admin_profile_photo %}{{ url_for('static', filename=admin_profile_photo, v=admin_profile_photo_cache) }}{% else %}{{ url_for('static', filename='img/default-profile.png') }}{% endif %}"
+                            src="{% if admin_profile_photo %}{{ url_for('private_profile_photo', v=admin_profile_photo_cache) }}{% else %}{{ url_for('static', filename='img/default-profile.png') }}{% endif %}"
                             alt="{{ t('Admin Photo') }}"
                         >
                         <span class="profile-status"></span>
