@@ -12,6 +12,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
 from app.database import db
+from app.services.profile_photo_service import save_profile_photo, delete_profile_photo
 
 # 🔥 IMPORT GLOBAL ACCESS SYSTEM
 from app.services.access_log_service import (
@@ -514,75 +515,30 @@ def configuration_update():
 def configuration_update_photo():
     if not _is_personal_user():
         return _reject()
-
     _sync_personal_language()
     language = _current_language()
+    uploaded = request.files.get("photo")
+    if not uploaded or not uploaded.filename:
+        message = ("Por favor selecciona primero un archivo de imagen." if language == "es"
+                   else "Please select an image file first.")
+        return redirect(url_for("personal_views.configuration_page", error=message))
 
-    file = request.files.get("photo")
-
-    if not file or not file.filename:
-        error_message = (
-            "Por favor selecciona primero un archivo de imagen."
-            if language == "es"
-            else "Please select an image file first."
-        )
-        return redirect(
-            url_for(
-                "personal_views.configuration_page",
-                error=error_message,
-            )
-        )
-
-    if not _is_allowed_image(file.filename):
-        error_message = (
-            "Formato de imagen no válido. Usa PNG, JPG, JPEG, GIF o WEBP."
-            if language == "es"
-            else "Invalid image format. Use PNG, JPG, JPEG, GIF, or WEBP."
-        )
-        return redirect(
-            url_for(
-                "personal_views.configuration_page",
-                error=error_message,
-            )
-        )
-
-    filename = secure_filename(file.filename)
-    extension = filename.rsplit(".", 1)[1].lower()
-    unique_filename = f"staff_{getattr(current_user, 'id', 'user')}_{uuid4().hex}.{extension}"
-
-    upload_folder = os.path.join(current_app.root_path, "static", "img", "profiles")
-    os.makedirs(upload_folder, exist_ok=True)
-
-    save_path = os.path.join(upload_folder, unique_filename)
-    file.save(save_path)
-
+    new_path = None
     try:
-        current_user.photo_path = f"img/profiles/{unique_filename}"
+        new_path = save_profile_photo(uploaded, kind="staff")
+        current_user.photo_path = new_path
         db.session.commit()
-
-        success_message = (
-            "Foto de perfil actualizada correctamente."
-            if language == "es"
-            else "Profile photo updated successfully."
-        )
-
-        return redirect(
-            url_for(
-                "personal_views.configuration_page",
-                success=success_message,
-            )
-        )
-
+        message = ("Foto de perfil actualizada correctamente." if language == "es"
+                   else "Profile photo updated successfully.")
+        return redirect(url_for("personal_views.configuration_page", success=message))
+    except ValueError as exc:
+        db.session.rollback()
+        delete_profile_photo(new_path)
+        return redirect(url_for("personal_views.configuration_page", error=str(exc)))
     except Exception:
         db.session.rollback()
-        error_message = (
-            "No se puede actualizar la foto de perfil en este momento."
-            if language == "es"
-            else "Unable to update profile photo right now."
-        )
-        return redirect(
-            url_for(
-                "personal_views.configuration_page",
-                error=error_message,
-            )
-        )
+        delete_profile_photo(new_path)
+        current_app.logger.exception("Staff profile photo update failed")
+        message = ("No se puede actualizar la foto de perfil en este momento." if language == "es"
+                   else "Unable to update profile photo right now.")
+        return redirect(url_for("personal_views.configuration_page", error=message))
