@@ -41,7 +41,7 @@ if ((Test-Path $fresh) -or (Test-Path $archived)) {
 }
 
 Write-Host "Cloning current clean Git history..." -ForegroundColor Cyan
-Invoke-Git @("clone", "--branch", "main", "--single-branch", $repo, $fresh)
+Invoke-Git -Arguments @("clone", "--branch", "main", "--single-branch", $repo, $fresh)
 
 $preserve = @(
     ".unitrack-secret",
@@ -61,7 +61,9 @@ foreach ($relative in $preserve) {
     if (-not (Test-Path -LiteralPath $src)) { continue }
     if (Test-Path -LiteralPath $src -PathType Container) {
         New-Item -ItemType Directory -Path $dest -Force | Out-Null
-        Copy-Item -LiteralPath (Join-Path $src "*") -Destination $dest -Recurse -Force -ErrorAction Stop
+        Get-ChildItem -LiteralPath $src -Force | ForEach-Object {
+            Copy-Item -LiteralPath $_.FullName -Destination $dest -Recurse -Force -ErrorAction Stop
+        }
     } else {
         New-Item -ItemType Directory -Path (Split-Path $dest -Parent) -Force | Out-Null
         Copy-Item -LiteralPath $src -Destination $dest -Force -ErrorAction Stop
