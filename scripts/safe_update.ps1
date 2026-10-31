@@ -97,7 +97,7 @@ finally {
 # revisions tracked uploaded photos, so a pull may alter tracked paths.
 # These are private local backups, never checked in to Git.
 $photoBackup = Join-Path $root ('backups\\photos-before-update-' + (Get-Date -Format 'yyyyMMdd-HHmmss-fff'))
-foreach ($relativePath in @('app/static/uploads', 'app/static/img/profiles', 'app/routes/static/uploads')) {
+foreach ($relativePath in @('app/static/uploads', 'app/static/img/profiles', 'app/routes/static/uploads', 'private_uploads')) {
     $source = Join-Path $root $relativePath
     if (Test-Path -LiteralPath $source -PathType Container) {
         $destination = Join-Path $photoBackup ($relativePath -replace '/', '\\')
