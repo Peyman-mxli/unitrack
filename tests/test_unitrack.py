@@ -42,6 +42,78 @@ class UniTrackTests(unittest.TestCase):
             cls.db.engine.dispose()
         cls.folder.cleanup()
 
+    def test_database_health_creates_verified_backup_without_changing_rows(self):
+        """Audit the isolated test database and verify a complete private snapshot."""
+        from pathlib import Path
+        from unittest.mock import patch
+        import hashlib
+        import json
+        import sqlite3
+        from scripts import database_health
+
+        database = Path(self.folder.name) / "test.db"
+        with sqlite3.connect(str(database)) as source:
+            original_users = source.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+            original_tables = source.execute(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='table'"
+            ).fetchone()[0]
+        self.assertEqual(
+            database_health.main(["--database", str(database), "--schema", "--strict"]), 0
+        )
+        with tempfile.TemporaryDirectory(prefix="unitrack-backup-test-") as directory:
+            with patch.object(database_health, "BACKUP_FOLDER", Path(directory)):
+                self.assertEqual(
+                    database_health.main(["--database", str(database), "--backup"]), 0
+                )
+            backups = list(Path(directory).glob("*.db"))
+            self.assertEqual(len(backups), 1)
+            snapshot = backups[0]
+            manifest = json.loads(snapshot.with_suffix(".json").read_text("utf-8"))
+            self.assertEqual(manifest["filename"], snapshot.name)
+            self.assertEqual(manifest["sha256"], hashlib.sha256(snapshot.read_bytes()).hexdigest())
+            self.assertEqual(manifest["table_counts"]["users"], original_users)
+            with sqlite3.connect(str(snapshot)) as saved:
+                self.assertEqual(saved.execute("PRAGMA integrity_check").fetchone()[0], "ok")
+                self.assertEqual(saved.execute("SELECT COUNT(*) FROM users").fetchone()[0],
+                                 original_users)
+        with sqlite3.connect(str(database)) as source:
+            self.assertEqual(source.execute("SELECT COUNT(*) FROM users").fetchone()[0],
+                             original_users)
+            self.assertEqual(source.execute(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='table'"
+            ).fetchone()[0], original_tables)
+
+    def test_database_health_detects_missing_corrupt_and_outdated_schema(self):
+        """Never create/repair the real database when a check fails."""
+        import sqlite3
+        from pathlib import Path
+        from scripts import database_health
+
+        with tempfile.TemporaryDirectory(prefix="unitrack-health-check-") as folder:
+            root = Path(folder)
+            missing = root / "missing.db"
+            self.assertEqual(database_health.main(["--database", str(missing)]), 1)
+            self.assertFalse(missing.exists())
+            corrupt = root / "corrupt.db"
+            corrupt.write_bytes(b"not a valid SQLite database")
+            self.assertEqual(database_health.main(["--database", str(corrupt)]), 1)
+            partial = root / "old.db"
+            with sqlite3.connect(str(partial)) as conn:
+                conn.execute("CREATE TABLE users (id INTEGER PRIMARY KEY)")
+            self.assertEqual(
+                database_health.main(["--database", str(partial), "--schema", "--strict"]), 2
+            )
+            # The same audit can report problems without blocking the developer.
+            self.assertEqual(
+                database_health.main(["--database", str(partial), "--schema"]), 0
+            )
+            with sqlite3.connect(str(partial)) as conn:
+                self.assertEqual(conn.execute("PRAGMA table_info(users)").fetchall()[0][1],
+                                 "id")
+                self.assertEqual(conn.execute(
+                    "SELECT COUNT(*) FROM sqlite_master WHERE type='table'"
+                ).fetchone()[0], 1)
+
     def test_photo_upload_service_rejects_spoofs_and_strips_metadata(self):
         """One verified converter serves every photo form and never trusts names."""
         from io import BytesIO
