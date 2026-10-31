@@ -222,6 +222,27 @@ The script checks the Git origin and branch, refuses uncommitted tracked edits, 
 
 **Important:** The script updates only the local Windows checkout. It cannot change the remote Render database, recover data lost from an ephemeral server disk, or rotate the email provider's exposed app password. For a hosted release, use a persistent external database, external upload storage and a new email application password. Ensure the Render service only deploys after GitHub CI checks pass.
 
+### Database health and migration safety (SQLite)
+
+Before making any future schema changes, use the **read-only database audit**:
+
+```powershell
+cd C:\\unitrack
+.\\.venv\\Scripts\\python.exe scripts/database_health.py --schema
+```
+
+The check opens the existing `unitrack.db` in SQLite read-only mode, verifies `PRAGMA integrity_check`, reports foreign-key issues, and compares the tables and columns with the currently shipped SQLAlchemy models. It **never alters or creates a database**. Missing schema is reported as a warning. Add `--strict` to return a nonzero exit code if tables/columns are missing.
+
+For a fresh, integrity-verified SQLite snapshot with a SHA-256 checksum and record-count inventory:
+
+```powershell
+.\\.venv\\Scripts\\python.exe scripts/database_health.py --backup --schema
+```
+
+Both the `.db` backup and its `.json` inventory stay in ignored `backups/`. Keep backups off GitHub. An actual restore must be planned and checked independently; a backup alone does not guarantee that recovery was practiced.
+
+The Windows safe updater already makes a separate online database backup before pulling code. It now also runs the read-only integrity and schema audit before starting UniTrack. **No migrations are executed automatically.** Do not manually add columns or stamp an Alembic revision on an existing database until its schema has been audited and a tested migration baseline is available. For production PostgreSQL, use its managed backup/restore process rather than this SQLite-only script.
+
 ### Safe database backup
 
 ```powershell
