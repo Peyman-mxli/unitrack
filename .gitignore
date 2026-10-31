@@ -11,6 +11,7 @@ unitrack.db
 app/static/uploads/
 app/static/img/profiles/
 app/routes/static/uploads/
+private_uploads/
 backups/
 .pytest_cache/
 .coverage
