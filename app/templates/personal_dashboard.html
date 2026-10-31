@@ -294,7 +294,7 @@
 
         {% if profile_image %}
             <img
-                src="{{ url_for('static', filename=profile_image) }}"
+                src="{{ url_for('private_profile_photo') }}"
                 alt="{{ 'Perfil del Personal' if is_spanish else 'Staff Profile' }}"
                 class="hero-avatar"
             >
