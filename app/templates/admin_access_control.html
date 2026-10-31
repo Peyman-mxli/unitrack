@@ -693,11 +693,11 @@
     <div class="summary-header">
         <div class="summary-avatar">
             {% if current_user.photo_path %}
-                <img src="{{ url_for('static', filename=current_user.photo_path) }}" alt="{{ t('Admin Photo') }}">
+                <img src="{{ url_for('private_profile_photo') }}" alt="{{ t('Admin Photo') }}">
             {% elif current_user.profile_image %}
-                <img src="{{ url_for('static', filename=current_user.profile_image) }}" alt="{{ t('Admin Photo') }}">
+                <img src="{{ url_for('private_profile_photo') }}" alt="{{ t('Admin Photo') }}">
             {% elif current_user.image %}
-                <img src="{{ url_for('static', filename=current_user.image) }}" alt="{{ t('Admin Photo') }}">
+                <img src="{{ url_for('private_profile_photo') }}" alt="{{ t('Admin Photo') }}">
             {% else %}
                 <div class="summary-avatar-fallback">
                     {{ (current_user.first_name[:1] if current_user.first_name else "A") ~ (current_user.last_name[:1] if current_user.last_name else "") }}
