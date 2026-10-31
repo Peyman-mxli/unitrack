@@ -37,6 +37,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 
 from app.database import db
+from app.services.profile_photo_service import save_profile_photo, delete_profile_photo
 from app.models.user_model import User
 from app.models.access_log_model import AccessLog
 from app.models.academic_models import UniversityClass, ClassEnrollment, ClassMeeting, ClassAttendance
@@ -473,52 +474,15 @@ def _build_admin_base_url():
 
 
 def _save_admin_profile_photo(uploaded_file):
-    """
-    Save admin profile photo safely and update all possible image fields.
-    """
+    """Validate actual image bytes, save a fresh JPEG, update photo references."""
     if not uploaded_file or not getattr(uploaded_file, "filename", ""):
-        return
+        return None
+    new_path = save_profile_photo(uploaded_file, kind="admin")
+    for attribute in ("photo_path", "profile_image", "image"):
+        if hasattr(current_user, attribute):
+            setattr(current_user, attribute, new_path)
+    return new_path
 
-    safe_filename = secure_filename(uploaded_file.filename or "")
-    if not safe_filename:
-        raise ValueError("Invalid profile image file.")
-
-    if not _is_allowed_admin_photo(safe_filename):
-        raise ValueError("Profile image format not allowed. Use PNG, JPG, JPEG, or WEBP.")
-
-    extension = safe_filename.rsplit(".", 1)[1].lower()
-
-    upload_folder = os.path.join(
-        current_app.root_path,
-        "static",
-        "uploads",
-        "admins"
-    )
-    os.makedirs(upload_folder, exist_ok=True)
-
-    final_filename = f"admin_{current_user.id}.{extension}"
-    final_relative_path = f"uploads/admins/{final_filename}"
-    final_full_path = os.path.join(upload_folder, final_filename)
-
-    for old_extension in ALLOWED_ADMIN_PHOTO_EXTENSIONS:
-        old_filename = f"admin_{current_user.id}.{old_extension}"
-        old_file_path = os.path.join(upload_folder, old_filename)
-        if os.path.exists(old_file_path) and old_file_path != final_full_path:
-            try:
-                os.remove(old_file_path)
-            except Exception:
-                pass
-
-    uploaded_file.save(final_full_path)
-
-    if hasattr(current_user, "profile_image"):
-        current_user.profile_image = final_relative_path
-
-    if hasattr(current_user, "photo_path"):
-        current_user.photo_path = final_relative_path
-
-    if hasattr(current_user, "image"):
-        current_user.image = final_relative_path
 
 
 def build_access_qr_payload_for_user(user, token=None):
@@ -1944,6 +1908,7 @@ def admin_configuration():
                 flash("New password must be different from current password.", "error")
                 return _admin_configuration_redirect()
 
+        new_photo_path = None
         try:
             if hasattr(current_user, "first_name"):
                 current_user.first_name = first_name
@@ -1961,7 +1926,7 @@ def admin_configuration():
                 current_user.language = language
 
             if uploaded_profile_image and str(uploaded_profile_image.filename or "").strip():
-                _save_admin_profile_photo(uploaded_profile_image)
+                new_photo_path = _save_admin_profile_photo(uploaded_profile_image)
 
             if password_change_requested:
                 set_user_password_safely(current_user, new_password)
@@ -1981,10 +1946,13 @@ def admin_configuration():
 
         except ValueError as exc:
             db.session.rollback()
+            delete_profile_photo(new_photo_path)
             flash(str(exc), "error")
             return _admin_configuration_redirect()
         except Exception:
             db.session.rollback()
+            delete_profile_photo(new_photo_path)
+            current_app.logger.exception("Admin configuration/photo update failed")
             flash("Failed to update admin configuration.", "error")
             return _admin_configuration_redirect()
 
