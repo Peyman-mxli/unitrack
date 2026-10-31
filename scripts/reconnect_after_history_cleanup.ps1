@@ -104,8 +104,12 @@ if (-not (Test-Path -LiteralPath $sourceDb -PathType Leaf)) {
 # Unlike Copy-Item, the SQLite backup API captures WAL transactions safely.
 # This also refuses corrupted databases and verifies the transferred snapshot.
 $python = Join-Path $original ".venv\Scripts\python.exe"
+$pythonOptions = @()
 if (-not (Test-Path -LiteralPath $python -PathType Leaf)) {
-    throw "Existing Python environment missing: $python. Original unchanged."
+    # A clean or old checkout may not have a venv. Use installed Python
+    # rather than blocking the data-preserving transfer.
+    $python = "py"
+    $pythonOptions = @("-3.11")
 }
 $backupCode = @'
 import sqlite3, sys
@@ -130,7 +134,7 @@ print("Verified SQLite snapshot:", target_path, "(" + str(count) + " tables)")
 $backupRunner = Join-Path $env:TEMP ("unitrack-reconnect-db-" + [Guid]::NewGuid().ToString("N") + ".py")
 try {
     [System.IO.File]::WriteAllText($backupRunner, $backupCode, (New-Object System.Text.UTF8Encoding($false)))
-    & $python $backupRunner $sourceDb $targetDb
+    & $python @pythonOptions $backupRunner $sourceDb $targetDb
     Assert-ExitCode "Verified SQLite transfer"
 } finally {
     if (Test-Path -LiteralPath $backupRunner) {
