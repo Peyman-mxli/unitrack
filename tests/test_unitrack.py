@@ -45,6 +45,7 @@ class UniTrackTests(unittest.TestCase):
     def test_database_health_creates_verified_backup_without_changing_rows(self):
         """Audit the isolated test database and verify a complete private snapshot."""
         from pathlib import Path
+        from contextlib import closing
         from unittest.mock import patch
         import hashlib
         import json
@@ -52,7 +53,7 @@ class UniTrackTests(unittest.TestCase):
         from scripts import database_health
 
         database = Path(self.folder.name) / "test.db"
-        with sqlite3.connect(str(database)) as source:
+        with closing(sqlite3.connect(str(database))) as source:
             original_users = source.execute("SELECT COUNT(*) FROM users").fetchone()[0]
             original_tables = source.execute(
                 "SELECT COUNT(*) FROM sqlite_master WHERE type='table'"
@@ -72,11 +73,11 @@ class UniTrackTests(unittest.TestCase):
             self.assertEqual(manifest["filename"], snapshot.name)
             self.assertEqual(manifest["sha256"], hashlib.sha256(snapshot.read_bytes()).hexdigest())
             self.assertEqual(manifest["table_counts"]["users"], original_users)
-            with sqlite3.connect(str(snapshot)) as saved:
+            with closing(sqlite3.connect(str(snapshot))) as saved:
                 self.assertEqual(saved.execute("PRAGMA integrity_check").fetchone()[0], "ok")
                 self.assertEqual(saved.execute("SELECT COUNT(*) FROM users").fetchone()[0],
                                  original_users)
-        with sqlite3.connect(str(database)) as source:
+        with closing(sqlite3.connect(str(database))) as source:
             self.assertEqual(source.execute("SELECT COUNT(*) FROM users").fetchone()[0],
                              original_users)
             self.assertEqual(source.execute(
@@ -87,6 +88,7 @@ class UniTrackTests(unittest.TestCase):
         """Never create/repair the real database when a check fails."""
         import sqlite3
         from pathlib import Path
+        from contextlib import closing
         from scripts import database_health
 
         with tempfile.TemporaryDirectory(prefix="unitrack-health-check-") as folder:
@@ -98,7 +100,7 @@ class UniTrackTests(unittest.TestCase):
             corrupt.write_bytes(b"not a valid SQLite database")
             self.assertEqual(database_health.main(["--database", str(corrupt)]), 1)
             partial = root / "old.db"
-            with sqlite3.connect(str(partial)) as conn:
+            with closing(sqlite3.connect(str(partial))) as conn:
                 conn.execute("CREATE TABLE users (id INTEGER PRIMARY KEY)")
             self.assertEqual(
                 database_health.main(["--database", str(partial), "--schema", "--strict"]), 2
@@ -107,7 +109,7 @@ class UniTrackTests(unittest.TestCase):
             self.assertEqual(
                 database_health.main(["--database", str(partial), "--schema"]), 0
             )
-            with sqlite3.connect(str(partial)) as conn:
+            with closing(sqlite3.connect(str(partial))) as conn:
                 self.assertEqual(conn.execute("PRAGMA table_info(users)").fetchall()[0][1],
                                  "id")
                 self.assertEqual(conn.execute(
