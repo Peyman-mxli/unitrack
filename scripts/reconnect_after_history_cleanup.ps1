@@ -94,6 +94,8 @@ foreach ($relative in $preserve) {
 }
 
 # Rename rather than deleting anything. If the second move fails, recover.
+# Do not hold the directory open as the running PowerShell working directory.
+Set-Location $parent
 Move-Item -LiteralPath $original -Destination $archived -ErrorAction Stop
 try {
     Move-Item -LiteralPath $fresh -Destination $original -ErrorAction Stop
