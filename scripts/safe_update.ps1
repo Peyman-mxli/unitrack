@@ -114,6 +114,12 @@ foreach ($relativePath in @('app/static/uploads', 'app/static/img/profiles', 'ap
 Write-Host 'Pulling the latest verified main branch...' -ForegroundColor Cyan
 RunNative 'git' @('pull', '--ff-only', 'origin', 'main')
 
+# Never start against a corrupted database. This command reads the actual
+# local SQLite file without changing tables, rows, indexes or schema.
+# Print missing tables/columns as migration warnings, not automatic fixes.
+Write-Host 'Auditing existing SQLite database without modifying records...' -ForegroundColor Cyan
+RunNative $python @('scripts/database_health.py', '--database', $db, '--schema')
+
 # IMPORTANT: older commits used to track account photos. When Git removes
 # those tracked paths from the public repository, restore the local originals
 # from the private backup above. Never overwrite a newer on-disk photo.
