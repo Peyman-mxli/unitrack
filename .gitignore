@@ -10,6 +10,7 @@ unitrack.db
 *.db-wal
 app/static/uploads/
 app/static/img/profiles/
+app/routes/static/uploads/
 backups/
 .pytest_cache/
 .coverage
