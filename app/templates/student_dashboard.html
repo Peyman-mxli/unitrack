@@ -85,7 +85,7 @@
         <div style="flex:0 0 auto;">
             {% if current_user.photo_path %}
                 <img
-                    src="{{ url_for('static', filename=current_user.photo_path) }}"
+                    src="{{ url_for('private_profile_photo') }}"
                     alt="Student Photo"
                     class="dashboard-hero-photo"
                     style="
