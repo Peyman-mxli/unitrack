@@ -1,7 +1,7 @@
 # UniTrack safe local update, Windows PowerShell 5.1+.
 # Usage from C:\unitrack:  .\scripts\safe_update.ps1
-# This script never deletes the original database, photos, virtual environments,
-# local backup, or git stash. It refuses to update a dirty/diverged checkout.
+# This script preserves the database, profile photos, virtual environments,
+# local backups, and git stash, including when Git stops tracking old photo files. It refuses to update a dirty/diverged checkout.
 [CmdletBinding()]
 param([switch]$SkipStart)
 
@@ -113,6 +113,38 @@ foreach ($relativePath in @('app/static/uploads', 'app/static/img/profiles', 'ap
 # --ff-only prevents accidental merges, rebases, or overwriting local work.
 Write-Host 'Pulling the latest verified main branch...' -ForegroundColor Cyan
 RunNative 'git' @('pull', '--ff-only', 'origin', 'main')
+
+# IMPORTANT: older commits used to track account photos. When Git removes
+# those tracked paths from the public repository, restore the local originals
+# from the private backup above. Never overwrite a newer on-disk photo.
+if (Test-Path -LiteralPath $photoBackup -PathType Container) {
+    $restoredCount = 0
+    $backedUpPhotos = @(Get-ChildItem -LiteralPath $photoBackup -File -Recurse -Force)
+    foreach ($savedPhoto in $backedUpPhotos) {
+        $relativePhotoPath = $savedPhoto.FullName.Substring($photoBackup.Length).TrimStart([char[]]@('\', '/'))
+        if ([string]::IsNullOrWhiteSpace($relativePhotoPath)) {
+            Fail 'Photo backup contained an invalid relative path.'
+        }
+        $targetPhoto = Join-Path $root $relativePhotoPath
+        if (-not (Test-Path -LiteralPath $targetPhoto -PathType Leaf)) {
+            $targetDirectory = Split-Path -Path $targetPhoto -Parent
+            New-Item -ItemType Directory -Path $targetDirectory -Force | Out-Null
+            Copy-Item -LiteralPath $savedPhoto.FullName -Destination $targetPhoto -ErrorAction Stop
+            $restoredCount++
+        }
+    }
+    $remainingMissing = @(
+        $backedUpPhotos | Where-Object {
+            $relativePhotoPath = $_.FullName.Substring($photoBackup.Length).TrimStart([char[]]@('\', '/'))
+            -not (Test-Path -LiteralPath (Join-Path $root $relativePhotoPath) -PathType Leaf)
+        }
+    )
+    if ($remainingMissing.Count -gt 0) {
+        Fail 'Some backed-up profile photos could not be restored. Backups were preserved.'
+    }
+    Write-Host "Profile photos verified; restored $restoredCount local originals after Git update." -ForegroundColor Green
+}
+
 
 Write-Host 'Installing required packages into .venv only...' -ForegroundColor Cyan
 RunNative $python @('-m', 'pip', 'install', '-r', 'requirements.txt')
