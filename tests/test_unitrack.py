@@ -141,7 +141,7 @@ class UniTrackTests(unittest.TestCase):
             self.assertEqual(photo.status_code, 200)
             self.assertEqual(photo.mimetype, "image/jpeg")
             self.assertIn("no-store", photo.headers.get("Cache-Control", ""))
-            self.assertEqual(photo.data[:3], b"\\xff\\xd8\\xff")
+            self.assertEqual(photo.data[:3], b"\xff\xd8\xff")
             self.assertEqual(
                 student_client.get("/static/uploads/profile_photos/something.jpg").status_code,
                 403,
