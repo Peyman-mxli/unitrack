@@ -148,3 +148,28 @@ jobs:
           [System.IO.File]::WriteAllText($verify, 'import sqlite3; assert sqlite3.connect("unitrack.db").execute("SELECT COUNT(*) FROM safety_test").fetchone()[0] == 1', (New-Object System.Text.UTF8Encoding($false)))
           & .\.venv\Scripts\python.exe $verify
           if ($LASTEXITCODE -ne 0) { throw "The updater changed the original test database" }
+      - name: Test safe re-clone after Git history rewrite
+        shell: powershell
+        run: |
+          # This uses an isolated TEMP folder, never the developer's actual data.
+          $testRoot = Join-Path $env:TEMP "unitrack-ci-history-reconnect"
+          git clone --branch main --single-branch "https://github.com/Peyman-mxli/unitrack.git" $testRoot
+          if ($LASTEXITCODE -ne 0) { throw "Could not clone for reconnect test" }
+          $testPhoto = Join-Path $testRoot "private_uploads\\profile_photos\\test-keep.jpg"
+          New-Item -ItemType Directory -Path (Split-Path $testPhoto -Parent) -Force | Out-Null
+          [System.IO.File]::WriteAllText($testPhoto, 'private-photo-test-data', (New-Object System.Text.UTF8Encoding($false)))
+          $testDb = Join-Path $testRoot "unitrack.db"
+          Copy-Item -LiteralPath .\\unitrack.db -Destination $testDb -Force
+          $script = (Resolve-Path .\\scripts\\reconnect_after_history_cleanup.ps1).Path
+          Set-Location $env:TEMP
+          & powershell -NoProfile -ExecutionPolicy Bypass -File $script -ProjectRoot $testRoot -SkipStart
+          if ($LASTEXITCODE -ne 0) { throw "Safe history reconnect failed" }
+          if (-not (Test-Path -LiteralPath $testPhoto)) {
+            throw "History reconnect did not preserve a private photo"
+          }
+          if (-not (Test-Path -LiteralPath $testDb)) {
+            throw "History reconnect did not preserve the local database"
+          }
+          $backups = @(Get-ChildItem $env:TEMP -Directory -Filter "unitrack-ci-history-reconnect-history-backup-*")
+          if ($backups.Count -lt 1) { throw "Original checkout backup is missing" }
+          Write-Host "History reconnect safely preserved project data and the original checkout."
