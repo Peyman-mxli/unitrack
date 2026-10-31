@@ -75,9 +75,9 @@ class UniTrackTests(unittest.TestCase):
                 stored_path = save_profile_photo(
                     photo(raw.getvalue(), "my_photo.png"), kind="test"
                 )
-                self.assertTrue(stored_path.startswith("uploads/profile_photos/test_"))
+                self.assertTrue(stored_path.startswith("private_uploads/profile_photos/test_"))
                 self.assertTrue(stored_path.endswith(".jpg"))
-                destination = Path(self.app.static_folder) / stored_path
+                destination = Path(self.app.root_path).parent / stored_path
                 self.assertTrue(destination.is_file())
                 with Image.open(destination) as verified:
                     self.assertEqual(verified.format, "JPEG")
@@ -93,6 +93,92 @@ class UniTrackTests(unittest.TestCase):
             huge[16:20] = (9000).to_bytes(4, "big")
             with self.assertRaises(ValueError):
                 save_profile_photo(photo(bytes(huge), "huge.png"), kind="test")
+
+    def test_private_profile_photos_require_login_and_owner(self):
+        """Private photos must never be accessible as anonymous static files."""
+        from io import BytesIO
+        from pathlib import Path
+        from PIL import Image
+        from werkzeug.datastructures import FileStorage
+        from app.models.user_model import User
+        from app.services.profile_photo_service import save_profile_photo, delete_profile_photo
+
+        raw = BytesIO()
+        Image.new("RGB", (96, 72), (25, 85, 140)).save(raw, format="PNG")
+        saved_path = None
+        student_previous = None
+        legacy_path = None
+        try:
+            with self.app.app_context():
+                student = self.db.session.execute(
+                    self.db.select(User).where(User.username == "StudentA")
+                ).scalar_one()
+                student_previous = student.photo_path
+                saved_path = save_profile_photo(
+                    FileStorage(stream=BytesIO(raw.getvalue()), filename="private.png"),
+                    kind="testowner",
+                )
+                student.photo_path = saved_path
+                self.db.session.commit()
+                assert not (Path(self.app.static_folder) / saved_path).exists()
+
+            anonymous = self.app.test_client()
+            self.assertIn(
+                anonymous.get("/account/profile-photo").status_code, (302, 401)
+            )
+            self.assertEqual(
+                anonymous.get("/static/uploads/profile_photos/something.jpg").status_code,
+                403,
+            )
+            self.assertEqual(
+                anonymous.get("/static/img/profiles/something.jpg").status_code,
+                403,
+            )
+            self.assertEqual(anonymous.get("/static/img/unitrack_logo.png").status_code, 200)
+
+            student_client = self._signed_in_client("StudentA")
+            photo = student_client.get("/account/profile-photo")
+            self.assertEqual(photo.status_code, 200)
+            self.assertEqual(photo.mimetype, "image/jpeg")
+            self.assertIn("no-store", photo.headers.get("Cache-Control", ""))
+            self.assertEqual(photo.data[:3], b"\\xff\\xd8\\xff")
+            self.assertEqual(
+                student_client.get("/static/uploads/profile_photos/something.jpg").status_code,
+                403,
+            )
+            dashboard = student_client.get("/student/dashboard")
+            self.assertIn(b'/account/profile-photo', dashboard.data)
+            self.assertNotIn(saved_path.encode(), dashboard.data)
+
+            another_user = self._signed_in_client("TeacherA")
+            self.assertEqual(another_user.get("/account/profile-photo").status_code, 404)
+
+            # A profile photo migrated from a legacy public folder still works
+            # through the signed-in user's private route, not a public URL.
+            legacy_path = "uploads/profile_photos/unitrack-test-legacy-photo.jpg"
+            legacy_file = Path(self.app.static_folder) / legacy_path
+            legacy_file.parent.mkdir(parents=True, exist_ok=True)
+            legacy_file.write_bytes(raw.getvalue())
+            with self.app.app_context():
+                student = self.db.session.execute(
+                    self.db.select(User).where(User.username == "StudentA")
+                ).scalar_one()
+                student.photo_path = legacy_path
+                self.db.session.commit()
+            self.assertEqual(student_client.get("/account/profile-photo").status_code, 200)
+            self.assertEqual(
+                anonymous.get("/static/" + legacy_path).status_code, 403
+            )
+        finally:
+            with self.app.app_context():
+                student = self.db.session.execute(
+                    self.db.select(User).where(User.username == "StudentA")
+                ).scalar_one()
+                student.photo_path = student_previous
+                self.db.session.commit()
+                delete_profile_photo(saved_path)
+            if legacy_path:
+                (Path(self.app.static_folder) / legacy_path).unlink(missing_ok=True)
 
     def test_all_role_photo_forms_reject_disguised_files_without_changing_account(self):
         """Admin, student, professor and staff must reject non-image uploads."""
