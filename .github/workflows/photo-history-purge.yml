@@ -1,0 +1,135 @@
+name: One-time photo history cleanup
+
+# Runs only when this workflow is first added/changed on main.
+# A GITHUB_TOKEN-initiated force push does not retrigger this workflow.
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/photo-history-purge.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  clean-photo-history:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: github.repository == 'Peyman-mxli/unitrack'
+    concurrency:
+      group: unitrack-sensitive-photo-history-cleanup
+      cancel-in-progress: false
+    steps:
+      - name: Set up Python and Git history-cleaning tool
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install git-filter-repo
+        run: python -m pip install "git-filter-repo>=2.47"
+      - name: Safely rewrite both branches without changing project files
+        shell: bash
+        env:
+          REPO: ${{ github.repository }}
+          EXPECTED_MAIN: ${{ github.sha }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/unitrack-history-purge.git"
+          git clone --mirror --quiet "https://github.com/$REPO.git" "$work"
+          cd "$work"
+
+          mapfile -t heads < <(git for-each-ref --format='%(refname)' refs/heads/ | LC_ALL=C sort)
+          if [[ "${#heads[@]}" -ne 2 ||
+                "${heads[0]}" != "refs/heads/main" ||
+                "${heads[1]}" != "refs/heads/security/config-environment-secrets" ]]; then
+            printf 'Unexpected branches, refusing any history rewrite: %s\n' "${heads[*]}"
+            exit 1
+          fi
+          if [[ -n "$(git tag --list)" ]]; then
+            echo "Tags exist. Refusing to rewrite without also planning tag replacement."
+            exit 1
+          fi
+          old_main="$(git rev-parse refs/heads/main)"
+          old_security="$(git rev-parse refs/heads/security/config-environment-secrets)"
+          if [[ "$old_main" != "$EXPECTED_MAIN" ]]; then
+            echo "Main changed after the cleanup workflow was queued. Nothing was pushed."
+            exit 1
+          fi
+
+          # Verify both current code snapshots contain no uploaded photos.
+          python - <<'PY'
+          import hashlib, json, os, pathlib, subprocess
+          branches = ["main", "security/config-environment-secrets"]
+          forbidden = (
+              b"app/static/uploads/", b"app/static/img/profiles/",
+              b"app/routes/static/uploads/", b"private_uploads/",
+          )
+          snapshots = {}
+          for branch in branches:
+              entries = subprocess.check_output(
+                  ["git", "ls-tree", "-r", "-z", "refs/heads/" + branch]
+              ).split(b"\0")
+              if any(b"\t" in row and row.split(b"\t", 1)[1].startswith(forbidden)
+                     for row in entries if row):
+                  raise SystemExit("Live branch contains uploaded photos; refusing rewrite.")
+              snapshots[branch] = hashlib.sha256(
+                  b"\0".join(sorted(row for row in entries if row))
+              ).hexdigest()
+          pathlib.Path(os.environ["RUNNER_TEMP"], "unitrack-snapshot-hashes.json").write_text(
+              json.dumps(snapshots)
+          )
+          print("Verified two branches have clean current snapshots.")
+          PY
+
+          # Change historical trees only: preserve every other filename and blob.
+          git filter-repo --sensitive-data-removal --force --invert-paths \
+            --path app/static/uploads/ \
+            --path app/static/img/profiles/ \
+            --path app/routes/static/uploads/ \
+            --path private_uploads/
+
+          python - <<'PY'
+          import hashlib, json, os, pathlib, re, subprocess
+          forbidden = (
+              b"app/static/uploads/", b"app/static/img/profiles/",
+              b"app/routes/static/uploads/", b"private_uploads/",
+          )
+          expected = json.loads(pathlib.Path(
+              os.environ["RUNNER_TEMP"], "unitrack-snapshot-hashes.json"
+          ).read_text())
+          for branch, original_hash in expected.items():
+              entries = subprocess.check_output(
+                  ["git", "ls-tree", "-r", "-z", "refs/heads/" + branch]
+              ).split(b"\0")
+              actual_hash = hashlib.sha256(
+                  b"\0".join(sorted(row for row in entries if row))
+              ).hexdigest()
+              if original_hash != actual_hash:
+                  raise SystemExit("History rewrite changed unrelated project files!")
+          object_list = subprocess.check_output(["git", "rev-list", "--objects", "--all"])
+          if any(line.split(b" ", 1)[1].startswith(forbidden)
+                 for line in object_list.splitlines() if b" " in line):
+              raise SystemExit("Photo-containing paths remain reachable in rewritten history!")
+          print("Verified preserved project snapshots and cleaned reachable history.")
+          PY
+
+          new_main="$(git rev-parse refs/heads/main)"
+          new_security="$(git rev-parse refs/heads/security/config-environment-secrets)"
+          if [[ "$new_main" == "$old_main" || "$new_security" == "$old_security" ]]; then
+            echo "History unexpectedly unchanged; refusing to push."
+            exit 1
+          fi
+
+          # Lease both branch tips so a concurrent user push aborts the entire
+          # operation. Never force-push pull-request refs or tags.
+          git remote remove origin 2>/dev/null || true
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/$REPO.git"
+          git push --atomic \
+            --force-with-lease="refs/heads/main:$old_main" \
+            --force-with-lease="refs/heads/security/config-environment-secrets:$old_security" \
+            origin \
+            refs/heads/main:refs/heads/main \
+            refs/heads/security/config-environment-secrets:refs/heads/security/config-environment-secrets
+          echo "Both branches were rewritten atomically. Old PR refs/caches still require GitHub Support cleanup."
+          echo "New branch tip SHAs verified by push response (do not reuse older local Git clones)."
