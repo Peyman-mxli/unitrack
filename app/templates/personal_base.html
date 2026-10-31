@@ -674,7 +674,7 @@ padding:10px 10px 16px 10px;
 </div>
 
 {% if current_user.photo_path %}
-<img src="{{ url_for('static', filename=current_user.photo_path) }}" class="student-photo" alt="{{ 'Foto del Personal' if is_spanish else 'Staff Photo' }}">
+<img src="{{ url_for('private_profile_photo') }}" class="student-photo" alt="{{ 'Foto del Personal' if is_spanish else 'Staff Photo' }}">
 {% else %}
 <img src="{{ url_for('static', filename='img/unitrack_logo.png') }}" class="student-photo" alt="{{ 'Foto del Personal' if is_spanish else 'Staff Photo' }}">
 {% endif %}
