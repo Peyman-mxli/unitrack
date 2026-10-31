@@ -12,6 +12,7 @@ Use database-specific managed backups for PostgreSQL deployments.
 from __future__ import annotations
 
 import argparse
+from contextlib import closing
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -49,9 +50,13 @@ def check_integrity(connection: sqlite3.Connection) -> None:
     if not result or any(row[0] != "ok" for row in result):
         raise RuntimeError("SQLite integrity_check failed; STOP and restore a verified backup.")
     # Invalid parent relations are reported but never deleted or repaired.
-    violations = connection.execute("PRAGMA foreign_key_check").fetchall()
-    if violations:
-        print(f"WARNING: {len(violations)} foreign-key violations found (no data was changed).")
+    try:
+        violations = connection.execute("PRAGMA foreign_key_check").fetchall()
+    except sqlite3.DatabaseError as exc:
+        print(f"WARNING: Foreign-key audit could not finish: {exc}. No changes made.")
+    else:
+        if violations:
+            print(f"WARNING: {len(violations)} foreign-key violations found (no data was changed).")
 
 
 def table_names(connection: sqlite3.Connection) -> set[str]:
@@ -137,7 +142,7 @@ def create_verified_backup(source: sqlite3.Connection, directory: Path) -> Path:
     try:
         with sqlite3.connect(str(output), timeout=30) as destination:
             source.backup(destination, pages=128, sleep=0.05)
-        with open_existing_database(output) as snapshot:
+        with closing(open_existing_database(output)) as snapshot:
             check_integrity(snapshot)
             counts = summarize(snapshot)
         manifest = {
@@ -180,7 +185,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.strict and not args.schema:
         parser.error("--strict requires --schema")
     try:
-        with open_existing_database(args.database) as connection:
+        with closing(open_existing_database(args.database)) as connection:
             check_integrity(connection)
             print(f"SQLite integrity: OK ({args.database.resolve()})")
             counts = summarize(connection)
