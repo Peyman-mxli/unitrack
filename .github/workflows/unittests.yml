@@ -39,14 +39,17 @@ jobs:
                   raise SystemExit(f'Missing photo privacy .gitignore rule: {folder}')
           print('Account upload folders are ignored and none of their files are tracked.')
           PY
-      - name: Validate Windows safe updater syntax
+      - name: Validate Windows updater and clone-recovery script syntax
         shell: pwsh
         run: |
-          $parseErrors = $null
-          [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path 'scripts/safe_update.ps1').Path, [ref]$null, [ref]$parseErrors) | Out-Null
-          if ($parseErrors.Count -gt 0) {
-            $parseErrors | ForEach-Object { Write-Error $_ }
-            exit 1
+          foreach ($file in @('scripts/safe_update.ps1', 'scripts/reconnect_after_history_cleanup.ps1')) {
+            $tokens = $null
+            $parseErrors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $file).Path, [ref]$tokens, [ref]$parseErrors) | Out-Null
+            if ($parseErrors.Count -gt 0) {
+              $parseErrors | ForEach-Object { Write-Error $_ }
+              exit 1
+            }
           }
       - name: Verify camera JavaScript syntax and QR decoding fallback
         shell: bash
@@ -115,26 +118,30 @@ jobs:
           [System.IO.File]::WriteAllText($createDb, 'import sqlite3; c = sqlite3.connect("unitrack.db"); c.execute("CREATE TABLE safety_test (id INTEGER PRIMARY KEY)"); c.execute("INSERT INTO safety_test VALUES (1)"); c.commit(); c.close()', (New-Object System.Text.UTF8Encoding($false)))
           & .\.venv\Scripts\python.exe $createDb
           if ($LASTEXITCODE -ne 0) { throw "Could not create isolated test DB" }
-          # Exercise an ACTUAL transition from the earlier public-photo commit
-          # to today's private upload policy, using the latest updater from
-          # a temporary copy so that old code cannot bypass restoration.
+          # Following the history rewrite, the earlier sensitive commit is
+          # intentionally unreachable. Test today's safe updater with locally
+          # stored private/legacy photos and an isolated SQLite database.
           $latestUpdater = Join-Path $env:TEMP 'unitrack-privacy-safe-update.ps1'
-          Copy-Item -LiteralPath .\scripts\safe_update.ps1 -Destination $latestUpdater -Force
+          Copy-Item -LiteralPath .\\scripts\\safe_update.ps1 -Destination $latestUpdater -Force
           git switch -C main
-          if ($LASTEXITCODE -ne 0) { throw "Could not create test branch" }
-          git reset --hard 461126019f058e2d2ff65e8e001f01a345b7278a
-          if ($LASTEXITCODE -ne 0) { throw "Could not load pre-privacy test revision" }
-          $legacyPhotos = @(& git ls-files -- 'app/static/uploads' 'app/static/img/profiles' 'app/routes/static/uploads')
-          if ($legacyPhotos.Count -lt 25) { throw "Missing historical tracked photos for restore test" }
+          if ($LASTEXITCODE -ne 0) { throw "Could not create test main branch" }
+          $samplePhotos = @(
+            'app/static/uploads/profile_photos/ci-existing-legacy.jpg',
+            'private_uploads/profile_photos/ci-existing-private.jpg'
+          )
+          foreach ($photo in $samplePhotos) {
+            New-Item -ItemType Directory -Path (Split-Path $photo -Parent) -Force | Out-Null
+            [System.IO.File]::WriteAllText((Join-Path (Get-Location) $photo), 'CI test data', (New-Object System.Text.UTF8Encoding($false)))
+          }
           & powershell -NoProfile -ExecutionPolicy Bypass -File $latestUpdater -SkipStart
-          if ($LASTEXITCODE -ne 0) { throw "The real Windows PowerShell updater failed" }
-          foreach ($oldPhoto in $legacyPhotos) {
-            if (-not (Test-Path -LiteralPath $oldPhoto -PathType Leaf)) {
-              throw "The updater lost an existing profile photo."
+          if ($LASTEXITCODE -ne 0) { throw "The Windows PowerShell safe updater failed" }
+          foreach ($photo in $samplePhotos) {
+            if (-not (Test-Path -LiteralPath $photo -PathType Leaf)) {
+              throw "The updater lost a previously stored photo."
             }
           }
-          $stillTracked = @(& git ls-files -- 'app/static/uploads' 'app/static/img/profiles' 'app/routes/static/uploads')
-          if ($stillTracked.Count -gt 0) { throw "Profile photos are still tracked after pull" }
+          $stillTracked = @(& git ls-files -- 'app/static/uploads' 'app/static/img/profiles' 'app/routes/static/uploads' 'private_uploads')
+          if ($stillTracked.Count -gt 0) { throw "Uploaded photos became tracked after updating" }
           $backups = @(Get-ChildItem -Path .\backups\unitrack-before-update-*.db -ErrorAction Stop)
           if ($backups.Count -lt 1) { throw "The updater did not save the SQLite backup" }
           $verify = Join-Path $env:TEMP 'unitrack-ci-verifydb.py'
