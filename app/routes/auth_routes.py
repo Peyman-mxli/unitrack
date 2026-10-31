@@ -28,6 +28,7 @@ import os
 import uuid
 
 from app.database import db
+from app.services.profile_photo_service import save_profile_photo, delete_profile_photo
 from app.models.user_model import User
 from app.services.user_service import (
     create_user,
@@ -843,24 +844,8 @@ def register_page():
     try:
         photo_path = None
         uploaded_photo = request.files.get("photo")
-
         if uploaded_photo and uploaded_photo.filename:
-            original_filename = secure_filename(uploaded_photo.filename)
-
-            if original_filename:
-                upload_folder = os.path.join(
-                    current_app.root_path,
-                    "static",
-                    "uploads",
-                    "profile_photos"
-                )
-                os.makedirs(upload_folder, exist_ok=True)
-
-                unique_filename = f"{uuid.uuid4().hex}_{original_filename}"
-                file_save_path = os.path.join(upload_folder, unique_filename)
-
-                uploaded_photo.save(file_save_path)
-                photo_path = f"uploads/profile_photos/{unique_filename}"
+            photo_path = save_profile_photo(uploaded_photo, kind="register")
 
         password_hash = hash_password(password)
 
@@ -895,6 +880,8 @@ def register_page():
         )
 
     except ValueError as error:
+        db.session.rollback()
+        delete_profile_photo(photo_path)
         return render_template(
             "auth_register.html",
             **build_register_template_context(
@@ -906,6 +893,8 @@ def register_page():
 
     except Exception:
         db.session.rollback()
+        delete_profile_photo(photo_path)
+        current_app.logger.exception("Registration failed after validating profile photo")
         return render_template(
             "auth_register.html",
             **build_register_template_context(
