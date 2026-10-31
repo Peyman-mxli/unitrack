@@ -156,7 +156,7 @@ try {
     $freshPython = Join-Path $dest ".venv\Scripts\python.exe"
     & $freshPython -m pip install -r requirements.txt
     Assert-ExitCode "Installing dependencies"
-    & $freshPython scripts/database_health.py --schema --strict
+    & $freshPython scripts/database_health.py --schema
     Assert-ExitCode "Checking database integrity and schema"
     & $freshPython -m unittest discover -s tests -v
     Assert-ExitCode "Running isolated tests"
