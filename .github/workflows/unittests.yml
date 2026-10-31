@@ -17,6 +17,28 @@ jobs:
           python-version: "3.11"
       - name: Install Python packages
         run: python -m pip install -r requirements.txt
+      - name: Prevent account-photo files from being committed publicly
+        shell: bash
+        run: |
+          python - <<'PY'
+          import subprocess
+          from pathlib import Path
+
+          directories = (
+              'app/static/uploads/',
+              'app/static/img/profiles/',
+              'app/routes/static/uploads/',
+          )
+          tracked = subprocess.check_output(['git', 'ls-files', '-z']).decode().split('\0')
+          exposed = [name for name in tracked if name.startswith(directories)]
+          if exposed:
+              raise SystemExit(f'{len(exposed)} uploaded profile images are tracked. Remove them from the Git index.')
+          ignores = Path('.gitignore').read_text()
+          for folder in directories:
+              if folder not in ignores:
+                  raise SystemExit(f'Missing photo privacy .gitignore rule: {folder}')
+          print('Account upload folders are ignored and none of their files are tracked.')
+          PY
       - name: Validate Windows safe updater syntax
         shell: pwsh
         run: |
