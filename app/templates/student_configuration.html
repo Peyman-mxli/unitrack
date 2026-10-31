@@ -225,7 +225,7 @@
                         <img
                             id="avatarPreview"
                             class="avatar-preview"
-                            src="{{ url_for('static', filename=profile_photo, v=cache_buster) }}"
+                            src="{{ url_for('private_profile_photo', v=cache_buster) }}"
                             alt="{{ 'Foto de Perfil del Estudiante' if is_spanish else 'Student Profile Photo' }}"
                         >
                     {% else %}
