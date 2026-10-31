@@ -160,6 +160,13 @@ jobs:
           [System.IO.File]::WriteAllText($testPhoto, 'private-photo-test-data', (New-Object System.Text.UTF8Encoding($false)))
           $testDb = Join-Path $testRoot "unitrack.db"
           Copy-Item -LiteralPath .\\unitrack.db -Destination $testDb -Force
+          # Simulate the developer's real problem: dirty tracked code and
+          # an untracked local project file before the history reconnect.
+          $dirtyReadme = Join-Path $testRoot "README.md"
+          $dirtyTag = "UNITRACK_CI_UNCOMMITTED_LOCAL_CHANGE"
+          Add-Content -LiteralPath $dirtyReadme -Value $dirtyTag
+          $untrackedNote = Join-Path $testRoot "local-only-untracked-note.txt"
+          [System.IO.File]::WriteAllText($untrackedNote, "local work is important", (New-Object System.Text.UTF8Encoding($false)))
           $script = (Resolve-Path .\\scripts\\reconnect_after_history_cleanup.ps1).Path
           Set-Location $env:TEMP
           & powershell -NoProfile -ExecutionPolicy Bypass -File $script -ProjectRoot $testRoot -SkipStart
@@ -172,4 +179,17 @@ jobs:
           }
           $backups = @(Get-ChildItem $env:TEMP -Directory -Filter "unitrack-ci-history-reconnect-history-backup-*")
           if ($backups.Count -lt 1) { throw "Original checkout backup is missing" }
-          Write-Host "History reconnect safely preserved project data and the original checkout."
+          $oldCopy = $backups | Sort-Object Name -Descending | Select-Object -First 1
+          if (-not ((Get-Content -LiteralPath (Join-Path $oldCopy.FullName "README.md") -Raw).Contains($dirtyTag))) {
+            throw "Dirty tracked local code was not retained in the archive"
+          }
+          if (-not (Test-Path -LiteralPath (Join-Path $oldCopy.FullName "local-only-untracked-note.txt"))) {
+            throw "Untracked local work was not retained in the archive"
+          }
+          if (-not (Test-Path -LiteralPath (Join-Path $oldCopy.FullName "LOCAL-CHANGES-NOT-MERGED.txt"))) {
+            throw "Local changes inventory was not created"
+          }
+          if ((Get-Content -LiteralPath (Join-Path $testRoot "README.md") -Raw).Contains($dirtyTag)) {
+            throw "Old modified source code contaminated clean Git history"
+          }
+          Write-Host "History reconnect preserved local edits, photos and DB without contaminating clean code."
