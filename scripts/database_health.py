@@ -140,7 +140,7 @@ def create_verified_backup(source: sqlite3.Connection, directory: Path) -> Path:
     if output.exists():
         raise RuntimeError("Backup name unexpectedly already exists")
     try:
-        with sqlite3.connect(str(output), timeout=30) as destination:
+        with closing(sqlite3.connect(str(output), timeout=30)) as destination:
             source.backup(destination, pages=128, sleep=0.05)
         with closing(open_existing_database(output)) as snapshot:
             check_integrity(snapshot)
