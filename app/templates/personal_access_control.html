@@ -485,7 +485,7 @@
         <div class="summary-avatar">
             {% if current_user.photo_path %}
                 <img
-                    src="{{ url_for('static', filename=current_user.photo_path) }}"
+                    src="{{ url_for('private_profile_photo') }}"
                     alt="{{ t('Staff Photo') if t else 'Staff Photo' }}"
                 >
             {% else %}
