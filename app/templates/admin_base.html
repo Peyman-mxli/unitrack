@@ -869,7 +869,7 @@
 
                     {% if current_user.is_authenticated and admin_photo %}
                         <img
-                            src="{{ url_for('static', filename=admin_photo, v=admin_photo_cache) }}"
+                            src="{{ url_for('private_profile_photo', v=admin_photo_cache) }}"
                             alt="{{ t('Admin Photo') }}"
                             class="topbar-avatar"
                         >
@@ -889,7 +889,7 @@
                 <div class="admin-profile">
                     {% if current_user.is_authenticated and admin_photo %}
                         <img
-                            src="{{ url_for('static', filename=admin_photo, v=admin_photo_cache) }}"
+                            src="{{ url_for('private_profile_photo', v=admin_photo_cache) }}"
                             alt="{{ t('Admin Photo') }}"
                             class="admin-profile-image"
                         >
