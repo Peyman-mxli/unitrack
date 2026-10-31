@@ -14,7 +14,8 @@ BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
 
-from flask import Flask, redirect, url_for, session, request, abort, jsonify, render_template
+from pathlib import Path
+from flask import Flask, redirect, url_for, session, request, abort, jsonify, render_template, send_file
 from flask_login import LoginManager, current_user, logout_user, login_required
 from flask_migrate import Migrate
 
@@ -731,6 +732,70 @@ def create_app():
 
         # 🔥 CREATE DEFAULT ADMIN
         seed_default_admin()
+
+    @app.route("/account/profile-photo", methods=["GET"])
+    @login_required
+    def private_profile_photo():
+        """Serve only the signed-in user's picture; no guessable photo filename.
+
+        Old local uploads are read from static for compatibility, but may not
+        be requested using Flask's public /static/upload URLs. New uploads are
+        kept outside static altogether.
+        """
+        user = current_user
+        if not getattr(user, "is_active_user", True):
+            abort(403)
+        value = str(
+            getattr(user, "photo_path", None)
+            or getattr(user, "profile_image", None)
+            or getattr(user, "image", None)
+            or ""
+        ).strip().replace("\\\\", "/")
+        value = value.lstrip("/")
+        if value.startswith("app/static/"):
+            value = value[len("app/static/"):]
+        elif value.startswith("static/"):
+            value = value[len("static/"):]
+
+        private_prefix = "private_uploads/profile_photos/"
+        legacy_prefixes = (
+            "uploads/profile_photos/", "uploads/admins/",
+            "uploads/students/", "uploads/staff/", "img/profiles/",
+        )
+        if value.startswith(private_prefix):
+            root = Path(BASE_DIR).resolve()
+            candidate = root / value
+        elif value.startswith(legacy_prefixes):
+            root = Path(app.static_folder).resolve()
+            candidate = root / value
+        else:
+            abort(404)
+
+        candidate = candidate.resolve()
+        if (not candidate.is_relative_to(root)
+                or candidate.suffix.lower() not in {
+                    ".jpg", ".jpeg", ".png", ".webp", ".gif"
+                }
+                or not candidate.is_file()):
+            abort(404)
+
+        response = send_file(candidate, conditional=True)
+        response.headers["Cache-Control"] = "private, no-store, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        return response
+
+    @app.before_request
+    def deny_public_account_uploads():
+        """Block public access to legacy profile photographs via Flask static.
+
+        Web-server production deployments must also exclude these upload
+        folders from any independently served static directories.
+        """
+        if request.path.startswith((
+            "/static/uploads/", "/static/img/profiles/",
+        )):
+            abort(403)
 
     @app.before_request
     def update_recent_user_activity():
