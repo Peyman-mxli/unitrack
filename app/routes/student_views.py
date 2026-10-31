@@ -28,6 +28,7 @@ from flask_login import current_user, login_required
 from werkzeug.utils import secure_filename
 
 from app.database import db
+from app.services.profile_photo_service import save_profile_photo, delete_profile_photo
 from app.models.user_model import User
 
 try:
@@ -1421,74 +1422,29 @@ def configuration_update():
 @login_required
 @role_required("estudiante")
 def configuration_update_photo():
-    file = request.files.get("photo")
-
-    if not file:
+    """Store only decoded, re-encoded photos; never delete an earlier photo."""
+    uploaded = request.files.get("photo")
+    if not uploaded or not uploaded.filename:
         return _redirect_configuration_error("No file selected.")
 
-    safe_filename = secure_filename(file.filename or "")
-
-    if not safe_filename:
-        return _redirect_configuration_error("Invalid file.")
-
-    if "." not in safe_filename:
-        return _redirect_configuration_error("Invalid file.")
-
-    extension = safe_filename.rsplit(".", 1)[1].lower()
-
-    if extension not in ALLOWED_PHOTO_EXTENSIONS:
-        return _redirect_configuration_error("File format not allowed.")
-
-    upload_folder = os.path.join(
-        current_app.root_path,
-        "static",
-        "uploads",
-        "students"
-    )
-    os.makedirs(upload_folder, exist_ok=True)
-
-    old_photo_path = _clean_text(getattr(current_user, "photo_path", ""))
-    old_profile_image_path = _clean_text(getattr(current_user, "profile_image", ""))
-
-    final_filename = f"student_{current_user.id}.{extension}"
-    final_relative_path = f"uploads/students/{final_filename}"
-    final_path = os.path.join(upload_folder, final_filename)
-
+    new_path = None
     try:
-        for old_extension in ALLOWED_PHOTO_EXTENSIONS:
-            old_filename = f"student_{current_user.id}.{old_extension}"
-            old_file_path = os.path.join(upload_folder, old_filename)
-
-            if os.path.exists(old_file_path) and old_file_path != final_path:
-                try:
-                    os.remove(old_file_path)
-                except Exception:
-                    pass
-
-        file.save(final_path)
-
-        if hasattr(current_user, "photo_path"):
-            current_user.photo_path = final_relative_path
-
+        new_path = save_profile_photo(uploaded, kind="student")
+        current_user.photo_path = new_path
         if hasattr(current_user, "profile_image"):
-            current_user.profile_image = final_relative_path
-
+            current_user.profile_image = new_path
         if hasattr(current_user, "image"):
-            current_user.image = final_relative_path
-
+            current_user.image = new_path
         db.session.commit()
-
         return _redirect_configuration_message("Photo updated successfully.")
-
+    except ValueError as exc:
+        db.session.rollback()
+        delete_profile_photo(new_path)
+        return _redirect_configuration_error(str(exc))
     except Exception:
         db.session.rollback()
-
-        if old_photo_path and hasattr(current_user, "photo_path"):
-            current_user.photo_path = old_photo_path
-
-        if old_profile_image_path and hasattr(current_user, "profile_image"):
-            current_user.profile_image = old_profile_image_path
-
+        delete_profile_photo(new_path)
+        current_app.logger.exception("Student profile photo update failed")
         return _redirect_configuration_error("Failed to upload photo.")
 
 
