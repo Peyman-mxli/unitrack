@@ -21,6 +21,8 @@ import sys
 from uuid import uuid4
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 DEFAULT_DATABASE = ROOT / "unitrack.db"
 BACKUP_FOLDER = ROOT / "backups"
 SENSITIVE_TABLES = (
