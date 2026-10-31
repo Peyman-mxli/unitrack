@@ -750,7 +750,7 @@ def create_app():
             or getattr(user, "profile_image", None)
             or getattr(user, "image", None)
             or ""
-        ).strip().replace("\\\\", "/")
+        ).strip().replace("\\", "/")
         value = value.lstrip("/")
         if value.startswith("app/static/"):
             value = value[len("app/static/"):]
