@@ -71,8 +71,8 @@ def save_profile_photo(uploaded_file, *, kind="profile"):
 
     # The original name is never used in the final path.
     safe_kind = "".join(c for c in str(kind) if c.isascii() and c.isalnum())[:24] or "profile"
-    relative_path = f"uploads/profile_photos/{safe_kind}_{uuid4().hex}.jpg"
-    destination = Path(current_app.static_folder) / relative_path
+    relative_path = f"private_uploads/profile_photos/{safe_kind}_{uuid4().hex}.jpg"
+    destination = Path(current_app.root_path).parent / relative_path
     destination.parent.mkdir(parents=True, exist_ok=True)
     # Unique name, exclusive creation: no overwrites of existing user photos.
     with destination.open("xb") as target:
@@ -82,10 +82,10 @@ def save_profile_photo(uploaded_file, *, kind="profile"):
 
 def delete_profile_photo(relative_path):
     """Discard only a newly created photo if a later DB commit fails."""
-    prefix = "uploads/profile_photos/"
+    prefix = "private_uploads/profile_photos/"
     if not relative_path or not relative_path.startswith(prefix):
         return
-    path = Path(current_app.static_folder) / relative_path
+    path = Path(current_app.root_path).parent / relative_path
     try:
         path.unlink(missing_ok=True)
     except OSError:
