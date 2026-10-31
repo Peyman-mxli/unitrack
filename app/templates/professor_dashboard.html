@@ -195,12 +195,10 @@
             </div>
         </div>
 
-        {% if raw_profile_image and (raw_profile_image.startswith('http://') or raw_profile_image.startswith('https://') or raw_profile_image.startswith('/')) %}
-            <img src="{{ raw_profile_image }}" class="hero-avatar">
-        {% elif raw_profile_image and raw_profile_image.startswith('static/') %}
-            <img src="{{ url_for('static', filename=raw_profile_image[7:]) }}" class="hero-avatar">
+        {% if current_user.photo_path %}
+            <img src="{{ url_for('private_profile_photo') }}" class="hero-avatar" alt="{{ t('Professor Photo') }}">
         {% else %}
-            <img src="{{ url_for('static', filename=raw_profile_image) }}" class="hero-avatar">
+            <img src="{{ url_for('static', filename='img/default_profile.png') }}" class="hero-avatar" alt="{{ t('Professor Photo') }}">
         {% endif %}
     </div>
 
