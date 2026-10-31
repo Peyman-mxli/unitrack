@@ -259,7 +259,7 @@ color:var(--danger);
 </div>
 
 {% if current_user.photo_path %}
-<img src="{{ url_for('static', filename=current_user.photo_path) }}">
+<img src="{{ url_for('private_profile_photo') }}">
 {% else %}
 <img src="{{ url_for('static', filename='img/unitrack_logo.png') }}">
 {% endif %}
