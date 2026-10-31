@@ -394,7 +394,7 @@
                         <img
                             id="avatarPreview"
                             class="avatar-preview"
-                            src="{{ url_for('static', filename=current_user.photo_path) }}"
+                            src="{{ url_for('private_profile_photo') }}"
                             alt="{{ t('Profile Photo') if t else 'Profile Photo' }}"
                         >
                     {% else %}
