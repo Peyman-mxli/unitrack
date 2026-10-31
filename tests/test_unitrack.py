@@ -42,6 +42,97 @@ class UniTrackTests(unittest.TestCase):
             cls.db.engine.dispose()
         cls.folder.cleanup()
 
+    def test_photo_upload_service_rejects_spoofs_and_strips_metadata(self):
+        """One verified converter serves every photo form and never trusts names."""
+        from io import BytesIO
+        from pathlib import Path
+        from PIL import Image
+        from werkzeug.datastructures import FileStorage
+        from app.services.profile_photo_service import (
+            MAX_UPLOAD_BYTES, save_profile_photo, delete_profile_photo
+        )
+
+        def photo(payload, filename):
+            return FileStorage(stream=BytesIO(payload), filename=filename)
+
+        with self.app.app_context():
+            for name, payload in (
+                ("script.jpg", b"<script>alert(1)</script>"),
+                ("fake.png", b"not a real image"),
+                ("empty.jpg", b""),
+                ("executable.exe", b"MZnot-an-image"),
+                ("too-large.jpg", b"A" * (MAX_UPLOAD_BYTES + 1)),
+            ):
+                with self.subTest(invalid=name):
+                    with self.assertRaises(ValueError):
+                        save_profile_photo(photo(payload, name), kind="test")
+
+            source = Image.new("RGBA", (3000, 1600), (100, 40, 230, 128))
+            raw = BytesIO()
+            source.save(raw, format="PNG", pnginfo=None)
+            stored_path = None
+            try:
+                stored_path = save_profile_photo(
+                    photo(raw.getvalue(), "my_photo.png"), kind="test"
+                )
+                self.assertTrue(stored_path.startswith("uploads/profile_photos/test_"))
+                self.assertTrue(stored_path.endswith(".jpg"))
+                destination = Path(self.app.static_folder) / stored_path
+                self.assertTrue(destination.is_file())
+                with Image.open(destination) as verified:
+                    self.assertEqual(verified.format, "JPEG")
+                    self.assertEqual(verified.mode, "RGB")
+                    self.assertLessEqual(max(verified.size), 1024)
+                    self.assertNotIn("exif", verified.info)
+            finally:
+                delete_profile_photo(stored_path)
+            self.assertFalse(destination.exists())
+
+            # A header with huge declared pixel dimensions must not get decoded.
+            huge = bytearray(BytesIO(raw.getvalue()).getvalue())
+            huge[16:20] = (9000).to_bytes(4, "big")
+            with self.assertRaises(ValueError):
+                save_profile_photo(photo(bytes(huge), "huge.png"), kind="test")
+
+    def test_all_role_photo_forms_reject_disguised_files_without_changing_account(self):
+        """Admin, student, professor and staff must reject non-image uploads."""
+        from io import BytesIO
+        from app.models.user_model import User
+        for username, settings_url, upload_url, upload_field in (
+            ("Admin", "/admin/configuration", "/admin/configuration", "profile_image"),
+            ("StudentA", "/student/configuration", "/student/configuration/photo", "photo"),
+            ("TeacherA", "/professor/configuration", "/professor/configuration/update-photo", "photo"),
+            ("StaffA", "/personal/configuration", "/personal/configuration/update-photo", "photo"),
+        ):
+            with self.subTest(role=username):
+                client = self._signed_in_client(username)
+                config = client.get(settings_url)
+                self.assertEqual(config.status_code, 200)
+                token_match = re.search(rb'name="csrf_token" value="([^"]+)"', config.data)
+                self.assertIsNotNone(token_match)
+                with self.app.app_context():
+                    account = self.db.session.execute(self.db.select(User).where(
+                        User.username == username
+                    )).scalar_one()
+                    prior_path = account.photo_path
+                    details = {
+                        "first_name": account.first_name,
+                        "last_name": account.last_name,
+                        "email": account.email,
+                        "phone": account.phone,
+                        "language": "es",
+                    }
+                details["csrf_token"] = token_match.group(1).decode("utf-8")
+                details[upload_field] = (BytesIO(b"<html>not-an-image</html>"), "profile.jpg")
+                posted = client.post(upload_url, data=details,
+                                     content_type="multipart/form-data")
+                self.assertIn(posted.status_code, (302, 303))
+                with self.app.app_context():
+                    account = self.db.session.execute(self.db.select(User).where(
+                        User.username == username
+                    )).scalar_one()
+                    self.assertEqual(account.photo_path, prior_path)
+
     def test_public_landing_preserves_existing_login_and_registration(self):
         """The new homepage is public; existing auth forms remain unchanged."""
         client = self.app.test_client()
