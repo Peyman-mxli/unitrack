@@ -21,6 +21,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
 from app.database import db
+from app.services.profile_photo_service import save_profile_photo, delete_profile_photo
 from app.models.user_model import User
 
 # 🔥 USE GLOBAL ACCESS SYSTEM (same as staff)
@@ -425,31 +426,23 @@ def configuration_update():
 def configuration_update_photo():
     if not _is_professor_user():
         return _reject()
-
     _sync_professor_language()
-
-    file = request.files.get("photo")
-
-    if not file or not file.filename:
+    uploaded = request.files.get("photo")
+    if not uploaded or not uploaded.filename:
         return _redirect_error("No file selected")
 
-    if not _is_allowed_image(file.filename):
-        return _redirect_error("Invalid format")
-
-    filename = secure_filename(file.filename)
-    ext = filename.rsplit(".", 1)[1].lower()
-    unique_name = f"professor_{current_user.id}_{uuid4().hex}.{ext}"
-
-    folder = os.path.join(current_app.root_path, "static", "img", "profiles")
-    os.makedirs(folder, exist_ok=True)
-
-    path = os.path.join(folder, unique_name)
-    file.save(path)
-
+    new_path = None
     try:
-        current_user.photo_path = f"img/profiles/{unique_name}"
+        new_path = save_profile_photo(uploaded, kind="professor")
+        current_user.photo_path = new_path
         db.session.commit()
         return redirect(url_for("professor_views.configuration_page", success="Photo updated"))
+    except ValueError as exc:
+        db.session.rollback()
+        delete_profile_photo(new_path)
+        return _redirect_error(str(exc))
     except Exception:
         db.session.rollback()
+        delete_profile_photo(new_path)
+        current_app.logger.exception("Professor profile photo update failed")
         return _redirect_error("Photo update failed")
