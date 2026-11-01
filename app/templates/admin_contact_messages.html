@@ -1,0 +1,91 @@
+{% extends "admin_base.html" %}
+{% block title %}{{ "Mensajes recibidos" if current_language == "es" else "Contact inbox" }} | UniTrack{% endblock %}
+{% block nav_contact_messages %}active{% endblock %}
+{% block page_eyebrow %}{{ "Bandeja privada" if current_language == "es" else "Private inbox" }}{% endblock %}
+{% block page_title %}{{ "Mensajes y reportes de errores" if current_language == "es" else "Messages and bug reports" }}{% endblock %}
+{% block page_subtitle %}{{ "Solicitudes enviadas desde la página pública de UniTrack. Solo las cuentas administrativas pueden consultarlas." if current_language == "es" else "Requests sent from the public UniTrack landing page. Only administrators can view these messages." }}{% endblock %}
+{% block page_actions %}<a class="btn btn-secondary" href="{{ url_for('admin_views.admin_dashboard') }}">{{ "Volver al panel" if current_language == "es" else "Back to dashboard" }}</a>{% endblock %}
+{% block extra_css %}
+<style>
+.contact-inbox-summary{padding:20px 24px;border:1px solid #dce6f6;border-radius:18px;background:linear-gradient(120deg,#f7faff,#f0eaff);margin-bottom:18px}
+.contact-inbox-summary h3{font-size:20px;margin:0 0 7px;color:#142656}
+.contact-inbox-summary p{font-size:14px;color:#556786;margin:0}
+.contact-filter{display:flex;flex-wrap:wrap;align-items:end;gap:12px;margin-bottom:22px}
+.contact-filter>div{min-width:160px;flex:1}
+.contact-filter label{display:block;color:#213454;font-size:13px;font-weight:800;margin-bottom:6px}
+.contact-filter select{width:100%;padding:12px;border:1px solid #ccd9ec;border-radius:12px;background:#fff;color:#152c4d;font:inherit}
+.contact-list{display:grid;gap:16px}
+.contact-entry{background:#fff;border:1px solid #e0e7f4;border-radius:18px;padding:22px;min-width:0;overflow-wrap:anywhere}
+.contact-entry-header{display:flex;gap:15px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+.contact-entry h3{font-size:17px;margin:0 0 4px;color:#182e57}
+.contact-entry small{color:#63718d}
+.contact-tag{display:inline-block;background:#f0edff;color:#5b2dbe;border-radius:25px;padding:5px 10px;font-size:12px;font-weight:800}
+.contact-tag-new{background:#fff1de;color:#9b5600}
+.contact-entry-body{color:#25354d;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.7;font-size:14px;padding:14px 0;border-bottom:1px solid #e8edf6}
+.contact-entry-actions{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-top:14px}
+.contact-entry-actions a{color:#185ec7;overflow-wrap:anywhere}
+.contact-empty{text-align:center;border:1px dashed #bbcce9;border-radius:16px;background:#fff;padding:42px 20px;color:#61708e}
+.contact-pagination{display:flex;gap:15px;align-items:center;justify-content:flex-end;margin-top:20px}
+@media(max-width:640px){.contact-entry{padding:16px}.contact-inbox-summary{padding:18px}.contact-entry-actions form{width:100%}.contact-entry-actions button{width:100%}}
+</style>
+{% endblock %}
+{% block content %}
+{% set es = current_language == 'es' %}
+<div class="contact-inbox-summary">
+  <h3>✉ {{ pending_count }} {{ "mensaje(s) por revisar" if es else "message(s) pending review" }}</h3>
+  <p>{{ "Cada formulario se guarda en la base de datos de UniTrack; esta bandeja no es pública." if es else "Each submission is stored in UniTrack's database; this inbox is not public." }}</p>
+</div>
+<div class="content-card">
+  <form class="contact-filter" method="GET" action="{{ url_for('admin_views.admin_contact_messages') }}">
+    <div><label for="filter_status">{{ "Estado" if es else "Status" }}</label>
+      <select id="filter_status" name="status">
+        <option value="new" {% if selected_status == 'new' %}selected{% endif %}>{{ "Pendientes" if es else "New" }}</option>
+        <option value="reviewed" {% if selected_status == 'reviewed' %}selected{% endif %}>{{ "Revisados" if es else "Reviewed" }}</option>
+        <option value="all" {% if selected_status == 'all' %}selected{% endif %}>{{ "Todos" if es else "All" }}</option>
+      </select>
+    </div>
+    <div><label for="filter_category">{{ "Tipo" if es else "Type" }}</label>
+      <select id="filter_category" name="category">
+        <option value="">{{ "Todos" if es else "All" }}</option>
+        {% for code, label_es, label_en in [('consulta','Pregunta general','General question'),('soporte','Ayuda o soporte','Support'),('error','Reporte de error','Bug report'),('sugerencia','Sugerencia','Suggestion')] %}
+        <option value="{{ code }}" {% if selected_category == code %}selected{% endif %}>{{ label_es if es else label_en }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button class="btn btn-primary" type="submit">{{ "Filtrar" if es else "Filter" }}</button>
+  </form>
+  <p style="margin-bottom:18px;color:#64748b;font-size:13px">{{ total }} {{ "mensajes coinciden" if es else "matching messages" }} · {{ "página" if es else "page" }} {{ page }}</p>
+  <div class="contact-list">
+    {% for item in messages %}
+      <article class="contact-entry">
+        <div class="contact-entry-header">
+          <div>
+            <h3>{{ item.name }}</h3>
+            <small>{{ item.created_at.strftime('%Y-%m-%d %H:%M UTC') }} · #{{ item.id }}</small>
+            <div style="margin-top:7px"><a href="mailto:{{ item.email }}">{{ item.email }}</a></div>
+          </div>
+          <div><span class="contact-tag">{{ {'consulta': ('Pregunta' if es else 'Question'), 'soporte': ('Soporte' if es else 'Support'), 'error': ('Error' if es else 'Bug report'), 'sugerencia': ('Sugerencia' if es else 'Suggestion')}.get(item.category, item.category) }}</span>
+          <span class="contact-tag {% if item.status == 'new' %}contact-tag-new{% endif %}">{{ ('Nuevo' if es else 'New') if item.status == 'new' else ('Revisado' if es else 'Reviewed') }}</span></div>
+        </div>
+        <div class="contact-entry-body">{{ item.body }}</div>
+        <div class="contact-entry-actions">
+          <form method="POST" action="{{ url_for('admin_views.admin_contact_message_status', message_id=item.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="status" value="{{ 'reviewed' if item.status == 'new' else 'new' }}">
+            <button class="btn {{ 'btn-primary' if item.status == 'new' else 'btn-secondary' }}" type="submit">{{ ('Marcar como revisado' if es else 'Mark reviewed') if item.status == 'new' else ('Marcar pendiente' if es else 'Mark as new') }}</button>
+          </form>
+          <a href="mailto:{{ item.email }}?subject=UniTrack%20-%20Respuesta%20a%20tu%20mensaje">{{ "Responder por correo" if es else "Reply by email" }}</a>
+        </div>
+      </article>
+    {% else %}
+      <div class="contact-empty">{{ "No hay mensajes con estos filtros." if es else "No messages match these filters." }}</div>
+    {% endfor %}
+  </div>
+  {% if page > 1 or has_more %}
+    <div class="contact-pagination">
+      {% if page > 1 %}<a class="btn btn-secondary" href="{{ url_for('admin_views.admin_contact_messages', status=selected_status, category=selected_category, page=page-1) }}">{{ "Anterior" if es else "Previous" }}</a>{% endif %}
+      {% if has_more %}<a class="btn btn-secondary" href="{{ url_for('admin_views.admin_contact_messages', status=selected_status, category=selected_category, page=page+1) }}">{{ "Siguiente" if es else "Next" }}</a>{% endif %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
