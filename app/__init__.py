@@ -1025,6 +1025,27 @@ def create_app():
                 contact_values=values,
             ), 503
 
+        # Optional additional delivery to the site's SMTP inbox. The record
+        # was already committed; an email failure must never lose a report.
+        if (app.config.get("MAIL_USERNAME") and app.config.get("MAIL_PASSWORD")
+                and app.config.get("CONTACT_NOTIFY_EMAIL")):
+            try:
+                from .services.email_service import send_email
+                category_name = {
+                    "consulta": "Consulta", "soporte": "Soporte",
+                    "error": "Reporte de error", "sugerencia": "Sugerencia",
+                }[category]
+                subject = f"UniTrack - {category_name} recibida"
+                notification = (
+                    f"Tipo: {category_name}\n"
+                    f"De: {name}\nCorreo: {email}\n\n"
+                    f"Mensaje:\n{body}\n\n"
+                    "Mensaje disponible en la bandeja privada del administrador."
+                )
+                send_email(app.config["CONTACT_NOTIFY_EMAIL"], subject, notification)
+            except Exception:
+                app.logger.exception("Contact message stored, but SMTP notification failed")
+
         session["contact_sent"] = True
         return redirect(url_for("home") + "#contacto", code=303)
 
