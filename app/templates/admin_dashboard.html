@@ -561,6 +561,7 @@
       <a href="/admin/attendance-history" class="btn btn-secondary">{{ "Historial de asistencia" if es else "Attendance history" }}</a>
       <a href="/admin/access-control" class="btn btn-secondary">{{ "Escanear acceso" if es else "Scan campus access" }}</a>
       <a href="#admin-notices" class="btn btn-secondary">{{ "Enviar aviso" if es else "Send notice" }}</a>
+      <a href="{{ url_for('admin_views.admin_contact_messages') }}" class="btn btn-secondary">{{ "Ver mensajes y reportes" if es else "Read contact messages" }}</a>
     </div>
   </section>
   <section class="stat-card"><p class="stat-label">{{ "Cuentas registradas" if es else "Registered accounts" }}</p><p class="stat-value">{{ total_registered }}</p><p class="stat-foot">{{ "Todos los roles" if es else "All roles" }}</p></section>
