@@ -943,6 +943,11 @@
                         <span>{{ "Enviar avisos" if current_language == "es" else "Send notices" }}</span>
                     </a>
 
+                    <a href="{{ url_for('admin_views.admin_contact_messages') }}" class="nav-link {% block nav_contact_messages %}{% endblock %}">
+                        <span class="nav-icon">✉</span>
+                        <span>{{ "Mensajes y reportes" if current_language == "es" else "Messages and reports" }}</span>
+                    </a>
+
                     <a href="/admin/access-control" class="nav-link {% block nav_access_control %}{% endblock %}">
                         <span class="nav-icon">▣</span>
                         <span>{{ t('access_control') }}</span>
