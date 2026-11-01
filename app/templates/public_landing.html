@@ -147,6 +147,35 @@ img{max-width:100%}
 .contact-strip{background:linear-gradient(115deg,#1c224f,#432a8e 78%,#653ab6);color:#fff;border-radius:25px;padding:40px;display:flex;justify-content:space-between;align-items:center;gap:30px}
 .contact-strip h2{margin:0 0 7px;font:900 29px/1.2 "Outfit",Arial,sans-serif}
 .contact-strip p{color:#e5defb;margin:0}
+/* Public contact form: approachable, responsive and actually connected to Flask. */
+.contact-area{display:grid;grid-template-columns:minmax(0,.85fr) minmax(360px,1.15fr);gap:28px;align-items:start}
+.contact-intro{border-radius:24px;background:linear-gradient(145deg,#252450,#5932a9);padding:34px;color:#fff;min-height:100%}
+.contact-intro .eyebrow{color:#e2d1ff}
+.contact-intro h2{font:900 clamp(26px,3vw,36px)/1.15 "Outfit",Arial,sans-serif;margin:13px 0}
+.contact-intro p{color:#eee8fc;line-height:1.8;margin:0 0 20px}
+.contact-intro .contact-trust{padding:15px;border:1px solid #ffffff37;border-radius:15px;background:#ffffff12;font-size:13px}
+.contact-card{background:#fff;border:1px solid #d5e1fa;border-radius:21px;padding:28px;box-shadow:0 16px 42px #24375418;min-width:0}
+.contact-heading{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.contact-envelope{width:43px;height:43px;display:grid;place-items:center;border-radius:12px;background:#edf3ff}
+.contact-heading h3{margin:0;font-size:22px;color:#132957;font-weight:900}
+.contact-heading p{font-size:12px;color:#7786a3;margin:0}
+.contact-form{display:grid;gap:14px}
+.contact-form .contact-pair{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.contact-form label{display:block;color:#192c54;font-weight:850;font-size:13px;margin:0 0 6px}
+.contact-form input,.contact-form select,.contact-form textarea{font:inherit;display:block;width:100%;min-width:0;box-sizing:border-box;background:#fff;border:1px solid #cddaf0;color:#182746;border-radius:10px;padding:12px 13px;transition:border-color .2s}
+.contact-form :is(input,select,textarea):focus-visible{outline:3px solid #9abaff;outline-offset:1px;border-color:#367bfa}
+.contact-form textarea{resize:vertical;min-height:125px}
+.contact-form input::placeholder,.contact-form textarea::placeholder{color:#8592ae}
+.contact-submit{display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap}
+.contact-submit p{color:#71809e;font-size:12px;line-height:1.5;flex:1;margin:0}
+.contact-submit button{background:#1971ef;color:#fff;border:0;box-shadow:0 7px 19px #2777ff38}
+.contact-alert{border-radius:12px;padding:13px 15px;font-size:14px;font-weight:750;margin-bottom:15px}
+.contact-alert-success{background:#e7f8ee;border:1px solid #99d9b0;color:#126332}
+.contact-alert-error{background:#fff0ef;border:1px solid #ffc4be;color:#9f2621}
+.contact-honeypot{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;clip-path:inset(50%);white-space:nowrap}
+@media(max-width:950px){.contact-area{grid-template-columns:1fr}.contact-intro{min-height:0}}
+@media(max-width:560px){.contact-area{gap:14px}.contact-card,.contact-intro{padding:20px}.contact-form .contact-pair{grid-template-columns:1fr}.contact-submit button{width:100%}}
+
 .site-footer{background:#690018;color:white;padding:35px 0 20px}
 .footer-row{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:30px}
 .footer-row strong{font-size:14px}
@@ -499,9 +528,61 @@ img{max-width:100%}
 
 <section class="section" id="contacto">
   <div class="container">
-    <div class="contact-strip">
-      <div><h2>{{ "¿Listo para conocer UniTrack?" if es else "Ready to explore UniTrack?" }}</h2><p>{{ "Ingresa a tu cuenta, revisa las funciones o conoce más sobre el creador de estos proyectos." if es else "Sign in, explore the features or learn more about the developer behind these projects." }}</p></div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap"><a class="button button-white" href="{{ url_for('auth.login_page') }}">{{ "Iniciar sesión" if es else "Sign in" }} →</a><a class="button button-outline" href="https://github.com/Peyman-mxli/" target="_blank" rel="noopener noreferrer">GitHub ↗</a></div>
+    <div class="contact-area">
+      <div class="contact-intro">
+        <span class="eyebrow">{{ "Contacto y soporte" if es else "Contact and support" }}</span>
+        <h2>{{ "¿Tienes alguna pregunta o encontraste un error?" if es else "Have a question or spotted a problem?" }}</h2>
+        <p>{{ "Escríbenos desde esta página. Puedes enviar sugerencias, solicitar ayuda o reportar un problema con UniTrack, incluso sin iniciar sesión." if es else "Write to us right here. Send suggestions, ask for help, or report a UniTrack issue without signing in." }}</p>
+        <p class="contact-trust">{{ "🔒 Tus datos y mensajes solo aparecen en la bandeja privada del administrador de UniTrack. No incluyas contraseñas ni códigos QR." if es else "🔒 Your contact details and message are visible only to UniTrack administrators. Never include passwords or QR codes." }}</p>
+        <a class="button button-white" href="#como-funciona">{{ "Ver cómo funciona UniTrack" if es else "How UniTrack works" }} →</a>
+      </div>
+      <div class="contact-card">
+        <div class="contact-heading">
+          <span class="contact-envelope" aria-hidden="true">✉️</span>
+          <div><h3>{{ "Envíanos un mensaje" if es else "Send us a message" }}</h3><p>{{ "Completa el formulario para contactarnos o reportar errores." if es else "Use the form to reach us or report a bug." }}</p></div>
+        </div>
+        {% if contact_sent|default(false) %}
+          <div class="contact-alert contact-alert-success" role="status">{{ "¡Mensaje enviado correctamente! Se guardó en la bandeja de administración de UniTrack." if es else "Message received! It's saved in the UniTrack administrator inbox." }}</div>
+        {% endif %}
+        {% if contact_error|default(false) %}
+          <div class="contact-alert contact-alert-error" role="alert">{{ contact_error }}</div>
+        {% endif %}
+        {% set fields = contact_values|default({}, true) %}
+        <form class="contact-form" method="POST" action="{{ url_for('submit_public_contact') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="contact-honeypot" aria-hidden="true">
+            <label for="contact_website">Website</label><input id="contact_website" name="website" type="text" tabindex="-1" autocomplete="off">
+          </div>
+          <div class="contact-pair">
+            <div>
+              <label for="contact_name">{{ "Nombre" if es else "Name" }}</label>
+              <input id="contact_name" name="name" type="text" maxlength="100" minlength="2" required autocomplete="name" placeholder="{{ 'Tu nombre' if es else 'Your name' }}" value="{{ fields.get('name','') }}">
+            </div>
+            <div>
+              <label for="contact_email">{{ "Correo electrónico" if es else "Email address" }}</label>
+              <input id="contact_email" name="email" type="email" maxlength="160" required autocomplete="email" placeholder="nombre@correo.com" value="{{ fields.get('email','') }}">
+            </div>
+          </div>
+          <div>
+            <label for="contact_category">{{ "Motivo de contacto" if es else "Contact reason" }}</label>
+            <select id="contact_category" name="category" required>
+              <option value="" disabled {% if not fields.get('category') %}selected{% endif %}>{{ "Selecciona una opción" if es else "Select an option" }}</option>
+              <option value="consulta" {% if fields.get('category') == 'consulta' %}selected{% endif %}>{{ "Pregunta general" if es else "General question" }}</option>
+              <option value="soporte" {% if fields.get('category') == 'soporte' %}selected{% endif %}>{{ "Ayuda o soporte" if es else "Help or support" }}</option>
+              <option value="error" {% if fields.get('category') == 'error' %}selected{% endif %}>{{ "Reportar un error" if es else "Report a bug" }}</option>
+              <option value="sugerencia" {% if fields.get('category') == 'sugerencia' %}selected{% endif %}>{{ "Sugerencia" if es else "Suggestion" }}</option>
+            </select>
+          </div>
+          <div>
+            <label for="contact_message">{{ "Mensaje" if es else "Message" }}</label>
+            <textarea id="contact_message" name="message" rows="6" maxlength="3000" minlength="10" required placeholder="{{ 'Cuéntanos cómo podemos ayudarte o explica qué error encontraste...' if es else 'Tell us how we can help or describe the error...' }}">{{ fields.get('message','') }}</textarea>
+          </div>
+          <div class="contact-submit">
+            <p>{{ "Tu mensaje se guarda de forma privada para que un administrador pueda revisarlo. No compartas datos sensibles." if es else "Your message is saved privately for an administrator to review. Do not share sensitive information." }}</p>
+            <button type="submit" class="button">{{ "Enviar mensaje" if es else "Send message" }} →</button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 </section>
