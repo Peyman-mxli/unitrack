@@ -116,6 +116,137 @@ class UniTrackTests(unittest.TestCase):
                     "SELECT COUNT(*) FROM sqlite_master WHERE type='table'"
                 ).fetchone()[0], 1)
 
+    def test_public_contact_form_stores_messages_and_admin_can_review_them(self):
+        """Public visitors can send questions/bugs, admins receive them privately."""
+        from app.models.contact_message_model import ContactMessage
+        client = self.app.test_client()
+        client.environ_base["REMOTE_ADDR"] = "203.0.113.197"
+        page = client.get("/?lang=es")
+        self.assertEqual(page.status_code, 200)
+        self.assertIn("Envíanos un mensaje".encode("utf-8"), page.data)
+        token = re.search(rb'name="csrf_token" value="([^"]+)"', page.data)
+        self.assertIsNotNone(token)
+        form = {
+            "csrf_token": token.group(1).decode(),
+            "name": "Persona de prueba",
+            "email": "persona@example.test",
+            "category": "error",
+            "message": "El lector QR no detecta el código al abrir la cámara.",
+        }
+        response = client.post("/contacto/enviar", data=form)
+        self.assertEqual(response.status_code, 303)
+        self.assertIn("#contacto", response.headers["Location"])
+        follow = client.get(response.headers["Location"])
+        self.assertEqual(follow.status_code, 200)
+        self.assertIn("Mensaje enviado correctamente".encode("utf-8"), follow.data)
+        self.assertNotIn("Mensaje enviado correctamente".encode("utf-8"), client.get("/").data)
+
+        with self.app.app_context():
+            record = self.db.session.execute(
+                self.db.select(ContactMessage).where(
+                    ContactMessage.email == "persona@example.test"
+                )
+            ).scalar_one()
+            contact_id = record.id
+            self.assertEqual(record.status, "new")
+            self.assertEqual(record.category, "error")
+
+        self.assertIn(client.get("/admin/contact-messages").status_code, (302, 401))
+        student = self._signed_in_client("StudentA")
+        self.assertNotEqual(student.get("/admin/contact-messages").status_code, 200)
+        admin = self._signed_in_client("Admin")
+        inbox = admin.get("/admin/contact-messages")
+        self.assertEqual(inbox.status_code, 200)
+        self.assertIn(b"persona@example.test", inbox.data)
+        self.assertIn("El lector QR no detecta".encode(), inbox.data)
+        self.assertIn(b"/admin/contact-messages", admin.get("/admin/dashboard").data)
+        csrf = re.search(rb'name="csrf_token" value="([^"]+)"', inbox.data)
+        self.assertIsNotNone(csrf)
+        change = admin.post(
+            f"/admin/contact-messages/{contact_id}/status",
+            data={"csrf_token": csrf.group(1).decode(), "status": "reviewed"}
+        )
+        self.assertEqual(change.status_code, 302)
+        with self.app.app_context():
+            self.assertEqual(
+                self.db.session.get(ContactMessage, contact_id).status, "reviewed"
+            )
+        filtered = admin.get("/admin/contact-messages?status=reviewed")
+        self.assertIn(b"persona@example.test", filtered.data)
+
+    def test_public_contact_rejects_invalid_and_unsafe_submissions(self):
+        """CSRF, validation, honeypot and HTML escaping protect public reports."""
+        from app.models.contact_message_model import ContactMessage
+        client = self.app.test_client()
+        client.environ_base["REMOTE_ADDR"] = "203.0.113.198"
+        invalid = client.post("/contacto/enviar", data={
+            "name": "Someone", "email": "user@example.test",
+            "category": "error", "message": "Something is broken."
+        })
+        self.assertEqual(invalid.status_code, 400)
+        page = client.get("/")
+        csrf = re.search(rb'name="csrf_token" value="([^"]+)"', page.data).group(1).decode()
+        common = {
+            "csrf_token": csrf, "name": "Someone", "email": "user@example.test",
+            "category": "error", "message": "Some problem occurred today."
+        }
+        for changes in (
+            {"email": "fake"},
+            {"category": "unsafe"},
+            {"message": "short"},
+            {"name": "x"},
+        ):
+            with self.subTest(changes=changes):
+                answer = client.post("/contacto/enviar", data={**common, **changes})
+                self.assertEqual(answer.status_code, 400)
+        with self.app.app_context():
+            total = self.db.session.execute(
+                self.db.select(self.db.func.count(ContactMessage.id))
+            ).scalar_one()
+        response = client.post("/contacto/enviar", data={**common, "website": "bot.example"})
+        self.assertEqual(response.status_code, 303)
+        with self.app.app_context():
+            self.assertEqual(
+                self.db.session.execute(
+                    self.db.select(self.db.func.count(ContactMessage.id))
+                ).scalar_one(), total
+            )
+
+        client2 = self.app.test_client()
+        client2.environ_base["REMOTE_ADDR"] = "203.0.113.199"
+        second_page = client2.get("/?lang=en")
+        self.assertIn(b"Send us a message", second_page.data)
+        token = re.search(rb'name="csrf_token" value="([^"]+)"', second_page.data).group(1).decode()
+        payload = {
+            "csrf_token": token, "name": "<script>alert(1)</script>",
+            "email": "escape@example.test", "category": "consulta",
+            "message": "<img src=x onerror=alert(1)> A test report with HTML."
+        }
+        self.assertEqual(client2.post("/contacto/enviar", data=payload).status_code, 303)
+        admin = self._signed_in_client("Admin")
+        inbox = admin.get("/admin/contact-messages?status=all")
+        self.assertIn(b"&lt;script&gt;", inbox.data)
+        self.assertNotIn(b"<script>alert(1)</script>", inbox.data)
+        self.assertIn(b"&lt;img", inbox.data)
+        self.assertNotIn(b"<img src=x onerror=", inbox.data)
+
+    def test_public_contact_per_ip_rate_limit(self):
+        """Repeated anonymous requests cannot flood administrators' inbox."""
+        client = self.app.test_client()
+        client.environ_base["REMOTE_ADDR"] = "203.0.113.200"
+        page = client.get("/")
+        csrf = re.search(rb'name="csrf_token" value="([^"]+)"', page.data).group(1).decode()
+        form = {
+            "csrf_token": csrf, "name": "Rate limit test",
+            "email": "limit@example.test", "category": "soporte",
+            "message": "Request submitted as a legitimate rate-limit test."
+        }
+        for n in range(5):
+            with self.subTest(submission=n):
+                response = client.post("/contacto/enviar", data=form)
+                self.assertEqual(response.status_code, 303)
+        self.assertEqual(client.post("/contacto/enviar", data=form).status_code, 429)
+
     def test_photo_upload_service_rejects_spoofs_and_strips_metadata(self):
         """One verified converter serves every photo form and never trusts names."""
         from io import BytesIO
