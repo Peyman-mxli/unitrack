@@ -271,6 +271,16 @@ python scripts/backup_sqlite.py
 
 This writes a timestamped, integrity-checked copy to `backups/` (ignored by Git), without replacing the live database. PostgreSQL production databases need managed database backups and restore drills. Never run `git stash pop` without reviewing the stashed files when local database changes are involved.
 
+### Public contact and error reports
+
+The landing page at `/#contacto` contains a functional bilingual contact form. Visitors can submit **general questions, support requests, bug reports and suggestions** without signing in. Submissions are validated, protected by session CSRF and a per-IP request limit, and stored in the `contact_messages` database table. Do not submit passwords or private QR tokens.
+
+Administrators can review and filter saved requests at **`/admin/contact-messages`** and mark them as reviewed. Other roles and anonymous visitors cannot access the inbox. Forms do not send messages to other public visitors.
+
+If `MAIL_USERNAME` and `MAIL_PASSWORD` are configured, UniTrack **also attempts an email notification** to `CONTACT_NOTIFY_EMAIL` (default: `MAIL_USERNAME`) after storing the message. A mail delivery failure is logged and does not discard the saved report. No password or recipient address should be committed to Git. The form works without an email account, but reports must then be read in the admin inbox.
+
+**Hosting warning:** Without `DATABASE_URL` pointing to persistent storage (such as PostgreSQL), local SQLite reports on hosts with ephemeral disks, including Render free web services, can be lost when the service restarts or redeploys. Set up a persistent database or properly configured SMTP notification before depending on this form for production support. Do not claim a report has been emailed unless the mail service confirms delivery. The current receipt confirms the database write only.
+
 ### Academics and QR access
 
 - Professors and admins can manage classes at `/attendance/classes`: enroll students, schedule meetings, record Present/Late/Absent, and finalize attendance.
