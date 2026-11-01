@@ -727,6 +727,7 @@ def create_app():
         from .models.university_notice_model import UniversityNotice
         from .models.university_notice_read_model import UniversityNoticeRead
         from .models.auth_attempt_model import AuthAttempt
+        from .models.contact_message_model import ContactMessage
 
         db.create_all()
 
@@ -849,6 +850,8 @@ def create_app():
             action, limit, period_seconds = "recovery", 5, 600
         elif route == "/auth/reset-password":
             action, limit, period_seconds = "reset", 10, 600
+        elif route == "/contacto/enviar":
+            action, limit, period_seconds = "contact", 5, 3600
 
         if action:
             now = datetime.utcnow()
@@ -967,6 +970,61 @@ def create_app():
             abort(403)
         mark_all_notices_read(current_user)
         return redirect(url_for("notice_inbox"))
+
+    @app.route("/contacto/enviar", methods=["POST"])
+    def submit_public_contact():
+        """Receive public contact/bug reports in the administrator inbox.
+
+        CSRF, request-size limits and IP rate limits run in before_request.
+        Messages are stored before any success is shown.
+        """
+        import re
+        from datetime import datetime
+        from .models.contact_message_model import ContactMessage
+
+        language = session.get("language", "es")
+        es = language != "en"
+        name = str(request.form.get("name", "")).strip()
+        email = str(request.form.get("email", "")).strip().lower()
+        category = str(request.form.get("category", "")).strip().lower()
+        body = str(request.form.get("message", "")).strip()
+        values = {"name": name, "email": email, "category": category, "message": body}
+
+        # A hidden honeypot reduces automated spam without saving it.
+        if request.form.get("website", "").strip():
+            return redirect(url_for("home", contact_status="sent") + "#contacto", code=303)
+
+        error = None
+        if not 2 <= len(name) <= 100:
+            error = "Introduce un nombre de 2 a 100 caracteres." if es else "Enter a name between 2 and 100 characters."
+        elif not 5 <= len(email) <= 160 or not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", email):
+            error = "Introduce un correo electrónico válido." if es else "Enter a valid email address."
+        elif category not in {"consulta", "soporte", "error", "sugerencia"}:
+            error = "Selecciona un motivo de contacto." if es else "Choose a contact reason."
+        elif not 10 <= len(body) <= 3000:
+            error = "El mensaje debe contener entre 10 y 3000 caracteres." if es else "Message must be between 10 and 3000 characters."
+        if error:
+            return render_template(
+                "public_landing.html", landing_lang=language, es=es,
+                year=datetime.now().year, contact_error=error,
+                contact_values=values,
+            ), 400
+
+        try:
+            db.session.add(ContactMessage(name=name, email=email, category=category, body=body))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            app.logger.exception("Unable to store public contact request")
+            return render_template(
+                "public_landing.html", landing_lang=language, es=es,
+                year=datetime.now().year,
+                contact_error=("No se pudo guardar el mensaje. Inténtalo más tarde." if es
+                               else "Unable to save your message. Please try again later."),
+                contact_values=values,
+            ), 503
+
+        return redirect(url_for("home", contact_status="sent") + "#contacto", code=303)
 
     # ✅ PUBLIC LANDING → EXISTING AUTHENTICATION PAGES
     @app.route("/", methods=["GET"])
