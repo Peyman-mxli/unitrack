@@ -232,6 +232,48 @@ class UniTrackTests(unittest.TestCase):
         self.assertIn(b"&lt;img", inbox.data)
         self.assertNotIn(b"<img src=x onerror=", inbox.data)
 
+    def test_public_contact_optional_admin_email_and_failure_fallback(self):
+        """Configured SMTP sends a copy; mail errors never erase the stored report."""
+        from unittest.mock import patch
+        from app.models.contact_message_model import ContactMessage
+
+        client = self.app.test_client()
+        client.environ_base["REMOTE_ADDR"] = "203.0.113.202"
+        token = re.search(
+            rb'name="csrf_token" value="([^"]+)"', client.get("/").data
+        ).group(1).decode()
+        data = {
+            "csrf_token": token, "name": "Correo Test",
+            "email": "correo@example.test", "category": "error",
+            "message": "La pantalla del panel no se abre desde un móvil."
+        }
+        settings = {
+            "MAIL_USERNAME": "uni@example.test",
+            "MAIL_PASSWORD": "test-password-not-real",
+            "CONTACT_NOTIFY_EMAIL": "inbox@example.test"
+        }
+        with patch.dict(self.app.config, settings):
+            with patch("app.services.email_service.send_email", return_value=True) as sender:
+                response = client.post("/contacto/enviar", data=data)
+                self.assertEqual(response.status_code, 303)
+                sender.assert_called_once()
+                self.assertEqual(sender.call_args.args[0], "inbox@example.test")
+                self.assertIn("Correo Test", sender.call_args.args[2])
+
+            client.environ_base["REMOTE_ADDR"] = "203.0.113.203"
+            with patch("app.services.email_service.send_email", side_effect=OSError("SMTP down")):
+                response = client.post("/contacto/enviar", data={
+                    **data, "email": "smtp-error@example.test"
+                })
+                self.assertEqual(response.status_code, 303)
+        with self.app.app_context():
+            contact = self.db.session.execute(
+                self.db.select(ContactMessage).where(
+                    ContactMessage.email == "smtp-error@example.test"
+                )
+            ).scalar_one()
+            self.assertEqual(contact.status, "new")
+
     def test_public_contact_per_ip_rate_limit(self):
         """Repeated anonymous requests cannot flood administrators' inbox."""
         client = self.app.test_client()
