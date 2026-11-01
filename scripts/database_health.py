@@ -86,7 +86,7 @@ def expected_schema() -> dict[str, set[str]]:
         user_model, validation_code_model, academic_models, admin_audit_model,
         scan_token_model, access_scan_pair_model, validation_revocation_model,
         user_presence_model, university_notice_model, university_notice_read_model,
-        auth_attempt_model, access_log_model,
+        auth_attempt_model, access_log_model, contact_message_model,
     )
     return {
         table.name: {column.name for column in table.columns}
