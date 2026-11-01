@@ -203,6 +203,8 @@ class UniTrackTests(unittest.TestCase):
             total = self.db.session.execute(
                 self.db.select(self.db.func.count(ContactMessage.id))
             ).scalar_one()
+        # Test the honeypot from a different IP: invalid attempts also use the spam limit.
+        client.environ_base["REMOTE_ADDR"] = "203.0.113.201"
         response = client.post("/contacto/enviar", data={**common, "website": "bot.example"})
         self.assertEqual(response.status_code, 303)
         with self.app.app_context():
