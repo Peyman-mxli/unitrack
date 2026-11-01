@@ -993,7 +993,7 @@ def create_app():
         # A hidden honeypot reduces automated spam without saving it.
         if request.form.get("website", "").strip():
             session["contact_sent"] = True
-        return redirect(url_for("home") + "#contacto", code=303)
+            return redirect(url_for("home") + "#contacto", code=303)
 
         error = None
         if not 2 <= len(name) <= 100:
@@ -1026,7 +1026,7 @@ def create_app():
             ), 503
 
         session["contact_sent"] = True
-            return redirect(url_for("home") + "#contacto", code=303)
+        return redirect(url_for("home") + "#contacto", code=303)
 
     # ✅ PUBLIC LANDING → EXISTING AUTHENTICATION PAGES
     @app.route("/", methods=["GET"])
