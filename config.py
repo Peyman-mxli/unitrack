@@ -93,6 +93,10 @@ class Config:
     # Usually same as sender account
     MAIL_DEFAULT_SENDER = os.environ.get("MAIL_DEFAULT_SENDER", MAIL_USERNAME)
 
+    # Optional destination for public contact/error reports. Defaults to the
+    # already configured SMTP account. No mail credentials are stored in Git.
+    CONTACT_NOTIFY_EMAIL = os.environ.get("CONTACT_NOTIFY_EMAIL") or MAIL_USERNAME
+
     # ==========================================
     # PASSWORD RESET CONFIGURATION
     # ==========================================
