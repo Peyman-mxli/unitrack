@@ -45,6 +45,7 @@ from app.models.admin_audit_model import AdminAuditLog
 from app.models.scan_token_model import ScanToken
 from app.models.user_presence_model import UserPresence
 from app.models.university_notice_model import UniversityNotice
+from app.models.contact_message_model import ContactMessage
 from app.models.validation_code_model import ValidationCode
 from app.models.validation_revocation_model import ValidationCodeRevocation
 from app.services.validation_code_service import create_validation_code
@@ -1011,6 +1012,68 @@ def admin_dashboard():
 
     context = build_admin_dashboard_context()
     return render_template("admin_dashboard.html", **context)
+
+
+@admin_views_bp.route("/contact-messages", methods=["GET"])
+@login_required
+def admin_contact_messages():
+    """Private inbox for contact forms and public error reports."""
+    if not _is_admin_user():
+        return _reject_non_admin()
+    selected_status = str(request.args.get("status", "new")).strip().lower()
+    if selected_status not in {"new", "reviewed", "all"}:
+        selected_status = "new"
+    selected_category = str(request.args.get("category", "")).strip().lower()
+    if selected_category not in {"", "consulta", "soporte", "error", "sugerencia"}:
+        selected_category = ""
+    try:
+        page = max(1, min(100, int(request.args.get("page", 1))))
+    except (ValueError, TypeError):
+        page = 1
+    statement = db.select(ContactMessage)
+    if selected_status != "all":
+        statement = statement.where(ContactMessage.status == selected_status)
+    if selected_category:
+        statement = statement.where(ContactMessage.category == selected_category)
+    statement = statement.order_by(ContactMessage.created_at.desc(), ContactMessage.id.desc())
+    total = db.session.execute(
+        db.select(db.func.count()).select_from(statement.order_by(None).subquery())
+    ).scalar_one()
+    messages = db.session.execute(statement.offset((page - 1) * 40).limit(40)).scalars().all()
+    pending_count = db.session.execute(
+        db.select(db.func.count(ContactMessage.id)).where(ContactMessage.status == "new")
+    ).scalar_one()
+    return render_template(
+        "admin_contact_messages.html", messages=messages,
+        selected_status=selected_status, selected_category=selected_category,
+        total=total, page=page, has_more=(page * 40 < total), pending_count=pending_count,
+    )
+
+
+@admin_views_bp.route("/contact-messages/<int:message_id>/status", methods=["POST"])
+@login_required
+def admin_contact_message_status(message_id):
+    """Mark public messages reviewed or reopen them without deleting evidence."""
+    if not _is_admin_user():
+        return _reject_non_admin()
+    message = db.session.get(ContactMessage, message_id)
+    if message is None:
+        flash("Mensaje no encontrado.", "error")
+    else:
+        new_status = str(request.form.get("status", "")).strip().lower()
+        if new_status not in {"new", "reviewed"}:
+            flash("Estado no válido.", "error")
+        else:
+            try:
+                message.status = new_status
+                message.reviewed_at = datetime.utcnow() if new_status == "reviewed" else None
+                db.session.commit()
+                flash("Estado del mensaje actualizado.", "success")
+            except Exception:
+                db.session.rollback()
+                current_app.logger.exception("Failed updating contact request status")
+                flash("No se pudo actualizar el mensaje.", "error")
+    return redirect(url_for("admin_views.admin_contact_messages"))
 
 
 @admin_views_bp.route("/notices/create", methods=["POST"])
