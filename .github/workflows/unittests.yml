@@ -42,7 +42,7 @@ jobs:
       - name: Validate Windows updater and clone-recovery script syntax
         shell: pwsh
         run: |
-          foreach ($file in @('scripts/safe_update.ps1', 'scripts/reconnect_after_history_cleanup.ps1')) {
+          foreach ($file in @('scripts/safe_update.ps1', 'scripts/reconnect_after_history_cleanup.ps1', 'scripts/sync_latest.ps1')) {
             $tokens = $null
             $parseErrors = $null
             [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $file).Path, [ref]$tokens, [ref]$parseErrors) | Out-Null
@@ -148,6 +148,23 @@ jobs:
           [System.IO.File]::WriteAllText($verify, 'import sqlite3; assert sqlite3.connect("unitrack.db").execute("SELECT COUNT(*) FROM safety_test").fetchone()[0] == 1', (New-Object System.Text.UTF8Encoding($false)))
           & .\.venv\Scripts\python.exe $verify
           if ($LASTEXITCODE -ne 0) { throw "The updater changed the original test database" }
+      - name: Smoke test new-laptop GitHub sync launcher
+        shell: powershell
+        run: |
+          $dest = Join-Path $env:TEMP "unitrack-ci-latest-sync"
+          if (Test-Path -LiteralPath $dest) { throw "Unexpected occupied sync-test folder" }
+          $script = (Resolve-Path .\scripts\sync_latest.ps1).Path
+          & powershell -NoProfile -ExecutionPolicy Bypass -File $script -ProjectRoot $dest -SkipStart
+          if ($LASTEXITCODE -ne 0) { throw "New-laptop latest sync launcher failed" }
+          $localSha = (& git -C $dest rev-parse HEAD).Trim()
+          $remoteSha = (& git -C $dest rev-parse refs/remotes/origin/main).Trim()
+          if ($LASTEXITCODE -ne 0 -or $localSha -ne $remoteSha) {
+            throw "Launcher did not fetch current GitHub main"
+          }
+          if (-not (Test-Path -LiteralPath (Join-Path $dest ".venv\Scripts\python.exe"))) {
+            throw "Fresh environment was not installed"
+          }
+          Write-Host "Latest-version sync on a new laptop succeeded."
       - name: Test locked-folder-safe history reconnect
         shell: powershell
         run: |
