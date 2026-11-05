@@ -906,9 +906,26 @@ def create_app():
                 )
             db.session.commit()
 
-        # JSON API requests rely on the browser's same-origin policy; HTML
-        # forms must include the token rendered with that user's session.
-        if not request.is_json:
+        # A session-authenticated JSON mutation must prove that it originated
+        # in this same browser session; application/json alone is NOT a CSRF
+        # defense for same-site subdomains or future relaxed CORS policies.
+        if request.is_json:
+            from urllib.parse import urlsplit
+            origin = request.headers.get("Origin", "")
+            if origin:
+                parsed = urlsplit(origin)
+                host = (request.host or "").split(":", 1)[0].casefold()
+                secure = bool(app.config.get("SESSION_COOKIE_SECURE"))
+                if (parsed.hostname or "").casefold() != host or (
+                    secure and parsed.scheme != "https"
+                ):
+                    abort(403, description="Cross-origin JSON request rejected.")
+            if current_user.is_authenticated:
+                expected = session.get("csrf_token")
+                supplied = request.headers.get("X-CSRF-Token")
+                if not expected or not supplied or not hmac.compare_digest(str(expected), str(supplied)):
+                    abort(400, description="CSRF token required for authenticated JSON requests.")
+        else:
             expected = session.get("csrf_token")
             supplied = request.form.get("csrf_token") or request.headers.get("X-CSRF-Token")
             if not expected or not supplied or not hmac.compare_digest(str(expected), str(supplied)):
