@@ -18,6 +18,7 @@ from pathlib import Path
 from flask import Flask, redirect, url_for, session, request, abort, jsonify, render_template, send_file
 from flask_login import LoginManager, current_user, logout_user, login_required
 from flask_migrate import Migrate
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from config import Config
 from .database import db
@@ -50,6 +51,12 @@ def create_app():
 
     app.config.from_object(Config)
 
+    # Only trust the final reverse proxy in the Render hosting environment.
+    # This ensures authentication limits see the actual client IP and Flask
+    # knows that public requests used HTTPS.
+    if app.config.get("IS_HOSTED"):
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
+
     app.config["SQLALCHEMY_DATABASE_URI"] = Config.SQLALCHEMY_DATABASE_URI
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = Config.SQLALCHEMY_TRACK_MODIFICATIONS
     # Production must supply its own SECRET_KEY. Local development receives
@@ -74,8 +81,8 @@ def create_app():
         if not configured_key:
             raise RuntimeError("Local secret key file is empty.")
     app.config["SECRET_KEY"] = configured_key
-    if environment == "production":
-        # Never allow accidental debug or insecure cookies in production.
+    if environment == "production" or app.config.get("IS_HOSTED"):
+        # Never allow accidental debug or insecure cookies on a hosted service.
         app.config["DEBUG"] = False
         app.config["SESSION_COOKIE_SECURE"] = True
         app.config["ENFORCE_OPERATOR_SCANS"] = True
@@ -967,7 +974,11 @@ def create_app():
         if not request.path.startswith("/static/"):
             response.headers["Cache-Control"] = "no-store, max-age=0"
             response.headers["Pragma"] = "no-cache"
-        if environment == "production":
+        response.headers.setdefault("Content-Security-Policy",
+                                   "frame-ancestors 'none'; base-uri 'self'; object-src 'none'; form-action 'self'")
+        response.headers.setdefault("Permissions-Policy",
+                                   "camera=(self), microphone=(), geolocation=()")
+        if app.config.get("SESSION_COOKIE_SECURE"):
             response.headers.setdefault("Strict-Transport-Security", "max-age=31536000")
         return response
 
