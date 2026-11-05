@@ -15,12 +15,12 @@ def hash_password(password: str) -> str:
     if not password:
         raise ValueError("Password is required")
 
-    password = str(password).strip()
+    # Passwords are byte-exact secrets. Trimming silently changes the password
+    # and can make some passwords impossible to use after an upgrade.
+    if not isinstance(password, str):
+        raise ValueError("Password must be text")
 
-    if not password:
-        raise ValueError("Password cannot be empty")
-
-    return generate_password_hash(password)
+    return generate_password_hash(password, method="scrypt:32768:8:1")
 
 
 def verify_password(hash_value: str, password: str) -> bool:
