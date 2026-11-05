@@ -46,6 +46,8 @@ from app.services.password_reset_service import (
     generate_password_reset_token
 )
 from app.utils.security import hash_password, verify_password
+from app.utils.password_policy import new_password_error
+from app.utils.session_security import bind_authenticated_session
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 
@@ -66,7 +68,7 @@ def authenticate_user(login_value, password):
     """
 
     login_value = str(login_value or "").strip()
-    password = str(password or "").strip()
+    password = password if isinstance(password, str) else ""
 
     if not login_value or not password:
         return None, "login and password are required"
@@ -82,13 +84,13 @@ def authenticate_user(login_value, password):
         user = get_user_by_username(login_value)
 
     if not user:
-        return None, "User not found"
+        return None, "Invalid login credentials"
 
     if not user.is_active_user:
-        return None, "User account is inactive"
+        return None, "Invalid login credentials"
 
     if not verify_password(user.password_hash, password):
-        return None, "Invalid password"
+        return None, "Invalid login credentials"
 
     return user, None
 
@@ -701,6 +703,10 @@ def register():
         return jsonify({"success": False, "error": validation_error}), 400
 
     role = normalize_role(data.get("role", "estudiante"))
+    password_error = new_password_error(data.get("password"))
+    if password_error:
+        return jsonify({"success": False, "error": password_error}), 400
+
     validation_code_text = str(data.get("validation_code")).strip()
 
     valid, validation_code_object, error = validate_code_for_use(
@@ -783,8 +789,8 @@ def register_page():
         "validation_code": request.form.get("validation_code", ""),
     }
 
-    password = str(request.form.get("password", "")).strip()
-    confirm_password = str(request.form.get("confirm_password", "")).strip()
+    password = request.form.get("password", "")
+    confirm_password = request.form.get("confirm_password", "")
 
     browser_payload = {
         "first_name": form_data["first_name"],
@@ -822,6 +828,15 @@ def register_page():
                 language=language
             )
         )
+
+    password_error = new_password_error(password)
+    if password_error:
+        return render_template(
+            "auth_register.html",
+            **build_register_template_context(
+                form_data=form_data, error=password_error, language=language
+            )
+        ), 400
 
     validation_code_text = str(form_data["validation_code"]).strip()
     role = normalize_role(form_data["role"])
@@ -944,7 +959,7 @@ def login_page():
         )
 
     login_value = str(request.form.get("login", "")).strip()
-    password = str(request.form.get("password", "")).strip()
+    password = request.form.get("password", "")
     remember_me = str(request.form.get("remember_me", "")).strip().lower() in {
         "on", "true", "1", "yes"
     }
@@ -963,6 +978,7 @@ def login_page():
         )
 
     login_user(user, remember=remember_me)
+    bind_authenticated_session(user)
     update_last_login(user)
 
     redirect_path = get_safe_authenticated_redirect(user)
@@ -1016,49 +1032,20 @@ def forgot_password_page():
             )
         )
 
+    # Do not reveal whether an address/phone belongs to a UniTrack account.
+    # Sending mail failures are logged privately, not shown as SMTP errors.
     user = get_user_by_email_and_phone(email, phone)
-
-    if not user:
-        return render_template(
-            "auth_forgot_password.html",
-            **build_forgot_password_template_context(
-                email=email,
-                phone=phone,
-                error="The provided email and phone number do not match any account"
-            )
+    if user and user.is_active_user:
+        try:
+            send_password_reset_email(user)
+        except Exception:
+            current_app.logger.exception("Password recovery notification failed")
+    return render_template(
+        "auth_forgot_password.html",
+        **build_forgot_password_template_context(
+            success_message="Si los datos coinciden con una cuenta activa, recibirás instrucciones por correo."
         )
-
-    if not user.is_active_user:
-        return render_template(
-            "auth_forgot_password.html",
-            **build_forgot_password_template_context(
-                email=email,
-                phone=phone,
-                error="This account is inactive"
-            )
-        )
-
-    try:
-        send_password_reset_email(user)
-
-        return render_template(
-            "auth_forgot_password.html",
-            **build_forgot_password_template_context(
-                success_message="Password reset email sent successfully. Please check your inbox."
-            )
-        )
-
-    except Exception as error:
-        current_app.logger.exception("Failed to send password reset email")
-
-        return render_template(
-            "auth_forgot_password.html",
-            **build_forgot_password_template_context(
-                email=email,
-                phone=phone,
-                error=f"Email error: {str(error)}"
-            )
-        )
+    )
 
 
 @auth_bp.route("/reset-password", methods=["GET", "POST"])
@@ -1102,8 +1089,8 @@ def reset_password_page():
         )
 
     token = str(request.form.get("token", "")).strip()
-    password = str(request.form.get("password", "")).strip()
-    confirm_password = str(request.form.get("confirm_password", "")).strip()
+    password = request.form.get("password", "")
+    confirm_password = request.form.get("confirm_password", "")
 
     if not token:
         return render_template(
@@ -1141,6 +1128,13 @@ def reset_password_page():
             )
         )
 
+    password_error = new_password_error(password, user)
+    if password_error:
+        return render_template(
+            "auth_reset_password.html",
+            **build_reset_password_template_context(token=token, error=password_error)
+        ), 400
+
     try:
         user.password_hash = hash_password(password)
         user.must_change_password = False
@@ -1172,6 +1166,42 @@ def reset_password_page():
         )
 
 
+@auth_bp.route("/change-password-page", methods=["GET", "POST"])
+@login_required
+def forced_password_change_page():
+    """Allow temporary-password accounts to change passwords before any app access."""
+    if request.method == "GET":
+        return render_template("auth_force_password_change.html")
+
+    current_password = request.form.get("current_password", "")
+    new_password = request.form.get("new_password", "")
+    confirm_password = request.form.get("confirm_password", "")
+    error = None
+    if not verify_password(current_user.password_hash, current_password):
+        error = "La contraseña actual es incorrecta."
+    elif new_password != confirm_password:
+        error = "La nueva contraseña y su confirmación no coinciden."
+    elif verify_password(current_user.password_hash, new_password):
+        error = "La contraseña nueva debe ser distinta de la actual."
+    else:
+        error = new_password_error(new_password, current_user)
+    if error:
+        return render_template("auth_force_password_change.html", error=error), 400
+
+    try:
+        current_user.password_hash = hash_password(new_password)
+        current_user.must_change_password = False
+        db.session.commit()
+        bind_authenticated_session(current_user)
+        session.pop("csrf_token", None)
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception("Required password change failed")
+        return render_template("auth_force_password_change.html",
+                               error="No se pudo cambiar la contraseña."), 503
+    return redirect(get_safe_authenticated_redirect(current_user) or "/auth/login-page")
+
+
 @auth_bp.route("/login", methods=["POST"])
 def login():
     """
@@ -1197,6 +1227,7 @@ def login():
         }), 401
 
     login_user(user, remember=remember_me)
+    bind_authenticated_session(user)
     update_last_login(user)
 
     return jsonify({
@@ -1281,8 +1312,8 @@ def change_password():
             "error": "Invalid JSON"
         }), 400
 
-    current_password = str(data.get("current_password", "")).strip()
-    new_password = str(data.get("new_password", "")).strip()
+    current_password = data.get("current_password", "")
+    new_password = data.get("new_password", "")
 
     if not current_password or not new_password:
         return jsonify({
@@ -1296,11 +1327,16 @@ def change_password():
             "error": "Current password is incorrect"
         }), 401
 
+    password_error = new_password_error(new_password, current_user)
+    if password_error:
+        return jsonify({"success": False, "error": password_error}), 400
+
     try:
         current_user.password_hash = hash_password(new_password)
         current_user.must_change_password = False
 
         db.session.commit()
+        bind_authenticated_session(current_user)
 
         return jsonify({
             "success": True,
