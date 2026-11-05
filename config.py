@@ -69,7 +69,15 @@ class Config:
     ALLOW_LEGACY_QR = os.environ.get("UNITRACK_ALLOW_LEGACY_QR", "False").lower() == "true"
     ENFORCE_OPERATOR_SCANS = (os.environ.get("UNITRACK_ENV", "").lower() == "production" or IS_HOSTED)
 
-    ADMIN_MFA_REQUIRED = os.environ.get("UNITRACK_REQUIRE_ADMIN_MFA", "true" if os.environ.get("UNITRACK_ENV", "").lower() == "production" else "false").lower() == "true"
+    # Enforce MFA on hosted services only when a persistent SECRET_KEY exists;
+    # otherwise setup secrets would become unusable after a container restart.
+    ADMIN_MFA_REQUIRED = os.environ.get(
+        "UNITRACK_REQUIRE_ADMIN_MFA",
+        "true" if (
+            os.environ.get("UNITRACK_ENV", "").lower() == "production"
+            or (IS_HOSTED and bool(os.environ.get("SECRET_KEY")))
+        ) else "false"
+    ).lower() == "true"
 
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
