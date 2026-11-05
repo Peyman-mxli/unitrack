@@ -54,8 +54,10 @@ def main():
             print("Passwords do not match.")
             return
 
-        if len(new_password) < 8:
-            print("Password must contain at least 8 characters.")
+        from app.utils.password_policy import new_password_error
+        policy_error = new_password_error(new_password)
+        if policy_error:
+            print(policy_error)
             return
 
         new_hash = generate_password_hash(new_password)
