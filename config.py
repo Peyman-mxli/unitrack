@@ -61,6 +61,8 @@ class Config:
     ALLOW_LEGACY_QR = os.environ.get("UNITRACK_ALLOW_LEGACY_QR", "False").lower() == "true"
     ENFORCE_OPERATOR_SCANS = os.environ.get("UNITRACK_ENV", "").lower() == "production"
 
+    ADMIN_MFA_REQUIRED = os.environ.get("UNITRACK_REQUIRE_ADMIN_MFA", "true" if os.environ.get("UNITRACK_ENV", "").lower() == "production" else "false").lower() == "true"
+
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
     SESSION_COOKIE_SECURE = os.environ.get("UNITRACK_ENV", "").lower() == "production"
