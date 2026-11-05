@@ -10,6 +10,22 @@
 
 ---
 
+## 🔄 Always run the latest UniTrack on any Windows laptop
+
+The **single source of truth** for all UniTrack code is [GitHub main](https://github.com/Peyman-mxli/unitrack/tree/main).
+
+In **VS Code → Terminal (PowerShell)**, stop any old running Flask server with Ctrl+C and paste:
+
+```powershell
+$sync = Join-Path $env:TEMP "unitrack-sync-latest.ps1"
+Invoke-WebRequest -UseBasicParsing -Uri "https://raw.githubusercontent.com/Peyman-mxli/unitrack/main/scripts/sync_latest.ps1" -OutFile $sync
+powershell -NoProfile -ExecutionPolicy Bypass -File $sync -OpenVSCode
+```
+
+This works on either laptop: from an existing UniTrack checkout it fetches the real latest GitHub commit, backs up existing data and updates safely. Otherwise it finds a known folder or clones current code into `C:\unitrack-latest`. Old or locally modified branches receive a **new sibling checkout** without deleting the original, with a verified transfer of their local database and photos when available. The script prints the active VS Code project path and current Git commit.
+
+**Never** use `git reset --hard`, `git pull --force`, or upload `unitrack.db` to GitHub to reconcile versions. **GitHub synchronizes source code only**. Local accounts, attendance, QR access history, pictures, email credentials, `.unitrack-secret`, and SQLite databases deliberately **do not sync across laptops**. For the *same student data* on both laptops, use a separately configured persistent central database and private file storage. The hosted site is [unitrack-c0zt.onrender.com](https://unitrack-c0zt.onrender.com), but its database persistence must be verified before storing real student records.
+
 ## 🌐 Live Demo
 
 🔗 https://unitrack-c0zt.onrender.com
@@ -157,7 +173,7 @@ http://<your-ip>:5000
 
 ## 🔑 Default Admin
 
-> For a NEW database, Admin is created only when UNITRACK_INITIAL_ADMIN_PASSWORD is set to a unique password of at least 12 characters. Existing admin accounts are never overwritten.
+> For a NEW database, Admin is created only when UNITRACK_INITIAL_ADMIN_PASSWORD is set to a unique password of at least 15 characters. Existing admin accounts are never overwritten.
 
 ---
 
@@ -215,7 +231,7 @@ python run.py
 Existing `unitrack.db` files are not reset. For a brand-new database, set a unique administrator password **before the first launch**:
 
 ```powershell
-$env:UNITRACK_INITIAL_ADMIN_PASSWORD = Read-Host 'Choose an initial admin password (12+ characters)'
+$env:UNITRACK_INITIAL_ADMIN_PASSWORD = Read-Host 'Choose an initial admin password (15+ characters)'
 python run.py
 ```
 
