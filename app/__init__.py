@@ -830,6 +830,30 @@ def create_app():
                 if request.is_json:
                     return jsonify({"success": False, "error": "You must change your temporary password."}), 403
                 return redirect(url_for("auth.forced_password_change_page"))
+            return
+
+        if str(getattr(current_user, "role", "")).strip().lower() == "administrativo":
+            from .models.admin_mfa_model import AdminMFA
+            from .utils.session_security import password_session_tag
+            record = db.session.get(AdminMFA, current_user.id)
+            enabled = bool(record and record.enabled_at)
+            is_verified = hmac.compare_digest(
+                str(session.get("admin_mfa_verified") or ""),
+                password_session_tag(current_user)
+            )
+            # The challenge/setup pages and logout remain available; all
+            # other administrative pages require a verified second factor.
+            exempt = {"auth.admin_mfa_setup", "auth.admin_mfa_verify", "auth.logout"}
+            if request.endpoint in exempt:
+                return
+            if enabled and not is_verified:
+                if request.is_json:
+                    return jsonify({"success": False, "error": "Administrator 2FA is required."}), 403
+                return redirect(url_for("auth.admin_mfa_verify"))
+            if not enabled and app.config.get("ADMIN_MFA_REQUIRED"):
+                if request.is_json:
+                    return jsonify({"success": False, "error": "Set up administrator 2FA."}), 403
+                return redirect(url_for("auth.admin_mfa_setup"))
 
     @app.before_request
     def update_recent_user_activity():
@@ -885,6 +909,8 @@ def create_app():
             action, limit, period_seconds = "reset", 10, 600
         elif route == "/contacto/enviar":
             action, limit, period_seconds = "contact", 5, 3600
+        elif route in {"/auth/admin-2fa/verify", "/auth/admin-2fa/setup"}:
+            action, limit, period_seconds = "mfa", 8, 600
 
         if action:
             now = datetime.utcnow()
