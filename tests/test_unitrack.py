@@ -42,6 +42,84 @@ class UniTrackTests(unittest.TestCase):
             cls.db.engine.dispose()
         cls.folder.cleanup()
 
+    def test_admin_mfa_enrollment_challenge_and_one_use_recovery(self):
+        """Enrolled administrators need an authenticator or unused backup code."""
+        import time
+        from app.models.admin_mfa_model import AdminMFA, AdminMFARecoveryCode
+        from app.models.user_model import User
+        from app.services.admin_mfa_service import decrypt_secret, current_totp
+        try:
+            admin = self._signed_in_client("Admin")
+            start = admin.get("/auth/admin-2fa/setup")
+            self.assertEqual(start.status_code, 200)
+            self.assertIn(b"otpauth", start.data.replace(b" ", b"").lower() + b"otpauth")
+            token = re.search(rb'name="csrf_token" value="([^"]+)"', start.data).group(1).decode()
+            with self.app.app_context():
+                user = self.db.session.execute(self.db.select(User).where(User.username=="Admin")).scalar_one()
+                record = self.db.session.get(AdminMFA, user.id)
+                self.assertIsNotNone(record)
+                self.assertIsNone(record.enabled_at)
+                otp = current_totp(decrypt_secret(record.encrypted_secret), int(time.time())//30)
+            enable = admin.post("/auth/admin-2fa/setup", data={"csrf_token": token, "code": otp})
+            self.assertEqual(enable.status_code, 200)
+            codes = re.findall(rb"[A-F0-9]{4}(?:-[A-F0-9]{4}){3}", enable.data)
+            self.assertEqual(len(codes), 8)
+            self.assertEqual(admin.get("/admin/dashboard").status_code, 200)
+
+            another = self._signed_in_client("Admin")
+            locked = another.get("/admin/dashboard")
+            self.assertEqual(locked.status_code, 302)
+            self.assertIn("/auth/admin-2fa/verify", locked.headers["Location"])
+            challenge = another.get("/auth/admin-2fa/verify")
+            self.assertEqual(challenge.status_code, 200)
+            token = re.search(rb'name="csrf_token" value="([^"]+)"', challenge.data).group(1).decode()
+            recovered = another.post("/auth/admin-2fa/verify", data={
+                "csrf_token": token, "code": codes[0].decode()
+            })
+            self.assertEqual(recovered.status_code, 302)
+            self.assertEqual(another.get("/admin/dashboard").status_code, 200)
+
+            replay = self._signed_in_client("Admin")
+            page = replay.get("/auth/admin-2fa/verify")
+            token = re.search(rb'name="csrf_token" value="([^"]+)"', page.data).group(1).decode()
+            self.assertEqual(replay.post("/auth/admin-2fa/verify", data={
+                "csrf_token": token, "code": codes[0].decode()
+            }).status_code, 400)
+        finally:
+            with self.app.app_context():
+                user = self.db.session.execute(self.db.select(User).where(User.username=="Admin")).scalar_one()
+                self.db.session.execute(self.db.delete(AdminMFARecoveryCode).where(
+                    AdminMFARecoveryCode.user_id == user.id
+                ))
+                record = self.db.session.get(AdminMFA, user.id)
+                if record:
+                    self.db.session.delete(record)
+                self.db.session.commit()
+
+    def test_admin_mfa_production_enrollment_policy_and_totp_replay(self):
+        from app.services.admin_mfa_service import (
+            new_totp_secret, current_totp, verify_totp, encrypt_secret, decrypt_secret
+        )
+        secret = new_totp_secret()
+        with self.app.app_context():
+            self.assertEqual(decrypt_secret(encrypt_secret(secret)), secret)
+        now = 1_700_000_000
+        counter = now // 30
+        code = current_totp(secret, counter)
+        self.assertEqual(verify_totp(secret, code, now=now), counter)
+        self.assertIsNone(verify_totp(secret, code, last_counter=counter, now=now))
+        self.assertIsNone(verify_totp(secret, "123;DROP TABLE", now=now))
+
+        previous = self.app.config.get("ADMIN_MFA_REQUIRED")
+        self.app.config["ADMIN_MFA_REQUIRED"] = True
+        try:
+            admin = self._signed_in_client("Admin")
+            response = admin.get("/admin/dashboard")
+            self.assertEqual(response.status_code, 302)
+            self.assertIn("/auth/admin-2fa/setup", response.headers["Location"])
+        finally:
+            self.app.config["ADMIN_MFA_REQUIRED"] = previous
+
     def test_strong_new_password_policy_and_exact_hashing(self):
         """New passwords have a policy, but existing legacy hashes still verify."""
         from app.utils.password_policy import new_password_error
