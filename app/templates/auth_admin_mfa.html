@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seguridad de administrador | UniTrack</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font:16px/1.55 system-ui,Arial,sans-serif;background:#f4f6fb;color:#17263d}
+header{background:linear-gradient(90deg,#740018,#900023);padding:22px;color:white;font-size:24px;font-weight:900}
+main{display:grid;place-items:center;min-height:77vh;padding:24px}
+.card{width:100%;max-width:540px;border:1px solid #dbe5f2;border-radius:20px;background:white;padding:30px;box-shadow:0 20px 50px #0b163017}
+h1{font-size:27px;margin:0 0 12px}p{color:#4d5871}small,.muted{color:#5a6683}
+.qr{width:min(220px,90%);display:block;margin:20px auto;border:6px solid #f3f3f3;border-radius:14px}
+code{display:block;padding:13px;background:#f3f6ff;font-size:18px;letter-spacing:2px;overflow-wrap:anywhere;border-radius:10px;text-align:center}
+input{display:block;width:100%;border-radius:9px;border:1px solid #b9c7e0;padding:13px;font-size:18px;margin-top:7px}
+input:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid #a5c5ff}
+label{display:block;margin-top:15px;font-weight:750}
+button,.button{width:100%;display:block;background:#1473f9;color:#fff;border:0;border-radius:10px;padding:14px;font-weight:800;cursor:pointer;text-align:center;text-decoration:none;margin-top:18px}
+.error{border-radius:10px;background:#fff0ef;border:1px solid #ffc4be;color:#9f2621;padding:12px}
+.warn{color:#8a3100;background:#fff4e6;border:1px solid #ffd7a4;padding:13px;border-radius:12px}
+ul{padding-left:20px}li{margin:7px 0}.codes{display:grid;grid-template-columns:1fr 1fr;gap:8px}.codes code{font-size:14px;letter-spacing:0}
+footer{text-align:center;padding:15px;color:#667}
+</style>
+</head>
+<body>
+<header>UniTrack · Seguridad de administrador</header>
+<main><div class="card">
+{% if mode == 'setup' %}
+<h1>Activar verificación en dos pasos</h1>
+<p>Escanea el código QR con Google Authenticator, Microsoft Authenticator u otra aplicación TOTP. No compartas la clave.</p>
+{% if error %}<div class="error" role="alert">{{ error }}</div>{% endif %}
+<img class="qr" src="{{ qr }}" alt="QR de configuración de autenticación en dos pasos">
+<p>O introduce esta clave manualmente:</p>
+<code>{{ secret }}</code>
+<form method="POST" action="{{ url_for('auth.admin_mfa_setup') }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<label for="mfa_code">Código de 6 dígitos generado por la aplicación</label>
+<input id="mfa_code" name="code" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required>
+<button type="submit">Verificar y activar 2FA</button>
+</form>
+{% elif mode == 'verify' %}
+<h1>Verificación del administrador</h1>
+<p>Introduce tu código de 6 dígitos o un código de recuperación no utilizado para entrar a tu panel.</p>
+{% if error %}<div class="error" role="alert">{{ error }}</div>{% endif %}
+<form method="POST" action="{{ url_for('auth.admin_mfa_verify') }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<label for="mfa_code">Código de autenticación o recuperación</label>
+<input id="mfa_code" name="code" type="text" autocomplete="one-time-code" required maxlength="24">
+<button type="submit">Verificar y continuar</button>
+</form>
+{% elif mode == 'recovery' %}
+<h1>¡Verificación en dos pasos activada!</h1>
+<p class="warn">Guarda estos códigos de recuperación en un lugar privado, distinto del equipo. Se muestran solo una vez y cada uno funciona una sola vez. Sin tu autenticador ni estos códigos podrías perder acceso al panel.</p>
+<div class="codes">{% for code in codes %}<code>{{ code }}</code>{% endfor %}</div>
+<a class="button" href="{{ url_for('admin_views.admin_dashboard') }}">Continuar al panel</a>
+{% endif %}
+<form method="POST" action="{{ url_for('auth.logout') }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<button type="submit" style="background:#fff;color:#7b0022;border:1px solid #dbadbb">Cerrar sesión</button>
+</form>
+</div></main>
+<footer>Universidad Politécnica de Baja California</footer>
+</body></html>
