@@ -67,7 +67,7 @@ class Config:
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     ALLOW_LEGACY_QR = os.environ.get("UNITRACK_ALLOW_LEGACY_QR", "False").lower() == "true"
-    ENFORCE_OPERATOR_SCANS = os.environ.get("UNITRACK_ENV", "").lower() == "production"
+    ENFORCE_OPERATOR_SCANS = (os.environ.get("UNITRACK_ENV", "").lower() == "production" or IS_HOSTED)
 
     ADMIN_MFA_REQUIRED = os.environ.get("UNITRACK_REQUIRE_ADMIN_MFA", "true" if os.environ.get("UNITRACK_ENV", "").lower() == "production" else "false").lower() == "true"
 
