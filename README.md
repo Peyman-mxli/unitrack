@@ -271,6 +271,57 @@ python scripts/backup_sqlite.py
 
 This writes a timestamped, integrity-checked copy to `backups/` (ignored by Git), without replacing the live database. PostgreSQL production databases need managed database backups and restore drills. Never run `git stash pop` without reviewing the stashed files when local database changes are involved.
 
+### Security hardening (November 2026)
+
+UniTrack now requires at least 15 characters for **new** passwords. Existing
+users are **not** automatically locked out because their old hashes are still
+verified by Werkzeug. Temporary passwords assigned by an administrator
+require replacement before dashboard access. Successful password changes
+invalidate other authenticated sessions; existing old-release sessions may
+also need to sign in again.
+
+All browser form changes need a CSRF token, and authenticated JSON mutations
+require the current session token in the `X-CSRF-Token` header. JSON API
+`POST /auth/login` returns `csrf_token`; the same token is available from
+`GET /auth/me` once logged in. Signed session cookies have a shorter lifetime,
+and hosted services use secure cookies and proxy-aware client-IP throttling.
+
+**Administrator two-factor authentication:** Visit the administrator's
+configuration page and choose *Configurar verificación en dos pasos (2FA)*.
+Enroll with an authenticator app supporting six-digit TOTP codes. Keep the
+eight one-use recovery codes in a safe location **outside UniTrack**. They are
+only shown once and are never saved in plaintext; TOTP secrets are encrypted
+before database storage. On the next login, administrators with MFA enabled
+must enter an authenticator code or an unused recovery code. Production mode
+requires MFA; hosted Render services with a persistent `SECRET_KEY` also
+require MFA by default. Never put a TOTP seed or recovery code into GitHub.
+
+**Production configuration:**
+
+- Set a persistent, randomly generated `SECRET_KEY` of at least 32 characters
+  through the hosting provider's secret environment settings. Rotating it will
+  expire sessions, reset links and the ability to decrypt previously stored
+  MFA secrets; retain protected recovery arrangements.
+- Set `UNITRACK_ENV=production` and `APP_BASE_URL` to the real HTTPS URL.
+  Use `UNITRACK_REQUIRE_ADMIN_MFA=true` to enforce administrator enrollment.
+- Set `DATABASE_URL` to a **durable** PostgreSQL database with managed
+  backups and verify a restore before onboarding real student data.
+  A local `unitrack.db` on Render's temporary filesystem is **not**
+  reliable production storage. Configure separate private file storage
+  for profile photographs; the local `private_uploads` folder on a
+  temporary cloud instance is also not durable.
+- Run the GitHub Actions *UniTrack security audit* whenever dependencies
+  change. The recurring Monday scan uses `pip-audit` to detect known
+  vulnerable libraries and checks for accidentally committed databases,
+  secrets and account photographs.
+
+**Remaining limitations:** Security cannot be guaranteed by source inspection
+or passing automated tests. Validate database durability, actual environment
+variables, HTTPS and proxy behavior in deployment, and commission an
+authorized security assessment before storing real student data. Alembic
+migrations must be planned and rehearsed separately before changing existing
+database tables; the application still calls `db.create_all()` at startup.
+
 ### Public contact and error reports
 
 The landing page at `/#contacto` contains a functional bilingual contact form. Visitors can submit **general questions, support requests, bug reports and suggestions** without signing in. Submissions are validated, protected by session CSRF and a per-IP request limit, and stored in the `contact_messages` database table. Do not submit passwords or private QR tokens.
