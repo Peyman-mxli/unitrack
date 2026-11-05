@@ -933,9 +933,14 @@ class UniTrackTests(unittest.TestCase):
         # Person can view their own status via the existing authenticated
         # endpoint without refreshing the page or minting a new QR.
         teacher = self.app.test_client()
+        from app.utils.session_security import password_session_tag
+        with self.app.app_context():
+            professor = self.db.session.get(User, user_id)
+            tag = password_session_tag(professor)
         with teacher.session_transaction() as session_state:
             session_state["_user_id"] = str(user_id)
             session_state["_fresh"] = True
+            session_state["password_session_tag"] = tag
         before = teacher.get("/api/access-control/live")
         self.assertEqual(before.status_code, 200)
         self.assertEqual(before.get_json()["status"]["status"], "checked_in")
