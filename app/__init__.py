@@ -728,6 +728,7 @@ def create_app():
         from .models.university_notice_read_model import UniversityNoticeRead
         from .models.auth_attempt_model import AuthAttempt
         from .models.contact_message_model import ContactMessage
+        from .models.admin_mfa_model import AdminMFA, AdminMFARecoveryCode
 
         db.create_all()
 
