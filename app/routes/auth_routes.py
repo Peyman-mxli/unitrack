@@ -26,6 +26,7 @@ from sqlalchemy import func
 from werkzeug.utils import secure_filename
 import os
 import uuid
+import secrets
 
 from app.database import db
 from app.services.profile_photo_service import save_profile_photo, delete_profile_photo
@@ -979,6 +980,8 @@ def login_page():
 
     login_user(user, remember=remember_me)
     bind_authenticated_session(user)
+    if not session.get("csrf_token"):
+        session["csrf_token"] = secrets.token_urlsafe(32)
     update_last_login(user)
 
     redirect_path = get_safe_authenticated_redirect(user)
@@ -1228,11 +1231,14 @@ def login():
 
     login_user(user, remember=remember_me)
     bind_authenticated_session(user)
+    if not session.get("csrf_token"):
+        session["csrf_token"] = secrets.token_urlsafe(32)
     update_last_login(user)
 
     return jsonify({
         "success": True,
         "message": "Login successful",
+        "csrf_token": session["csrf_token"],
         "user": {
             "id": user.id,
             "user_id_code": getattr(user, "user_id_code", None),
@@ -1278,6 +1284,7 @@ def me():
 
     return jsonify({
         "success": True,
+        "csrf_token": session.get("csrf_token"),
         "user": {
             "id": current_user.id,
             "user_id_code": getattr(current_user, "user_id_code", None),
