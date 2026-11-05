@@ -49,8 +49,8 @@ def seed_default_admin():
     initial_password = os.environ.get("UNITRACK_INITIAL_ADMIN_PASSWORD", "")
     if not initial_password:
         return None
-    if len(initial_password) < 12:
-        raise ValueError("UNITRACK_INITIAL_ADMIN_PASSWORD must be at least 12 characters.")
+    if len(initial_password) < 15:
+        raise ValueError("UNITRACK_INITIAL_ADMIN_PASSWORD must be at least 15 characters.")
 
     password_hash = hash_password(initial_password)
 
