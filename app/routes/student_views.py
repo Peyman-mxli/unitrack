@@ -29,6 +29,8 @@ from werkzeug.utils import secure_filename
 
 from app.database import db
 from app.services.profile_photo_service import save_profile_photo, delete_profile_photo
+from app.utils.password_policy import new_password_error
+from app.utils.session_security import bind_authenticated_session
 from app.models.user_model import User
 
 try:
@@ -429,32 +431,18 @@ def _build_mobile_scan_result_html(response_data, status_code):
 
 
 def _extract_configuration_password_fields(form_data):
-    """
-    Read password fields from the configuration form safely.
-
-    Why this fix exists:
-    Some template versions may use slightly different input names.
-    So I support the most common names without breaking older forms.
-    """
-    current_password = (
-        _clean_text(form_data.get("current_password")) or
-        _clean_text(form_data.get("old_password")) or
-        _clean_text(form_data.get("actual_password"))
+    """Read alternate form keys without ever trimming password secrets."""
+    def pick(*names):
+        for key in names:
+            value = form_data.get(key)
+            if isinstance(value, str) and value != "":
+                return value
+        return ""
+    return (
+        pick("current_password", "old_password", "actual_password"),
+        pick("new_password", "password"),
+        pick("confirm_password", "password_confirm", "confirm_new_password"),
     )
-
-    new_password = (
-        _clean_text(form_data.get("new_password")) or
-        _clean_text(form_data.get("password"))
-    )
-
-    confirm_password = (
-        _clean_text(form_data.get("confirm_password")) or
-        _clean_text(form_data.get("password_confirm")) or
-        _clean_text(form_data.get("confirm_new_password"))
-    )
-
-    return current_password, new_password, confirm_password
-
 
 def _extract_scan_text_from_json_payload(data):
     """
@@ -1388,6 +1376,10 @@ def configuration_update():
         if new_password == current_password:
             return _redirect_configuration_error("New password must be different from current password.")
 
+        policy_error = new_password_error(new_password, current_user)
+        if policy_error:
+            return _redirect_configuration_error(policy_error)
+
     try:
         current_user.first_name = first_name
         current_user.last_name = last_name
@@ -1401,6 +1393,8 @@ def configuration_update():
             current_user.must_change_password = False
 
         db.session.commit()
+        if password_change_requested:
+            bind_authenticated_session(current_user)
 
         if password_change_requested:
             return _redirect_configuration_message(
