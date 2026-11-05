@@ -1217,6 +1217,10 @@ def admin_mfa_setup():
     )
     if current_user.role != "administrativo":
         return "Acceso exclusivo para administradores.", 403
+    if current_app.config.get("IS_HOSTED") and not os.environ.get("SECRET_KEY"):
+        current_app.logger.error("MFA requires a persistent SECRET_KEY on hosted services")
+        return ("MFA no está disponible: el servidor necesita una SECRET_KEY permanente "
+                "para evitar perder los códigos al reiniciarse.", 503)
     record = begin_setup(current_user.id)
     if record.enabled_at:
         return redirect(url_for("auth.admin_mfa_verify") if
