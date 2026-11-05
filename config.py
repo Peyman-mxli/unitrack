@@ -19,6 +19,7 @@ Later, this file can hold:
 """
 
 import os
+from datetime import timedelta
 
 
 class Config:
@@ -28,6 +29,13 @@ class Config:
     A class is useful here because Flask can load all settings
     from one organized place.
     """
+
+    # Render's TLS termination is public even when UNITRACK_ENV was omitted.
+    IS_HOSTED = bool(
+        os.environ.get("RENDER_SERVICE_ID") or
+        os.environ.get("RENDER_EXTERNAL_HOSTNAME") or
+        os.environ.get("RENDER") == "true"
+    )
 
     # Base project folder path.
     BASE_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -65,7 +73,13 @@ class Config:
 
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
-    SESSION_COOKIE_SECURE = os.environ.get("UNITRACK_ENV", "").lower() == "production"
+    SESSION_COOKIE_SECURE = (os.environ.get("UNITRACK_ENV", "").lower() == "production" or IS_HOSTED)
+    REMEMBER_COOKIE_HTTPONLY = True
+    REMEMBER_COOKIE_SAMESITE = "Lax"
+    REMEMBER_COOKIE_SECURE = SESSION_COOKIE_SECURE
+    REMEMBER_COOKIE_DURATION = timedelta(days=7)
+    PERMANENT_SESSION_LIFETIME = timedelta(hours=12)
+    SESSION_REFRESH_EACH_REQUEST = False
 
     # Flask debug mode for development.
     DEBUG = os.environ.get("FLASK_DEBUG", "False").lower() == "true"
@@ -73,7 +87,11 @@ class Config:
     # ==========================================
     # APPLICATION BASE URL
     # ==========================================
-    APP_BASE_URL = os.environ.get("APP_BASE_URL", "http://127.0.0.1:5000")
+    APP_BASE_URL = (
+        os.environ.get("APP_BASE_URL")
+        or ("https://" + os.environ["RENDER_EXTERNAL_HOSTNAME"]
+            if os.environ.get("RENDER_EXTERNAL_HOSTNAME") else "http://127.0.0.1:5000")
+    )
 
     # ==========================================
     # EMAIL CONFIGURATION
