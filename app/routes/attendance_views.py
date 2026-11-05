@@ -159,6 +159,10 @@ def add_meeting(class_id):
     try:
         start = datetime.fromisoformat(str(request.form.get("starts_at") or ""))
         end = datetime.fromisoformat(str(request.form.get("ends_at") or ""))
+        # Browser datetime-local values are naive campus-local times. Reject
+        # offset-aware inputs before they reach comparisons with campus_now().
+        if start.tzinfo is not None or end.tzinfo is not None:
+            raise ValueError("Meeting times must use local campus time without an offset.")
         if end <= start:
             raise ValueError("End must follow start.")
         db.session.add(ClassMeeting(class_id=class_id, starts_at=start, ends_at=end))
