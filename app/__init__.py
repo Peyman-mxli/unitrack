@@ -799,6 +799,38 @@ def create_app():
             abort(403)
 
     @app.before_request
+    def require_valid_authentication_session():
+        """Revoke existing cookies after password changes and enforce temp passwords.
+
+        A missing binding (including a remember-me cookie from an old release)
+        must reauthenticate, never silently acquire a new valid binding.
+        """
+        if not current_user.is_authenticated:
+            return
+        if request.endpoint == "static":
+            return
+        from .utils.session_security import is_current_password_session
+        if not is_current_password_session(current_user):
+            logout_user()
+            session.pop("password_session_tag", None)
+            if request.is_json:
+                return jsonify({"success": False, "error": "Session expired. Sign in again."}), 401
+            return redirect(url_for("auth.login_page"))
+        if getattr(current_user, "must_change_password", False):
+            # The user may only change their temporary password or log out.
+            allowed = {
+                "auth.forced_password_change_page",
+                "auth.logout",
+                "auth.change_password",
+                "auth.me",
+                "static",
+            }
+            if request.endpoint not in allowed:
+                if request.is_json:
+                    return jsonify({"success": False, "error": "You must change your temporary password."}), 403
+                return redirect(url_for("auth.forced_password_change_page"))
+
+    @app.before_request
     def update_recent_user_activity():
         """Refresh active-user heartbeat at most once per 30 seconds."""
         if not current_user.is_authenticated or request.endpoint == "static":
