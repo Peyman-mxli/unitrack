@@ -980,6 +980,7 @@ def login_page():
 
     login_user(user, remember=remember_me)
     bind_authenticated_session(user)
+    session.pop("admin_mfa_verified", None)
     if not session.get("csrf_token"):
         session["csrf_token"] = secrets.token_urlsafe(32)
     update_last_login(user)
@@ -1205,6 +1206,71 @@ def forced_password_change_page():
     return redirect(get_safe_authenticated_redirect(current_user) or "/auth/login-page")
 
 
+@auth_bp.route("/admin-2fa/setup", methods=["GET", "POST"])
+@login_required
+def admin_mfa_setup():
+    """Enroll an administrator in authenticator-based two-factor security."""
+    from app.models.admin_mfa_model import AdminMFA
+    from app.services.admin_mfa_service import (
+        begin_setup, confirm_setup, decrypt_secret,
+        provisioning_uri, provisioning_image_data_uri,
+    )
+    if current_user.role != "administrativo":
+        return "Acceso exclusivo para administradores.", 403
+    record = begin_setup(current_user.id)
+    if record.enabled_at:
+        return redirect(url_for("auth.admin_mfa_verify") if
+                        session.get("admin_mfa_verified") is None
+                        else url_for("admin_views.admin_configuration"))
+
+    if request.method == "POST":
+        codes = confirm_setup(record, request.form.get("code", "").strip())
+        if codes:
+            from app.utils.session_security import password_session_tag
+            session["admin_mfa_verified"] = password_session_tag(current_user)
+            return render_template("auth_admin_mfa.html", mode="recovery", codes=codes)
+        return render_template("auth_admin_mfa.html", mode="setup",
+                               qr=provisioning_image_data_uri(provisioning_uri(
+                                   decrypt_secret(record.encrypted_secret), current_user.email
+                               )), secret=decrypt_secret(record.encrypted_secret),
+                               error="El código no coincide. Revisa la hora de tu teléfono."), 400
+
+    secret = decrypt_secret(record.encrypted_secret)
+    uri = provisioning_uri(secret, current_user.email)
+    return render_template(
+        "auth_admin_mfa.html", mode="setup", secret=secret,
+        qr=provisioning_image_data_uri(uri)
+    )
+
+
+@auth_bp.route("/admin-2fa/verify", methods=["GET", "POST"])
+@login_required
+def admin_mfa_verify():
+    """Require a fresh authenticator or single-use recovery code to enter admin."""
+    from app.models.admin_mfa_model import AdminMFA
+    from app.services.admin_mfa_service import authenticate_admin_factor
+    if current_user.role != "administrativo":
+        return "Acceso exclusivo para administradores.", 403
+    record = db.session.get(AdminMFA, current_user.id)
+    if not record or not record.enabled_at:
+        return redirect(url_for("auth.admin_mfa_setup"))
+    if request.method == "POST":
+        try:
+            accepted = authenticate_admin_factor(record, request.form.get("code", ""))
+        except Exception:
+            db.session.rollback()
+            current_app.logger.exception("Admin 2FA validation failed")
+            accepted = False
+        if accepted:
+            from app.utils.session_security import password_session_tag
+            session["admin_mfa_verified"] = password_session_tag(current_user)
+            return redirect(get_safe_authenticated_redirect(current_user) or
+                            "/admin/dashboard")
+        return render_template("auth_admin_mfa.html", mode="verify",
+                               error="Código inválido, caducado o ya utilizado."), 400
+    return render_template("auth_admin_mfa.html", mode="verify")
+
+
 @auth_bp.route("/login", methods=["POST"])
 def login():
     """
@@ -1231,6 +1297,7 @@ def login():
 
     login_user(user, remember=remember_me)
     bind_authenticated_session(user)
+    session.pop("admin_mfa_verified", None)
     if not session.get("csrf_token"):
         session["csrf_token"] = secrets.token_urlsafe(32)
     update_last_login(user)
