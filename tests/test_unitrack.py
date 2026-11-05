@@ -1908,6 +1908,37 @@ class UniTrackTests(unittest.TestCase):
         self.assertEqual(client.get("/attendance/classes").status_code, 403)
 
 
+    def test_meeting_rejects_offset_aware_times_without_crashing(self):
+        """Attendance stores naive campus-local times, so offsets are invalid."""
+        from app.models.academic_models import UniversityClass, ClassMeeting
+        client = self._signed_in_client("TeacherA")
+        page = client.get("/attendance/classes")
+        csrf = re.search(rb'name="csrf_token" value="([^"]+)"', page.data).group(1).decode()
+        created = client.post("/attendance/classes/create", data={
+            "code": "OFFSETGUARD101", "title": "Offset guard test", "csrf_token": csrf,
+        })
+        self.assertEqual(created.status_code, 302)
+        with self.app.app_context():
+            course = self.db.session.execute(
+                self.db.select(UniversityClass).where(
+                    UniversityClass.code == "OFFSETGUARD101"
+                )
+            ).scalar_one()
+            course_id = course.id
+        for start, end in (
+            ("2026-11-04T09:00:00-08:00", "2026-11-04T10:00:00-08:00"),
+            ("2026-11-04T09:00:00", "2026-11-04T10:00:00+00:00"),
+        ):
+            response = client.post(f"/attendance/classes/{course_id}/meeting", data={
+                "starts_at": start, "ends_at": end, "csrf_token": csrf,
+            })
+            self.assertEqual(response.status_code, 302)
+        with self.app.app_context():
+            meetings = self.db.session.execute(
+                self.db.select(ClassMeeting).where(ClassMeeting.class_id == course_id)
+            ).scalars().all()
+            self.assertEqual(meetings, [])
+
     def test_teacher_class_workflow_and_student_report(self):
         from app.models.academic_models import UniversityClass, ClassMeeting, ClassEnrollment
         from app.models.user_model import User
