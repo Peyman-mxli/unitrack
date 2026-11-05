@@ -38,6 +38,8 @@ from werkzeug.utils import secure_filename
 
 from app.database import db
 from app.services.profile_photo_service import save_profile_photo, delete_profile_photo
+from app.utils.password_policy import new_password_error
+from app.utils.session_security import bind_authenticated_session
 from app.models.user_model import User
 from app.models.access_log_model import AccessLog
 from app.models.academic_models import UniversityClass, ClassEnrollment, ClassMeeting, ClassAttendance
@@ -1438,15 +1440,16 @@ def admin_change_password_action(user_id):
         flash("User not found.", "error")
         return redirect("/admin/users")
 
-    new_password = str(request.form.get("new_password", "")).strip()
-    confirm_password = str(request.form.get("confirm_password", "")).strip()
+    new_password = request.form.get("new_password", "")
+    confirm_password = request.form.get("confirm_password", "")
 
     if not new_password:
         flash("New password is required.", "error")
         return redirect(f"/admin/users/{user_id}/change-password")
 
-    if len(new_password) < 8:
-        flash("Password must be at least 8 characters long.", "error")
+    policy_error = new_password_error(new_password, user)
+    if policy_error:
+        flash(policy_error, "error")
         return redirect(f"/admin/users/{user_id}/change-password")
 
     if new_password != confirm_password:
@@ -1907,9 +1910,9 @@ def admin_configuration():
         phone = str(request.form.get("phone", "")).strip()
         language = str(request.form.get("language", "en")).strip().lower()
 
-        current_password = str(request.form.get("current_password", "")).strip()
-        new_password = str(request.form.get("new_password", "")).strip()
-        confirm_password = str(request.form.get("confirm_password", "")).strip()
+        current_password = request.form.get("current_password", "")
+        new_password = request.form.get("new_password", "")
+        confirm_password = request.form.get("confirm_password", "")
 
         uploaded_profile_image = request.files.get("profile_image")
 
@@ -1955,8 +1958,9 @@ def admin_configuration():
                 flash("New password is required.", "error")
                 return _admin_configuration_redirect()
 
-            if len(new_password) < 8:
-                flash("New password must be at least 8 characters long.", "error")
+            policy_error = new_password_error(new_password, current_user)
+            if policy_error:
+                flash(policy_error, "error")
                 return _admin_configuration_redirect()
 
             if not confirm_password:
@@ -1999,6 +2003,8 @@ def admin_configuration():
             record_admin_action("update_admin_configuration", target=current_user)
             db.session.commit()
             session["language"] = language
+            if password_change_requested:
+                bind_authenticated_session(current_user)
 
             if password_change_requested:
                 flash("Admin configuration and password updated successfully.", "success")
