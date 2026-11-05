@@ -150,7 +150,9 @@ if ($createdFresh -and -not (Test-Path -LiteralPath (Join-Path $active "unitrack
 }
 if ($OpenVSCode) {
     if (Get-Command code -ErrorAction SilentlyContinue) {
-        & code --reuse-window $active
+        # Keep the invoking terminal alive while Flask runs; never replace
+        # the VS Code window that currently owns this PowerShell process.
+        & code --new-window $active
     } else {
         Write-Host "VS Code command not on PATH. Open the active project folder manually." -ForegroundColor Yellow
     }
