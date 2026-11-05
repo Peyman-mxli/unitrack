@@ -22,6 +22,8 @@ from werkzeug.utils import secure_filename
 
 from app.database import db
 from app.services.profile_photo_service import save_profile_photo, delete_profile_photo
+from app.utils.password_policy import new_password_error
+from app.utils.session_security import bind_authenticated_session
 from app.models.user_model import User
 
 # 🔥 USE GLOBAL ACCESS SYSTEM (same as staff)
@@ -410,10 +412,18 @@ def configuration_update():
 
             if new_password != confirm_password:
                 return _redirect_error("Passwords do not match")
+            error = new_password_error(new_password, current_user)
+            if error:
+                return _redirect_error(error)
+            if check_password_hash(current_user.password_hash, new_password):
+                return _redirect_error("New password must be different")
 
             current_user.password_hash = generate_password_hash(new_password)
+            current_user.must_change_password = False
 
         db.session.commit()
+        if any([current_password, new_password, confirm_password]):
+            bind_authenticated_session(current_user)
         return redirect(url_for("professor_views.configuration_page", success="Updated"))
 
     except Exception:
