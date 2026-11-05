@@ -13,6 +13,8 @@ from werkzeug.utils import secure_filename
 
 from app.database import db
 from app.services.profile_photo_service import save_profile_photo, delete_profile_photo
+from app.utils.password_policy import new_password_error
+from app.utils.session_security import bind_authenticated_session
 
 # 🔥 IMPORT GLOBAL ACCESS SYSTEM
 from app.services.access_log_service import (
@@ -478,9 +480,18 @@ def configuration_update():
                     )
                 )
 
+            policy_error = new_password_error(new_password, current_user)
+            if policy_error:
+                return redirect(url_for("personal_views.configuration_page", error=policy_error))
+            if check_password_hash(current_user.password_hash, new_password):
+                return redirect(url_for("personal_views.configuration_page",
+                                        error="New password must be different"))
             current_user.password_hash = generate_password_hash(new_password)
+            current_user.must_change_password = False
 
         db.session.commit()
+        if wants_password_change:
+            bind_authenticated_session(current_user)
 
         success_message = (
             "Configuración actualizada correctamente."
