@@ -42,6 +42,142 @@ class UniTrackTests(unittest.TestCase):
             cls.db.engine.dispose()
         cls.folder.cleanup()
 
+    def test_strong_new_password_policy_and_exact_hashing(self):
+        """New passwords have a policy, but existing legacy hashes still verify."""
+        from app.utils.password_policy import new_password_error
+        from app.utils.security import hash_password, verify_password
+        self.assertIsNotNone(new_password_error("short"))
+        self.assertIsNotNone(new_password_error("password123456789"))
+        good = "a strong unique passphrase with spaces!"
+        self.assertIsNone(new_password_error(good))
+        exact = " " + good + " "
+        stored = hash_password(exact)
+        self.assertTrue(stored.startswith("scrypt:"))
+        self.assertTrue(verify_password(stored, exact))
+        self.assertFalse(verify_password(stored, good))
+        self.assertFalse(verify_password(stored, exact.strip()))
+
+        client = self.app.test_client()
+        client.environ_base["REMOTE_ADDR"] = "192.0.2.91"
+        rejected = client.post("/auth/register", json={
+            "first_name": "Security", "last_name": "Check", "username": "SecurityTest",
+            "email": "security@example.test", "phone": "6861234567",
+            "password": "short", "role": "estudiante",
+            "validation_code": "invalid"
+        })
+        self.assertEqual(rejected.status_code, 400)
+        self.assertIn("15", rejected.get_json()["error"])
+
+    def test_required_password_change_prevents_dashboard_until_changed(self):
+        """A temporary admin-assigned password cannot unlock normal pages."""
+        from app.models.user_model import User
+        from werkzeug.security import check_password_hash
+        with self.app.app_context():
+            account = self.db.session.execute(self.db.select(User).where(User.username=="StudentA")).scalar_one()
+            original_hash = account.password_hash
+            account.must_change_password = True
+            self.db.session.commit()
+        try:
+            student = self._signed_in_client("StudentA")
+            denied = student.get("/student/dashboard")
+            self.assertEqual(denied.status_code, 302)
+            self.assertIn("/auth/change-password-page", denied.headers["Location"])
+            page = student.get("/auth/change-password-page")
+            self.assertEqual(page.status_code, 200)
+            csrf = re.search(rb'name="csrf_token" value="([^"]+)"', page.data).group(1).decode()
+            form = {
+                "csrf_token": csrf,
+                "current_password": "TestingPassword123!",
+                "new_password": "An especially unique password phrase 2026!",
+                "confirm_password": "An especially unique password phrase 2026!",
+            }
+            short = student.post("/auth/change-password-page", data={
+                **form, "new_password": "short", "confirm_password": "short"
+            })
+            self.assertEqual(short.status_code, 400)
+            result = student.post("/auth/change-password-page", data=form)
+            self.assertEqual(result.status_code, 302)
+            self.assertIn("/student/dashboard", result.headers["Location"])
+            self.assertEqual(student.get("/student/dashboard").status_code, 200)
+            with self.app.app_context():
+                account = self.db.session.execute(self.db.select(User).where(User.username=="StudentA")).scalar_one()
+                self.assertFalse(account.must_change_password)
+                self.assertTrue(check_password_hash(account.password_hash, form["new_password"]))
+        finally:
+            with self.app.app_context():
+                account = self.db.session.execute(self.db.select(User).where(User.username=="StudentA")).scalar_one()
+                account.password_hash = original_hash
+                account.must_change_password = False
+                self.db.session.commit()
+
+    def test_password_change_revokes_other_sessions_and_json_requires_csrf(self):
+        """Old sessions fail after reset; authenticated JSON mutations need CSRF."""
+        from app.models.user_model import User
+        with self.app.app_context():
+            account = self.db.session.execute(self.db.select(User).where(User.username=="StudentA")).scalar_one()
+            original_hash = account.password_hash
+        try:
+            first = self._signed_in_client("StudentA")
+            other = self._signed_in_client("StudentA")
+            token = first.get("/auth/me").get_json()["csrf_token"]
+            payload = {
+                "current_password": "TestingPassword123!",
+                "new_password": "Securely updated password phrase 2026!"
+            }
+            no_token = first.post("/auth/change-password", json=payload)
+            self.assertEqual(no_token.status_code, 400)
+            wrong_origin = first.post("/auth/change-password", json=payload, headers={
+                "Origin": "https://untrusted.example", "X-CSRF-Token": token
+            })
+            self.assertEqual(wrong_origin.status_code, 403)
+            changed = first.post("/auth/change-password", json=payload, headers={
+                "X-CSRF-Token": token
+            })
+            self.assertEqual(changed.status_code, 200)
+            self.assertEqual(first.get("/student/dashboard").status_code, 200)
+            kicked = other.get("/student/dashboard")
+            self.assertEqual(kicked.status_code, 302)
+            self.assertIn("/auth/login-page", kicked.headers["Location"])
+        finally:
+            with self.app.app_context():
+                account = self.db.session.execute(self.db.select(User).where(User.username=="StudentA")).scalar_one()
+                account.password_hash = original_hash
+                account.must_change_password = False
+                self.db.session.commit()
+
+    def test_login_and_password_recovery_do_not_reveal_account_existence(self):
+        """Error feedback may not identify which email addresses have accounts."""
+        from unittest.mock import patch
+        client = self.app.test_client()
+        client.environ_base["REMOTE_ADDR"] = "192.0.2.92"
+        first = client.get("/auth/login-page")
+        token = re.search(rb'name="csrf_token" value="([^"]+)"', first.data).group(1).decode()
+        nonexistent = client.post("/auth/login-page", data={
+            "login": "nosuchuser@example.test", "password": "bad",
+            "csrf_token": token
+        })
+        exists = client.post("/auth/login-page", data={
+            "login": "StudentA", "password": "bad", "csrf_token": token
+        })
+        self.assertEqual(nonexistent.status_code, 200)
+        self.assertEqual(exists.status_code, 200)
+        self.assertIn(b"Invalid login credentials", nonexistent.data)
+        self.assertIn(b"Invalid login credentials", exists.data)
+
+        with patch("app.routes.auth_routes.send_password_reset_email", return_value=None):
+            matches = client.post("/auth/forgot-password", data={
+                "email": "studenta@example.test", "phone": "0000000000",
+                "csrf_token": token
+            })
+            absent = client.post("/auth/forgot-password", data={
+                "email": "notregistered@example.test", "phone": "0000000000",
+                "csrf_token": token
+            })
+        self.assertEqual(matches.status_code, 200)
+        self.assertEqual(absent.status_code, 200)
+        self.assertIn("Si los datos coinciden".encode(), matches.data)
+        self.assertIn("Si los datos coinciden".encode(), absent.data)
+
     def test_database_health_creates_verified_backup_without_changing_rows(self):
         """Audit the isolated test database and verify a complete private snapshot."""
         from pathlib import Path
