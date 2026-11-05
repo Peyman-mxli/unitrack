@@ -1,0 +1,56 @@
+name: UniTrack security audit
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "17 12 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dependencies:
+    name: Python dependency vulnerability audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install pip-audit
+        run: python -m pip install --upgrade pip-audit
+      - name: Check pinned direct and transitive dependencies
+        run: python -m pip_audit -r requirements.txt --progress-spinner off
+
+  sensitive-files:
+    name: Block committed database and secret files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inspect Git index without reading secret values
+        shell: bash
+        run: |
+          python - <<'PY'
+          import subprocess
+          files = subprocess.check_output(['git', 'ls-files', '-z']).decode().split('\0')
+          forbidden = []
+          for path in files:
+              if not path:
+                  continue
+              leaf = path.rsplit('/', 1)[-1].lower()
+              folders = ('private_uploads/', 'app/static/uploads/',
+                         'app/static/img/profiles/', 'app/routes/static/uploads/')
+              if path.startswith(folders) or leaf in (
+                  '.env', '.env.local', '.unitrack-secret', 'unitrack.db'
+              ) or leaf.endswith(('.sqlite', '.sqlite3', '.db-wal', '.db-shm',
+                                  '.p12', '.pfx', '.pem', '.key')):
+                  forbidden.append(path)
+          if forbidden:
+              raise SystemExit('Sensitive files tracked in Git: ' + ', '.join(forbidden))
+          print('No credentials, SQLite files, or private user uploads are tracked.')
+          PY
