@@ -34,6 +34,7 @@ Later we can still upgrade this service with:
 """
 
 import smtplib
+import ssl
 from email.message import EmailMessage
 
 from flask import current_app
@@ -88,6 +89,8 @@ def send_email(to_email, subject, body):
 
     if not mail_default_sender:
         raise ValueError("MAIL_DEFAULT_SENDER is not configured")
+    if not (mail_use_ssl or mail_use_tls):
+        raise ValueError("Refusing to transmit SMTP credentials without TLS")
 
     message = EmailMessage()
     message["Subject"] = subject
@@ -96,16 +99,17 @@ def send_email(to_email, subject, body):
     message.set_content(body)
 
     if mail_use_ssl:
-        with smtplib.SMTP_SSL(mail_server, mail_port) as server:
+        with smtplib.SMTP_SSL(mail_server, mail_port, timeout=10,
+                              context=ssl.create_default_context()) as server:
             server.login(mail_username, mail_password)
             server.send_message(message)
         return True
 
-    with smtplib.SMTP(mail_server, mail_port) as server:
+    with smtplib.SMTP(mail_server, mail_port, timeout=10) as server:
         server.ehlo()
 
         if mail_use_tls:
-            server.starttls()
+            server.starttls(context=ssl.create_default_context())
             server.ehlo()
 
         server.login(mail_username, mail_password)
@@ -163,4 +167,35 @@ Universidad Politécnica
         to_email=user.email,
         subject=subject,
         body=body
+    )
+
+def send_login_lock_alert(user, token):
+    """Send one single-use approval URL to the affected account email."""
+    from urllib.parse import quote
+    from app.services.account_security_service import LOGIN_LOCK_MINUTES, EMAIL_UNLOCK_MINUTES
+    approval_url = f"{get_app_base_url()}/auth/unlock-login?token={quote(token, safe='')}"
+    body = (
+        f"Hola {user.first_name},\n\n"
+        f"Se detectaron cinco contraseñas incorrectas para tu cuenta UniTrack.\n"
+        f"Por seguridad, se bloqueó el acceso durante {LOGIN_LOCK_MINUTES} minutos.\n\n"
+        "Si fuiste tú, abre el siguiente enlace y confirma en la página "
+        "para desbloquear e intentar hasta cinco veces más:\n"
+        f"{approval_url}\n\n"
+        f"El enlace caduca en un máximo de {EMAIL_UNLOCK_MINUTES} minutos y "
+        "solo funciona mientras el bloqueo esté activo.\n"
+        "Si NO fuiste tú, NO apruebes. Recupera tu contraseña y avisa al administrador.\n"
+        "Nunca compartas este enlace. UniTrack jamás pide tu contraseña por correo."
+    )
+    return send_email(user.email, "Alerta de seguridad: intentos fallidos en UniTrack", body)
+
+
+def send_password_changed_alert(user):
+    """Notify without ever emailing a password."""
+    return send_email(
+        user.email,
+        "UniTrack: se cambió tu contraseña",
+        "La contraseña de tu cuenta UniTrack ha cambiado.\n\n"
+        "Si fuiste tú, no necesitas hacer nada. Si no autorizaste el cambio, "
+        "recupera tu cuenta de inmediato y contacta con el administrador.\n"
+        "UniTrack nunca pide contraseñas ni códigos de verificación por correo."
     )

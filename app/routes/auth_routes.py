@@ -41,13 +41,19 @@ from app.services.validation_code_service import (
     validate_code_for_use,
     mark_validation_code_as_used
 )
-from app.services.email_service import send_password_reset_email
+from app.services.email_service import (send_password_reset_email, send_login_lock_alert,
+                                        send_password_changed_alert)
 from app.services.password_reset_service import (
     verify_password_reset_token,
     generate_password_reset_token
 )
 from app.utils.security import hash_password, verify_password
 from app.utils.password_policy import new_password_error
+from app.services.account_security_service import (
+    password_reuse_error, set_new_password, is_login_locked,
+    record_failed_login, clear_failed_logins,
+    verify_email_unlock_token, approve_email_unlock,
+)
 from app.utils.session_security import bind_authenticated_session
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
@@ -90,9 +96,19 @@ def authenticate_user(login_value, password):
     if not user.is_active_user:
         return None, "Invalid login credentials"
 
-    if not verify_password(user.password_hash, password):
+    if is_login_locked(user):
         return None, "Invalid login credentials"
 
+    if not verify_password(user.password_hash, password):
+        approval_token = record_failed_login(user)
+        if approval_token:
+            try:
+                send_login_lock_alert(user, approval_token)
+            except Exception:
+                current_app.logger.exception("Login lock alert could not be delivered")
+        return None, "Invalid login credentials"
+
+    clear_failed_logins(user)
     return user, None
 
 
@@ -245,6 +261,14 @@ def save_language_from_request():
 
     session["language"] = language
     return language
+
+
+def _notify_password_changed(user):
+    """A mail failure must never roll back an already successful password change."""
+    try:
+        send_password_changed_alert(user)
+    except Exception:
+        current_app.logger.exception("Password change security email could not be delivered")
 
 
 def get_login_text(language):
@@ -1132,7 +1156,7 @@ def reset_password_page():
             )
         )
 
-    password_error = new_password_error(password, user)
+    password_error = new_password_error(password, user) or password_reuse_error(user, password)
     if password_error:
         return render_template(
             "auth_reset_password.html",
@@ -1140,10 +1164,9 @@ def reset_password_page():
         ), 400
 
     try:
-        user.password_hash = hash_password(password)
-        user.must_change_password = False
-
+        set_new_password(user, password)
         db.session.commit()
+        _notify_password_changed(user)
 
         language = get_current_language()
 
@@ -1188,15 +1211,15 @@ def forced_password_change_page():
     elif verify_password(current_user.password_hash, new_password):
         error = "La contraseña nueva debe ser distinta de la actual."
     else:
-        error = new_password_error(new_password, current_user)
+        error = new_password_error(new_password, current_user) or password_reuse_error(current_user, new_password)
     if error:
         return render_template("auth_force_password_change.html", error=error), 400
 
     try:
-        current_user.password_hash = hash_password(new_password)
-        current_user.must_change_password = False
+        set_new_password(current_user, new_password)
         db.session.commit()
         bind_authenticated_session(current_user)
+        _notify_password_changed(current_user)
         session.pop("csrf_token", None)
     except Exception:
         db.session.rollback()
@@ -1273,6 +1296,22 @@ def admin_mfa_verify():
         return render_template("auth_admin_mfa.html", mode="verify",
                                error="Código inválido, caducado o ya utilizado."), 400
     return render_template("auth_admin_mfa.html", mode="verify")
+
+
+@auth_bp.route("/unlock-login", methods=["GET", "POST"])
+def unlock_login():
+    """Email scanners cannot unlock via GET. POST requires session CSRF."""
+    token = (request.args if request.method == "GET" else request.form).get("token", "")
+    if request.method == "GET":
+        valid = verify_email_unlock_token(token)
+        return render_template(
+            "auth_unlock_login.html", valid=valid, token=token if valid else "",
+            success=False,
+        )
+    accepted = approve_email_unlock(token)
+    return render_template(
+        "auth_unlock_login.html", valid=False, token="", success=accepted
+    ), (200 if accepted else 400)
 
 
 @auth_bp.route("/login", methods=["POST"])
@@ -1405,16 +1444,15 @@ def change_password():
             "error": "Current password is incorrect"
         }), 401
 
-    password_error = new_password_error(new_password, current_user)
+    password_error = new_password_error(new_password, current_user) or password_reuse_error(current_user, new_password)
     if password_error:
         return jsonify({"success": False, "error": password_error}), 400
 
     try:
-        current_user.password_hash = hash_password(new_password)
-        current_user.must_change_password = False
-
+        set_new_password(current_user, new_password)
         db.session.commit()
         bind_authenticated_session(current_user)
+        _notify_password_changed(current_user)
 
         return jsonify({
             "success": True,

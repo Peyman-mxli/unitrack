@@ -39,8 +39,12 @@ from werkzeug.utils import secure_filename
 from app.database import db
 from app.services.profile_photo_service import save_profile_photo, delete_profile_photo
 from app.utils.password_policy import new_password_error
+from app.services.account_security_service import set_new_password, password_reuse_error
+from app.services.email_service import send_password_changed_alert
 from app.utils.session_security import bind_authenticated_session
 from app.models.user_model import User
+from app.models.password_history_model import PasswordHistory
+from app.models.login_security_model import LoginSecurityState
 from app.models.access_log_model import AccessLog
 from app.models.academic_models import UniversityClass, ClassEnrollment, ClassMeeting, ClassAttendance
 from app.models.admin_audit_model import AdminAuditLog
@@ -175,18 +179,8 @@ def get_user_by_id_for_admin(user_id):
 
 
 def set_user_password_safely(user, new_password):
-    """
-    Update a user password safely across possible model implementations.
-    """
-    if hasattr(user, "set_password") and callable(getattr(user, "set_password")):
-        user.set_password(new_password)
-        return
-
-    if hasattr(user, "password_hash"):
-        user.password_hash = generate_password_hash(new_password)
-        return
-
-    raise AttributeError("User model does not support password updates.")
+    """All administrator-initiated changes participate in password history."""
+    set_new_password(user, new_password)
 
 
 def verify_user_password_safely(user, current_password):
@@ -1447,7 +1441,7 @@ def admin_change_password_action(user_id):
         flash("New password is required.", "error")
         return redirect(f"/admin/users/{user_id}/change-password")
 
-    policy_error = new_password_error(new_password, user)
+    policy_error = new_password_error(new_password, user) or password_reuse_error(user, new_password)
     if policy_error:
         flash(policy_error, "error")
         return redirect(f"/admin/users/{user_id}/change-password")
@@ -1464,6 +1458,10 @@ def admin_change_password_action(user_id):
 
         record_admin_action("reset_password", target=user)
         db.session.commit()
+        try:
+            send_password_changed_alert(user)
+        except Exception:
+            current_app.logger.exception("Admin password reset security email could not be delivered")
         flash("User password updated successfully.", "success")
     except Exception:
         db.session.rollback()
@@ -1657,6 +1655,8 @@ def admin_delete_user_action(user_id):
         # deleting an account that has no permanent attendance/audit history.
         db.session.execute(db.delete(ScanToken).where(ScanToken.user_id == user.id))
         db.session.execute(db.delete(UserPresence).where(UserPresence.user_id == user.id))
+        db.session.execute(db.delete(PasswordHistory).where(PasswordHistory.user_id == user.id))
+        db.session.execute(db.delete(LoginSecurityState).where(LoginSecurityState.user_id == user.id))
         db.session.delete(user)
         db.session.commit()
         flash(f"User deleted successfully: {deleted_user_name}", "success")
@@ -1958,7 +1958,7 @@ def admin_configuration():
                 flash("New password is required.", "error")
                 return _admin_configuration_redirect()
 
-            policy_error = new_password_error(new_password, current_user)
+            policy_error = new_password_error(new_password, current_user) or password_reuse_error(current_user, new_password)
             if policy_error:
                 flash(policy_error, "error")
                 return _admin_configuration_redirect()
@@ -2005,6 +2005,10 @@ def admin_configuration():
             session["language"] = language
             if password_change_requested:
                 bind_authenticated_session(current_user)
+                try:
+                    send_password_changed_alert(current_user)
+                except Exception:
+                    current_app.logger.exception("Admin password change security email could not be delivered")
 
             if password_change_requested:
                 flash("Admin configuration and password updated successfully.", "success")

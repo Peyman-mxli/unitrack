@@ -256,6 +256,136 @@ class UniTrackTests(unittest.TestCase):
         self.assertIn("Si los datos coinciden".encode(), matches.data)
         self.assertIn("Si los datos coinciden".encode(), absent.data)
 
+    def test_five_failures_email_approval_and_five_fresh_attempts(self):
+        """Five bad guesses lock across aliases; GET cannot consume approval."""
+        from unittest.mock import patch
+        from app.models.user_model import User
+        from app.models.login_security_model import LoginSecurityState
+        from urllib.parse import quote
+        client = self.app.test_client()
+        client.environ_base["REMOTE_ADDR"] = "192.0.2.215"
+        with self.app.app_context():
+            user = self.db.session.execute(
+                self.db.select(User).where(User.username == "StudentA")
+            ).scalar_one()
+            user_id = user.id
+            self.db.session.execute(
+                self.db.delete(LoginSecurityState).where(LoginSecurityState.user_id == user_id)
+            )
+            self.db.session.commit()
+        try:
+            with patch("app.routes.auth_routes.send_login_lock_alert") as alert:
+                for attempt in range(5):
+                    response = client.post("/auth/login", json={
+                        "login": "StudentA" if attempt % 2 else "studenta@example.test",
+                        "password": "wrong-password",
+                    })
+                    self.assertEqual(response.status_code, 401)
+                    self.assertEqual(response.get_json()["error"], "Invalid login credentials")
+                self.assertEqual(alert.call_count, 1)
+                token = alert.call_args.args[1]
+
+                correct_but_locked = client.post("/auth/login", json={
+                    "login": "StudentA", "password": "TestingPassword123!"
+                })
+                self.assertEqual(correct_but_locked.status_code, 401)
+                approval_page = client.get("/auth/unlock-login?token=" + quote(token))
+                self.assertEqual(approval_page.status_code, 200)
+                self.assertIn(b"Desbloquear cuenta", approval_page.data)
+                csrf = re.search(
+                    rb'name="csrf_token" value="([^"]+)"', approval_page.data
+                ).group(1).decode()
+
+                # Link scanners and cross-site POSTs cannot approve unlock.
+                self.assertEqual(
+                    client.post("/auth/unlock-login", data={"token": token}).status_code, 400
+                )
+                approved = client.post("/auth/unlock-login", data={
+                    "token": token, "csrf_token": csrf
+                })
+                self.assertEqual(approved.status_code, 200)
+                self.assertEqual(
+                    client.post("/auth/unlock-login", data={
+                        "token": token, "csrf_token": csrf
+                    }).status_code, 400
+                )
+
+                # Approval grants a fresh five guesses; no automatic sign-in.
+                for attempt in range(5):
+                    response = client.post("/auth/login", json={
+                        "login": "StudentA", "password": "wrong-password"
+                    })
+                    self.assertEqual(response.status_code, 401)
+                self.assertEqual(alert.call_count, 2)
+                self.assertEqual(client.post("/auth/login", json={
+                    "login": "StudentA", "password": "TestingPassword123!"
+                }).status_code, 401)
+                with self.app.app_context():
+                    state = self.db.session.get(LoginSecurityState, user_id)
+                    self.assertEqual(state.failed_attempts, 5)
+                    self.assertIsNotNone(state.locked_until)
+        finally:
+            with self.app.app_context():
+                self.db.session.execute(self.db.delete(LoginSecurityState).where(
+                    LoginSecurityState.user_id == user_id
+                ))
+                self.db.session.commit()
+
+    def test_password_history_rejects_previous_passwords_after_multiple_changes(self):
+        """An account cannot revert to an earlier password, even via JSON API."""
+        from unittest.mock import patch
+        from app.models.user_model import User
+        from app.models.password_history_model import PasswordHistory
+        with self.app.app_context():
+            user = self.db.session.execute(
+                self.db.select(User).where(User.username == "StudentA")
+            ).scalar_one()
+            original_hash = user.password_hash
+            user_id = user.id
+        candidate_a = "Account history example phrase number A 2026!"
+        candidate_b = "Account history example phrase number B 2026!"
+        try:
+            client = self._signed_in_client("StudentA")
+            csrf = client.get("/auth/me").get_json()["csrf_token"]
+            def change(new_password, old_password):
+                return client.post("/auth/change-password", json={
+                    "current_password": old_password, "new_password": new_password
+                }, headers={"X-CSRF-Token": csrf})
+            with patch("app.routes.auth_routes.send_password_changed_alert"):
+                self.assertEqual(change(candidate_a, "TestingPassword123!").status_code, 200)
+                self.assertEqual(change(candidate_b, candidate_a).status_code, 200)
+                first_reuse = change(candidate_a, candidate_b)
+                self.assertEqual(first_reuse.status_code, 400)
+                self.assertIn("anterior", first_reuse.get_json()["error"])
+                older_reuse = change("TestingPassword123!", candidate_b)
+                self.assertEqual(older_reuse.status_code, 400)
+                self.assertIn("anterior", older_reuse.get_json()["error"])
+        finally:
+            with self.app.app_context():
+                user = self.db.session.get(User, user_id)
+                user.password_hash = original_hash
+                self.db.session.execute(self.db.delete(PasswordHistory).where(
+                    PasswordHistory.user_id == user_id
+                ))
+                self.db.session.commit()
+
+    def test_email_never_sends_credentials_without_tls(self):
+        from unittest.mock import patch
+        from app.services.email_service import send_email
+        with self.app.app_context():
+            with patch.dict(self.app.config, {
+                "MAIL_USERNAME": "sender@example.test",
+                "MAIL_PASSWORD": "test-only-password",
+                "MAIL_DEFAULT_SENDER": "sender@example.test",
+                "MAIL_SERVER": "smtp.example.test",
+                "MAIL_USE_TLS": False,
+                "MAIL_USE_SSL": False,
+            }):
+                with patch("smtplib.SMTP") as smtp:
+                    with self.assertRaisesRegex(ValueError, "without TLS"):
+                        send_email("recipient@example.test", "Test", "Message")
+                    smtp.assert_not_called()
+
     def test_database_health_creates_verified_backup_without_changing_rows(self):
         """Audit the isolated test database and verify a complete private snapshot."""
         from pathlib import Path
@@ -2037,6 +2167,45 @@ class UniTrackTests(unittest.TestCase):
         self.assertEqual(response.status_code, 302)
         with self.app.app_context():
             self.assertTrue(self.db.session.get(User, user_id).is_active_user)
+
+    def test_account_security_records_are_cleaned_on_allowed_user_deletion(self):
+        """The new security rows must not prevent authorized account deletion."""
+        from app.models.user_model import User
+        from app.models.password_history_model import PasswordHistory
+        from app.models.login_security_model import LoginSecurityState
+        from werkzeug.security import generate_password_hash
+        with self.app.app_context():
+            user = User(
+                username="DeleteSecurityTest", email="deletesecurity@example.test",
+                first_name="Delete", last_name="Security",
+                phone="0000000000", role="estudiante", language="es",
+                password_hash=generate_password_hash("TestingPassword123!"),
+                is_active_user=True,
+            )
+            self.db.session.add(user)
+            self.db.session.flush()
+            user_id = user.id
+            self.db.session.add(PasswordHistory(
+                user_id=user_id, password_hash=generate_password_hash("History phrase 2026!")
+            ))
+            self.db.session.add(LoginSecurityState(user_id=user_id, failed_attempts=2))
+            self.db.session.commit()
+        admin = self._signed_in_client("Admin")
+        page = admin.get(f"/admin/users/{user_id}/delete")
+        self.assertEqual(page.status_code, 200)
+        csrf = re.search(rb'name="csrf_token" value="([^"]+)"', page.data).group(1).decode()
+        response = admin.post(f"/admin/users/{user_id}/delete", data={
+            "csrf_token": csrf, "confirmation_text": "DELETE"
+        })
+        self.assertEqual(response.status_code, 302)
+        with self.app.app_context():
+            self.assertIsNone(self.db.session.get(User, user_id))
+            self.assertIsNone(self.db.session.get(LoginSecurityState, user_id))
+            self.assertEqual(self.db.session.execute(
+                self.db.select(self.db.func.count(PasswordHistory.id)).where(
+                    PasswordHistory.user_id == user_id
+                )
+            ).scalar_one(), 0)
 
     def test_attendance_history_blocks_permanent_user_deletion(self):
         from app.models.user_model import User

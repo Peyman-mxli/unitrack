@@ -215,6 +215,46 @@ Peyman Miyandashti
 
 
 
+## 🔒 Password history and login incident response (November 2026)
+
+UniTrack now has a shared password update service for browser and API
+password changes, administrator resets, forced password changes, role profile
+settings, and the maintenance reset script.
+
+- Passwords are hashed with scrypt. Old passwords are stored only as
+  non-reversible hashes in the new password-history table.
+- An account cannot use its current password or reuse a password previously
+  changed **after this feature was installed**. Older password history is not
+  recoverable. Passwords are not compared across different people's accounts.
+- Five consecutive incorrect passwords lock the affected **account** for five
+  minutes, regardless of attacker IP or email/username alias. A successful
+  login resets the failure count. The existing IP-based request limit remains.
+- On reaching the fifth failure, UniTrack attempts to email the account owner
+  an alert and a cryptographically random, one-use unlock link. The link
+  requires an explicit confirmation page and CSRF-protected POST; merely
+  opening the email link cannot approve it. It is only usable during the
+  active lockout (at most five minutes); an unconfirmed link is harmless.
+  Approval clears the lock and permits five new login attempts. It does NOT
+  log the user in or change their password.
+- Successful password changes also trigger a security notification email.
+  If SMTP fails or isn't configured, the lockout/password update still applies,
+  and a private server log records the mail failure.
+- Configure MAIL_USERNAME, MAIL_PASSWORD (a newly generated app-specific
+  password), MAIL_DEFAULT_SENDER, and correct APP_BASE_URL through private
+  environment settings. Never commit these credentials. A localhost URL in
+  emails works only when opened on the computer running UniTrack.
+- Admins should use 2FA, and system operators must verify SMTP delivery,
+  anti-spam handling, and database persistence in the real deployment.
+- These changes create new tables without deleting existing accounts.
+  Make a verified database backup before upgrading. GitHub syncs **code**;
+  each laptop's old account records and password history remain local unless
+  a separate private persistent database is configured.
+
+Fixed-duration account lockouts can be abused for denial-of-service; the
+five-minute period is a deliberate requested policy, not a universal
+security standard. Consider adaptive throttling and operational monitoring
+for production deployments.
+
 ## 🔐 Operations and release safety
 
 > UniTrack is under active development. Do not treat a successful local demo as certified physical access control.
