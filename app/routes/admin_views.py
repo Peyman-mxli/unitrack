@@ -43,6 +43,8 @@ from app.services.account_security_service import set_new_password, password_reu
 from app.services.email_service import send_password_changed_alert
 from app.utils.session_security import bind_authenticated_session
 from app.models.user_model import User
+from app.models.password_history_model import PasswordHistory
+from app.models.login_security_model import LoginSecurityState
 from app.models.access_log_model import AccessLog
 from app.models.academic_models import UniversityClass, ClassEnrollment, ClassMeeting, ClassAttendance
 from app.models.admin_audit_model import AdminAuditLog
@@ -1653,6 +1655,8 @@ def admin_delete_user_action(user_id):
         # deleting an account that has no permanent attendance/audit history.
         db.session.execute(db.delete(ScanToken).where(ScanToken.user_id == user.id))
         db.session.execute(db.delete(UserPresence).where(UserPresence.user_id == user.id))
+        db.session.execute(db.delete(PasswordHistory).where(PasswordHistory.user_id == user.id))
+        db.session.execute(db.delete(LoginSecurityState).where(LoginSecurityState.user_id == user.id))
         db.session.delete(user)
         db.session.commit()
         flash(f"User deleted successfully: {deleted_user_name}", "success")

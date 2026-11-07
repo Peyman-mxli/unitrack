@@ -2151,6 +2151,45 @@ class UniTrackTests(unittest.TestCase):
         with self.app.app_context():
             self.assertTrue(self.db.session.get(User, user_id).is_active_user)
 
+    def test_account_security_records_are_cleaned_on_allowed_user_deletion(self):
+        """The new security rows must not prevent authorized account deletion."""
+        from app.models.user_model import User
+        from app.models.password_history_model import PasswordHistory
+        from app.models.login_security_model import LoginSecurityState
+        from werkzeug.security import generate_password_hash
+        with self.app.app_context():
+            user = User(
+                username="DeleteSecurityTest", email="deletesecurity@example.test",
+                first_name="Delete", last_name="Security",
+                phone="0000000000", role="estudiante", language="es",
+                password_hash=generate_password_hash("TestingPassword123!"),
+                is_active_user=True,
+            )
+            self.db.session.add(user)
+            self.db.session.flush()
+            user_id = user.id
+            self.db.session.add(PasswordHistory(
+                user_id=user_id, password_hash=generate_password_hash("History phrase 2026!")
+            ))
+            self.db.session.add(LoginSecurityState(user_id=user_id, failed_attempts=2))
+            self.db.session.commit()
+        admin = self._signed_in_client("Admin")
+        page = admin.get(f"/admin/users/{user_id}/delete")
+        self.assertEqual(page.status_code, 200)
+        csrf = re.search(rb'name="csrf_token" value="([^"]+)"', page.data).group(1).decode()
+        response = admin.post(f"/admin/users/{user_id}/delete", data={
+            "csrf_token": csrf, "confirmation_text": "DELETE"
+        })
+        self.assertEqual(response.status_code, 302)
+        with self.app.app_context():
+            self.assertIsNone(self.db.session.get(User, user_id))
+            self.assertIsNone(self.db.session.get(LoginSecurityState, user_id))
+            self.assertEqual(self.db.session.execute(
+                self.db.select(self.db.func.count(PasswordHistory.id)).where(
+                    PasswordHistory.user_id == user_id
+                )
+            ).scalar_one(), 0)
+
     def test_attendance_history_blocks_permanent_user_deletion(self):
         from app.models.user_model import User
         from app.models.access_log_model import AccessLog
