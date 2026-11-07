@@ -34,6 +34,7 @@ Later we can still upgrade this service with:
 """
 
 import smtplib
+import ssl
 from email.message import EmailMessage
 
 from flask import current_app
@@ -88,6 +89,8 @@ def send_email(to_email, subject, body):
 
     if not mail_default_sender:
         raise ValueError("MAIL_DEFAULT_SENDER is not configured")
+    if not (mail_use_ssl or mail_use_tls):
+        raise ValueError("Refusing to transmit SMTP credentials without TLS")
 
     message = EmailMessage()
     message["Subject"] = subject
@@ -96,7 +99,8 @@ def send_email(to_email, subject, body):
     message.set_content(body)
 
     if mail_use_ssl:
-        with smtplib.SMTP_SSL(mail_server, mail_port, timeout=10) as server:
+        with smtplib.SMTP_SSL(mail_server, mail_port, timeout=10,
+                              context=ssl.create_default_context()) as server:
             server.login(mail_username, mail_password)
             server.send_message(message)
         return True
@@ -105,7 +109,7 @@ def send_email(to_email, subject, body):
         server.ehlo()
 
         if mail_use_tls:
-            server.starttls()
+            server.starttls(context=ssl.create_default_context())
             server.ehlo()
 
         server.login(mail_username, mail_password)

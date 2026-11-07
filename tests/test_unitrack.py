@@ -369,6 +369,23 @@ class UniTrackTests(unittest.TestCase):
                 ))
                 self.db.session.commit()
 
+    def test_email_never_sends_credentials_without_tls(self):
+        from unittest.mock import patch
+        from app.services.email_service import send_email
+        with self.app.app_context():
+            with patch.dict(self.app.config, {
+                "MAIL_USERNAME": "sender@example.test",
+                "MAIL_PASSWORD": "test-only-password",
+                "MAIL_DEFAULT_SENDER": "sender@example.test",
+                "MAIL_SERVER": "smtp.example.test",
+                "MAIL_USE_TLS": False,
+                "MAIL_USE_SSL": False,
+            }):
+                with patch("smtplib.SMTP") as smtp:
+                    with self.assertRaisesRegex(ValueError, "without TLS"):
+                        send_email("recipient@example.test", "Test", "Message")
+                    smtp.assert_not_called()
+
     def test_database_health_creates_verified_backup_without_changing_rows(self):
         """Audit the isolated test database and verify a complete private snapshot."""
         from pathlib import Path
