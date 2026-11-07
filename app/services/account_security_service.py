@@ -68,7 +68,7 @@ def record_failed_login(user, now=None):
     now = now or datetime.utcnow()
     state = db.session.get(LoginSecurityState, user.id)
     if state is None:
-        state = LoginSecurityState(user_id=user.id)
+        state = LoginSecurityState(user_id=user.id, failed_attempts=0)
         db.session.add(state)
     if state.locked_until and state.locked_until > now:
         return None

@@ -736,6 +736,8 @@ def create_app():
         from .models.auth_attempt_model import AuthAttempt
         from .models.contact_message_model import ContactMessage
         from .models.admin_mfa_model import AdminMFA, AdminMFARecoveryCode
+        from .models.password_history_model import PasswordHistory
+        from .models.login_security_model import LoginSecurityState
 
         db.create_all()
 
@@ -914,6 +916,8 @@ def create_app():
             action, limit, period_seconds = "recovery", 5, 600
         elif route == "/auth/reset-password":
             action, limit, period_seconds = "reset", 10, 600
+        elif route == "/auth/unlock-login":
+            action, limit, period_seconds = "unlock", 10, 600
         elif route == "/contacto/enviar":
             action, limit, period_seconds = "contact", 5, 3600
         elif route in {"/auth/admin-2fa/verify", "/auth/admin-2fa/setup"}:
