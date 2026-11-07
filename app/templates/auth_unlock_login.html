@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>Verificación de seguridad | UniTrack</title>
+  <style>
+    body{font:16px/1.55 system-ui,Arial,sans-serif;background:#f5f6fa;color:#1d2939;margin:0;min-height:100vh;display:grid;place-items:center}
+    main{width:min(92%,510px);padding:30px;background:#fff;border:1px solid #ddd;border-radius:18px;box-shadow:0 9px 26px #0001}
+    h1{font-size:24px;margin:0 0 12px}p{line-height:1.6}
+    button{background:#78001b;color:#fff;border:0;border-radius:8px;padding:13px 20px;font-size:16px;cursor:pointer}
+    a{color:#760019}button:focus-visible,a:focus-visible{outline:3px solid #58a4ff}
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Confirmar intento de acceso</h1>
+    {% if valid %}
+      <p>Si fuiste tú quien intentó iniciar sesión, confirma para desbloquear la cuenta y permitir hasta cinco intentos nuevos. Si no fuiste tú, no confirmes: cambia tu contraseña mediante la recuperación de cuenta.</p>
+      <form method="post" action="{{ url_for('auth.unlock_login') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="token" value="{{ token }}">
+        <button type="submit">Sí, fui yo. Desbloquear cuenta</button>
+      </form>
+    {% elif success %}
+      <p>Cuenta desbloqueada. Puedes volver a intentar iniciar sesión.</p>
+    {% else %}
+      <p>El enlace es inválido, ya fue utilizado o ha caducado. Espera cinco minutos desde el bloqueo o recupera tu contraseña.</p>
+    {% endif %}
+    <p><a href="{{ url_for('auth.login_page') }}">Volver al inicio de sesión</a></p>
+  </main>
+</body>
+</html>
