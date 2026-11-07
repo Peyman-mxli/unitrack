@@ -10,6 +10,7 @@ from sqlalchemy import text
 
 from app.database import db
 from app.utils.security import hash_password
+from app.utils.password_policy import new_password_error
 
 
 DEFAULT_ADMIN_DATA = {
@@ -49,8 +50,9 @@ def seed_default_admin():
     initial_password = os.environ.get("UNITRACK_INITIAL_ADMIN_PASSWORD", "")
     if not initial_password:
         return None
-    if len(initial_password) < 15:
-        raise ValueError("UNITRACK_INITIAL_ADMIN_PASSWORD must be at least 15 characters.")
+    password_error = new_password_error(initial_password)
+    if password_error:
+        raise ValueError(password_error)
 
     password_hash = hash_password(initial_password)
 

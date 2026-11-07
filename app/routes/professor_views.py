@@ -23,6 +23,8 @@ from werkzeug.utils import secure_filename
 from app.database import db
 from app.services.profile_photo_service import save_profile_photo, delete_profile_photo
 from app.utils.password_policy import new_password_error
+from app.services.account_security_service import set_new_password, password_reuse_error
+from app.services.email_service import send_password_changed_alert
 from app.utils.session_security import bind_authenticated_session
 from app.models.user_model import User
 
@@ -412,18 +414,21 @@ def configuration_update():
 
             if new_password != confirm_password:
                 return _redirect_error("Passwords do not match")
-            error = new_password_error(new_password, current_user)
+            error = new_password_error(new_password, current_user) or password_reuse_error(current_user, new_password)
             if error:
                 return _redirect_error(error)
             if check_password_hash(current_user.password_hash, new_password):
                 return _redirect_error("New password must be different")
 
-            current_user.password_hash = generate_password_hash(new_password)
-            current_user.must_change_password = False
+            set_new_password(current_user, new_password)
 
         db.session.commit()
         if any([current_password, new_password, confirm_password]):
             bind_authenticated_session(current_user)
+            try:
+                send_password_changed_alert(current_user)
+            except Exception:
+                current_app.logger.exception("Password change security email could not be delivered")
         return redirect(url_for("professor_views.configuration_page", success="Updated"))
 
     except Exception:
