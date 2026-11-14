@@ -10,6 +10,15 @@
 
 ---
 
+## ✅ QR access and entry/exit records (November 2026)
+
+- An **authorized admin, teacher or staff** uses **Control de Acceso** to scan a signed QR with a camera or enter its short-lived manual code. Each accepted submission records a timestamped check-in or check-out. The second deliberate scan closes the visit, and a new credential starts the next visit. A rapid duplicate camera submission is rejected to prevent accidental checkout.
+- The personal campus-access timeline lists **every entry and every exit** as separate events, with timestamps and totals. The admin's **Control de Acceso** and **Historial de Asistencia y Acceso** show entries/exits across all four roles.
+- To support **local classroom demonstrations**, a signed-in student can scan only **their own QR/temporary code** on the student access page. This writes a clearly labelled **Autoregistro local** event. It does **not verify physical presence at a gate**.
+- This student self-report feature is **disabled in hosted/production mode**. It can be disabled locally by setting `UNITRACK_ALLOW_LOCAL_SELF_SCAN=false` before starting the server. Authorized operator scans remain available.
+- Merely opening a public QR link with a phone camera (GET) **never writes a record**, because passive link previews and camera apps could otherwise create false entries. To record official campus access, use the authenticated operator scanner and submit the scan.
+- Code changes sync via GitHub, but private local SQLite records do not; use the guarded `scripts/sync_latest.ps1` workflow to update the correct VS Code checkout without deleting local data.
+
 ## 🔄 Always run the latest UniTrack on any Windows laptop
 
 The **single source of truth** for all UniTrack code is [GitHub main](https://github.com/Peyman-mxli/unitrack/tree/main).
