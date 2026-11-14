@@ -445,7 +445,11 @@
         {{ "Escáner QR de acceso" if is_spanish else "Campus Access QR Scanner" }}
     </h2>
     <p style="color:#475569;margin:0 0 15px;font-size:14px;line-height:1.6;">
-        {{ "Abre la cámara para comprobar tu propio código QR o introduce tu código temporal EST. Esta verificación no registra entrada ni salida; el registro oficial se realiza cuando el personal autorizado escanea tu QR." if is_spanish else "Open the camera to verify your own QR or enter your EST temporary code. This check does not record entry or exit; official campus access is recorded by authorized staff." }}
+        {% if self_scan_enabled %}
+        {{ "Modo local de práctica: escanea tu propio QR o introduce tu código temporal para registrar Entrada o Salida en el historial. Es un autoregistro, no una verificación de presencia en la puerta." if is_spanish else "Local practice mode: scan your own QR or enter your temporary code to record a check-in or check-out. This is self-reported, not verified at the gate." }}
+        {% else %}
+        {{ "Verifica tu propio QR o código temporal. El registro oficial de entrada y salida requiere personal autorizado." if is_spanish else "Verify your own QR or temporary code. Official entry and exit must be recorded by an authorized operator." }}
+        {% endif %}
     </p>
 
     <form method="POST" action="{{ url_for('student_views.access_control_page') }}" id="studentAccessQrForm">
@@ -460,7 +464,7 @@
         {% include "qr_camera_widget.html" %}
         <button type="submit" style="border:0;border-radius:11px;padding:12px 20px;
                 background:#16a34a;color:white;font-weight:800;cursor:pointer;">
-            {{ "Verificar QR" if is_spanish else "Verify QR" }}
+            {{ ("Registrar Entrada / Salida" if is_spanish else "Record Check-in / Check-out") if self_scan_enabled else ("Verificar QR" if is_spanish else "Verify QR") }}
         </button>
     </form>
 
@@ -479,7 +483,7 @@
                           background:white;font:800 15px Consolas,monospace;">
             <button type="submit" style="border:0;border-radius:11px;padding:12px 20px;
                     background:#7c3aed;color:white;font-weight:800;cursor:pointer;">
-                {{ "Verificar código" if is_spanish else "Verify code" }}
+                {{ ("Registrar con código" if is_spanish else "Record with code") if self_scan_enabled else ("Verificar código" if is_spanish else "Verify code") }}
             </button>
         </div>
     </form>
@@ -491,9 +495,12 @@
                 border:1px solid {{ '#86efac' if scan_result.success else '#fecaca' }};
                 color:{{ '#166534' if scan_result.success else '#991b1b' }};">
         <strong>
-            {{ ("Código verificado" if is_spanish else "Code verified") if scan_result.success else ("Verificación rechazada" if is_spanish else "Verification rejected") }}
+            {{ (("Entrada registrada" if scan_result.action == "check_in" else "Salida registrada") if is_spanish else ("Check-in recorded" if scan_result.action == "check_in" else "Check-out recorded")) if scan_result.success and scan_result.action else (("Código verificado" if is_spanish else "Code verified") if scan_result.success else ("Escaneo rechazado" if is_spanish else "Scan rejected")) }}
         </strong>
         <p style="margin:8px 0 0;">{{ scan_result.message }}</p>
+        {% if scan_result.success and scan_result.action %}
+        <p style="margin:6px 0 0;">{{ "Entrada:" if is_spanish else "Check-in:" }} {{ scan_result.check_in_time or "--" }} · {{ "Salida:" if is_spanish else "Check-out:" }} {{ scan_result.check_out_time or "--" }}</p>
+        {% endif %}
     </div>
     {% endif %}
 </section>
