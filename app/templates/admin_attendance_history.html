@@ -42,7 +42,7 @@
 <thead><tr>
 <th>#</th><th>{{ "Nombre" if es else "Name" }}</th><th>{{ "Rol" if es else "Role" }}</th><th>ID</th>
 <th>{{ "Fecha" if es else "Date" }}</th><th>{{ "Hora" if es else "Time" }}</th>
-<th>{{ "Movimiento" if es else "Action" }}</th><th>{{ "Duración" if es else "Duration" }}</th>
+<th>{{ "Movimiento" if es else "Action" }}</th><th>{{ "Origen" if es else "Source" }}</th><th>{{ "Duración" if es else "Duration" }}</th>
 <th>{{ "Estado después del evento" if es else "Status after event" }}</th>
 <th>{{ "Entradas / Salidas del usuario" if es else "User entries / exits" }}</th>
 </tr></thead>
@@ -54,11 +54,12 @@
 <td>{{ t({'estudiante':'Student','docente':'Professor','personal':'Staff','administrativo':'Admin'}.get(row.role,row.role)) }}</td>
 <td>{{ row.user_id_code }}</td><td>{{ row.date }}</td><td>{{ row.time }}</td>
 <td>{% if row.action == 'check_in' %}<span class="access-event-entry">{{ "Entrada" if es else "Check-in" }}</span>{% else %}<span class="access-event-exit">{{ "Salida" if es else "Check-out" }}</span>{% endif %}</td>
+<td>{{ ("Autoregistro local" if es else "Local self-report") if row.access_method == "self_service" else ("Código" if es else "Manual code") if row.access_method == "manual" else "QR" }}</td>
 <td>{{ row.duration }}</td>
 <td>{{ t('Inside Campus') if row.status == 'checked_in' else t('Outside Campus') }}</td>
 <td>{{ row.user_check_ins }} / {{ row.user_check_outs }}</td>
 </tr>
-{% else %}<tr><td colspan="10">{{ "No hay registros de acceso." if es else "No access records found." }}</td></tr>{% endfor %}
+{% else %}<tr><td colspan="11">{{ "No hay registros de acceso." if es else "No access records found." }}</td></tr>{% endfor %}
 </tbody></table></div>
 </div>
 <div class="history-sheet">
