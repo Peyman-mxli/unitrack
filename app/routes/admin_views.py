@@ -591,6 +591,7 @@ def build_global_access_records(selected_date="", search_text="", selected_role=
             "user_check_ins": user_entries,
             "user_check_outs": user_exits,
             "access_log_id": log.id,
+            "access_method": log.access_method or "qr",
         }
 
         if log.check_in_time and (filter_date is None or log.check_in_time.date() == filter_date):
