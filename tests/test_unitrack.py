@@ -1819,6 +1819,9 @@ class UniTrackTests(unittest.TestCase):
             signed_qr, temporary_code = issue_access_credential(student)
             other_qr, _ = issue_access_credential(other)
             student_id = student.id
+            preexisting_log_ids = set(self.db.session.execute(
+                self.db.select(AccessLog.id).where(AccessLog.student_id == student_id)
+            ).scalars().all())
 
         client = self._signed_in_client("StudentA")
         self.app.config["ALLOW_LOCAL_SELF_ACCESS_SCANS"] = True
@@ -1881,6 +1884,24 @@ class UniTrackTests(unittest.TestCase):
                 self.assertEqual(len(logs), 2)
         finally:
             self.app.config["ALLOW_LOCAL_SELF_ACCESS_SCANS"] = False
+            # Isolate this integration test: never leave new StudentA access
+            # records behind for subsequent tests that use the same fixture.
+            with self.app.app_context():
+                created = [
+                    row_id for row_id in self.db.session.execute(
+                        self.db.select(AccessLog.id).where(
+                            AccessLog.student_id == student_id
+                        )
+                    ).scalars().all() if row_id not in preexisting_log_ids
+                ]
+                if created:
+                    self.db.session.execute(self.db.delete(AccessScanPair).where(
+                        AccessScanPair.access_log_id.in_(created)
+                    ))
+                    self.db.session.execute(self.db.delete(AccessLog).where(
+                        AccessLog.id.in_(created)
+                    ))
+                    self.db.session.commit()
 
     def test_hosted_mode_never_accepts_student_self_scans(self):
         from app.models.user_model import User
