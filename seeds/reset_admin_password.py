@@ -18,12 +18,19 @@ def main():
     app = create_app()
     with app.app_context():
         username = input("Admin username: ").strip()
-        admin = db.session.execute(db.select(User).where(User.username == username)).scalar_one_or_none()
+        admin = db.session.execute(
+            db.select(User).where(db.func.lower(User.username) == username.lower())
+        ).scalar_one_or_none()
         if not admin or admin.role != "administrativo":
             print("Administrator not found.")
             return
-        new_password = getpass("New password: ")
-        confirmation = getpass("Confirm new password: ")
+        print("Password input is hidden. Enter your new password and press Enter.")
+        try:
+            new_password = getpass("New password: ")
+            confirmation = getpass("Confirm new password: ")
+        except (EOFError, KeyboardInterrupt):
+            print("\nPassword reset canceled.")
+            return
         if new_password != confirmation:
             print("Passwords do not match.")
             return
