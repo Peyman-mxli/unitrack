@@ -630,6 +630,7 @@
                 {{ t({'check_in':'Check In', 'check_out':'Check Out'}.get(scan_result.action, scan_result.action)) }}
             </p>
             {% endif %}
+            <p><strong>{{ "Entrada:" if current_language == "es" else "Check-in:" }}</strong> {{ scan_result.check_in_time or "--" }} · <strong>{{ "Salida:" if current_language == "es" else "Check-out:" }}</strong> {{ scan_result.check_out_time or "--" }}</p>
         {% endif %}
     </div>
     {% endif %}
