@@ -892,11 +892,16 @@ def generate_qr_image_data_uri(qr_text):
         return None
 
 
-def _build_scan_success_response(user, action, log_object):
+def _build_scan_success_response(user, action, log_object, *, self_service=False):
     response_data = {
         "success": True,
         "action": action,
-        "message": "Check-in completed successfully." if action == "check_in" else "Check-out completed successfully.",
+        "message": (
+            ("Entrada registrada (autoregistro local; no verifica presencia física)." if action == "check_in"
+             else "Salida registrada (autoregistro local; no verifica presencia física).")
+            if self_service else
+            ("Check-in completed successfully." if action == "check_in" else "Check-out completed successfully.")
+        ),
         "user_id": user.id,
         "user_name": _build_scan_subject_name(user),
         "student_name": _build_scan_subject_name(user),
@@ -922,7 +927,7 @@ def _build_scan_success_response(user, action, log_object):
     return response_data
 
 
-def process_access_scan_qr_text(qr_text):
+def process_access_scan_qr_text(qr_text, *, allow_student_self_scan=False):
     """
     Central scan processor used by:
     - API scanner endpoint
@@ -939,11 +944,15 @@ def process_access_scan_qr_text(qr_text):
             "processed_at": _server_now_iso(),
         }, 400
 
-    # Only authenticated campus operators may register a QR check-in/out.
-    # Public QR URLs are display-only and may never change access records.
-    if not current_user.is_authenticated or getattr(current_user, "role", "") not in {
-        "administrativo", "personal", "docente"
-    }:
+    # Public QR URLs stay read-only. Operators record official campus access;
+    # a student can submit their OWN signed credential only in local demo mode.
+    role = getattr(current_user, "role", "") if current_user.is_authenticated else ""
+    is_operator = role in {"administrativo", "personal", "docente"}
+    self_service = (
+        role == "estudiante" and allow_student_self_scan
+        and current_app.config.get("ALLOW_LOCAL_SELF_ACCESS_SCANS", False)
+    )
+    if not is_operator and not self_service:
         return {
             "success": False,
             "message": "An authorized campus operator must scan the QR code.",
@@ -1024,6 +1033,13 @@ def process_access_scan_qr_text(qr_text):
             "message": "Use a newly generated signed UniTrack QR code.",
             "processed_at": _server_now_iso(),
         }, 403
+    if self_service and user.id != current_user.id:
+        return {
+            "success": False,
+            "message": "Este código pertenece a otra cuenta; no se registró ningún acceso.",
+            "processed_at": _server_now_iso(),
+        }, 403
+
     if not ACCESS_LOG_SERVICE_AVAILABLE:
         return {
             "success": False,
@@ -1066,11 +1082,15 @@ def process_access_scan_qr_text(qr_text):
             if updated.rowcount != 1:
                 raise ValueError("This QR checkout has already been processed.")
             log = create_check_out(
-                student_id=user.id, notes="QR scanner paired check-out", commit=False
+                student_id=user.id,
+                notes=("Self-service local checkout (not gate-verified)" if self_service
+                       else "QR scanner paired check-out"),
+                commit=False
             )
             db.session.commit()
             return _build_scan_success_response(
-                user=user, action="check_out", log_object=log
+                user=user, action="check_out", log_object=log,
+                self_service=self_service,
             ), 200
 
         if token_record is not None:
@@ -1080,19 +1100,23 @@ def process_access_scan_qr_text(qr_text):
         if open_log:
             log = create_check_out(
                 student_id=user.id,
-                notes="QR scanner automatic check-out",
+                notes=("Self-service local checkout (not gate-verified)" if self_service
+                       else "QR scanner automatic check-out"),
                 commit=(token_record is None),
             )
             if token_record is not None:
                 db.session.commit()
             return _build_scan_success_response(
-                user=user, action="check_out", log_object=log
+                user=user, action="check_out", log_object=log,
+                self_service=self_service,
             ), 200
 
         log = create_check_in(
             student_id=user.id,
-            access_method="qr",
-            notes="QR scanner automatic check-in",
+            access_method=("self_service" if self_service else
+                           "manual" if is_temporary_access_code(qr_text) else "qr"),
+            notes=("Self-service local check-in (not gate-verified)" if self_service
+                   else "QR scanner automatic check-in"),
             commit=(token_record is None),
         )
         if token_record is not None:
@@ -1105,7 +1129,8 @@ def process_access_scan_qr_text(qr_text):
             db.session.commit()
 
         return _build_scan_success_response(
-            user=user, action="check_in", log_object=log
+            user=user, action="check_in", log_object=log,
+            self_service=self_service,
         ), 200
 
     except ValueError as exc:
@@ -1144,20 +1169,33 @@ def dashboard_page():
 @role_required("estudiante")
 def access_control_page():
     """
-    Student QR and camera verification on one Control de Acceso page.
-    A student may verify their own valid credential, but a scan here NEVER
-    writes an entry/exit or consumes a code. Campus operators do that.
+    Student QR and camera page. In local demo mode, signed-in students can
+    record their own scans as clearly labelled self-reported access events.
+    Production requires an operator and never trusts student self-scanning.
     """
 
     _sync_student_language_from_session()
     student_name = _student_full_name(current_user)
 
+    self_scan_enabled = bool(current_app.config.get("ALLOW_LOCAL_SELF_ACCESS_SCANS", False))
     scan_result = None
     if request.method == "POST":
         from app.services.scan_token_service import resolve_scan_token
         submitted = (request.form.get("pass_code") or request.form.get("qr_text") or "").strip()
         if not submitted:
             scan_result = {"success": False, "message": "Ingresa un código QR o un código temporal válido."}
+        elif self_scan_enabled:
+            data, _status_code = process_access_scan_qr_text(
+                submitted, allow_student_self_scan=True
+            )
+            scan_result = {
+                "success": bool(data.get("success")),
+                "message": data.get("message", ""),
+                "action": data.get("action", ""),
+                "check_in_time": data.get("check_in_time", ""),
+                "check_out_time": data.get("check_out_time", ""),
+                "self_reported": bool(data.get("success")),
+            }
         else:
             try:
                 scanned_user, _scanned_credential = resolve_scan_token(submitted)
@@ -1169,7 +1207,7 @@ def access_control_page():
                 else:
                     scan_result = {
                         "success": True,
-                        "message": "Tu QR o código temporal es válido. Para registrar entrada o salida, preséntalo al personal autorizado.",
+                        "message": "Código válido. Para registrar entrada o salida oficial, preséntalo al personal autorizado.",
                     }
             except ValueError:
                 scan_result = {
@@ -1223,6 +1261,7 @@ def access_control_page():
         "student_access_control.html",
         student_name=student_name,
         scan_result=scan_result,
+        self_scan_enabled=self_scan_enabled,
         active_page="access_control",
         demo_records=filtered_records,
         access_events=access_events,
