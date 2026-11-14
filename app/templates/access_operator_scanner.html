@@ -47,6 +47,7 @@
         {% if scan_result.success %}
         {% if scan_result.name %}<p>{{ scan_result.name }}</p>{% endif %}
         {% if scan_result.action %}<p>{{ t({'check_in':'Check In','check_out':'Check Out'}.get(scan_result.action, scan_result.action)) }}</p>{% endif %}
+        <p>{{ "Entrada" if current_language == "es" else "Check-in" }}: {{ scan_result.check_in_time or "--" }} · {{ "Salida" if current_language == "es" else "Check-out" }}: {{ scan_result.check_out_time or "--" }}</p>
         {% endif %}
     </div>
     {% endif %}
