@@ -173,7 +173,7 @@ http://<your-ip>:5000
 
 ## 🔑 Default Admin
 
-> For a NEW database, Admin is created only when UNITRACK_INITIAL_ADMIN_PASSWORD is set to a unique password of at least 15 characters. Existing admin accounts are never overwritten.
+> For a NEW database, Admin is created only when UNITRACK_INITIAL_ADMIN_PASSWORD is set to a unique password of at least 8 characters (15+ recommended for admin accounts). Existing admin accounts are never overwritten.
 
 ---
 
@@ -271,7 +271,7 @@ python run.py
 Existing `unitrack.db` files are not reset. For a brand-new database, set a unique administrator password **before the first launch**:
 
 ```powershell
-$env:UNITRACK_INITIAL_ADMIN_PASSWORD = Read-Host 'Choose an initial admin password (15+ characters)'
+$env:UNITRACK_INITIAL_ADMIN_PASSWORD = Read-Host 'Choose an initial admin password (8+ characters; 15+ recommended)'
 python run.py
 ```
 
@@ -329,7 +329,7 @@ This writes a timestamped, integrity-checked copy to `backups/` (ignored by Git)
 
 ### Security hardening (November 2026)
 
-UniTrack now requires at least 15 characters for **new** passwords. Existing
+UniTrack now requires at least 8 characters for **new** passwords (15+ recommended, especially for administrators). Existing
 users are **not** automatically locked out because their old hashes are still
 verified by Werkzeug. Temporary passwords assigned by an administrator
 require replacement before dashboard access. Successful password changes
