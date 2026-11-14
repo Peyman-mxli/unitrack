@@ -45,7 +45,12 @@ def main():
             db.session.rollback()
             raise
         try:
-            send_password_changed_alert(admin)
+            # Email alerts are optional for local maintenance. The password has
+            # already been changed and committed above, even without SMTP.
+            if not app.config.get("MAIL_USERNAME") or not app.config.get("MAIL_PASSWORD"):
+                print("Email notification skipped: SMTP is not configured.")
+            else:
+                send_password_changed_alert(admin)
         except Exception:
             app.logger.exception("Maintenance password reset email could not be delivered")
         print("Admin temporary password set. Administrator must change it on sign-in.")
