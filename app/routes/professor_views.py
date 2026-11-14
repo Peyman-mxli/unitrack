@@ -281,6 +281,8 @@ def access_control_page():
             "name": (data.get("student_name") or data.get("professor_name")
                      or data.get("staff_name") or data.get("admin_name") or ""),
             "action": data.get("action", ""),
+            "check_in_time": data.get("check_in_time", ""),
+            "check_out_time": data.get("check_out_time", ""),
             "status_code": status_code,
         }
 
