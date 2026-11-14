@@ -67,6 +67,14 @@ class Config:
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     ALLOW_LEGACY_QR = os.environ.get("UNITRACK_ALLOW_LEGACY_QR", "False").lower() == "true"
+    # Local classroom/demo only: students may record their OWN scanned access
+    # credentials. Never treat these self-reported events as gate verification.
+    # Hosted/production environments always require an authorized operator.
+    ALLOW_LOCAL_SELF_ACCESS_SCANS = (
+        not IS_HOSTED
+        and os.environ.get("UNITRACK_ENV", "").lower() != "production"
+        and os.environ.get("UNITRACK_ALLOW_LOCAL_SELF_SCAN", "true").lower() == "true"
+    )
     ENFORCE_OPERATOR_SCANS = (os.environ.get("UNITRACK_ENV", "").lower() == "production" or IS_HOSTED)
 
     # Enforce MFA on hosted services only when a persistent SECRET_KEY exists;
