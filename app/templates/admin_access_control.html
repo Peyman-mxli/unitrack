@@ -807,6 +807,7 @@
                     <th>{{ t('Date') }}</th>
                     <th>{{ 'Hora' if current_language == 'es' else 'Time' }}</th>
                     <th>{{ 'Movimiento' if current_language == 'es' else 'Action' }}</th>
+                    <th>{{ 'Origen' if current_language == 'es' else 'Source' }}</th>
                     <th>{{ 'Duración' if current_language == 'es' else 'Duration' }}</th>
                     <th>{{ t('Status') }}</th>
                     <th>{{ 'Entradas / Salidas del usuario' if current_language == 'es' else 'User entries / exits' }}</th>
@@ -828,6 +829,7 @@
                             <strong style="color:#b91c1c;">{{ 'Salida' if current_language == 'es' else 'Check-out' }}</strong>
                         {% endif %}
                     </td>
+                    <td>{{ ('Autoregistro local' if current_language == 'es' else 'Local self-report') if record.access_method == 'self_service' else ('Código' if current_language == 'es' else 'Manual code') if record.access_method == 'manual' else 'QR' }}</td>
                     <td>{{ record.duration }}</td>
                     <td>
                         {% if record.status == "checked_in" %}
