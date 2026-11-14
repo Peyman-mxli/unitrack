@@ -2,7 +2,7 @@
 
 Existing accounts remain valid until they choose a replacement password.
 """
-MIN_PASSWORD_LENGTH = 15
+MIN_PASSWORD_LENGTH = 8
 MAX_PASSWORD_LENGTH = 1024
 BLOCKED_PASSWORDS = frozenset({
     "passwordpassword", "password123456789", "123456789012345",
