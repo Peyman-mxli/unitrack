@@ -125,6 +125,8 @@ class UniTrackTests(unittest.TestCase):
         from app.utils.password_policy import new_password_error
         from app.utils.security import hash_password, verify_password
         self.assertIsNotNone(new_password_error("short"))
+        self.assertIsNotNone(new_password_error("Ab3!7xy"))  # 7 characters
+        self.assertIsNone(new_password_error("Qz8!4nPr"))  # 8 characters
         self.assertIsNotNone(new_password_error("password123456789"))
         good = "a strong unique passphrase with spaces!"
         self.assertIsNone(new_password_error(good))
@@ -144,7 +146,7 @@ class UniTrackTests(unittest.TestCase):
             "validation_code": "invalid"
         })
         self.assertEqual(rejected.status_code, 400)
-        self.assertIn("15", rejected.get_json()["error"])
+        self.assertIn("8", rejected.get_json()["error"])
 
     def test_required_password_change_prevents_dashboard_until_changed(self):
         """A temporary admin-assigned password cannot unlock normal pages."""
