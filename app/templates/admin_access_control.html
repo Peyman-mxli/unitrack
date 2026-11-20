@@ -1,4 +1,4 @@
-{% extends "admin_base.html" %}
+{% extends {"administrativo":"admin_base.html","estudiante":"student_base.html","docente":"professor_base.html","personal":"personal_base.html"}[current_user.role] %}
 
 {% block title %}{{ t('Access Control') }}{% endblock %}
 
@@ -489,7 +489,11 @@
 }
 </style>
 
-{% set records = global_access_records if global_access_records is defined else [] %}
+{% set is_campus_admin = current_user.role == 'administrativo' %}
+{% set is_student = current_user.role == 'estudiante' %}
+{% set is_spanish = current_language == 'es' %}
+{% set access_form_target = request.path %}
+{% set records = global_access_records if is_campus_admin and global_access_records is defined else [] %}
 {% set own_records = access_records if access_records is defined else [] %}
 {% set latest_record = own_records[0] if own_records else None %}
 
@@ -596,10 +600,14 @@
 <section class="operator-qr-card" aria-labelledby="operatorQrTitle">
     <h2 id="operatorQrTitle">{{ "Escáner QR de Acceso" if current_language == "es" else "Campus Access QR Scanner" }}</h2>
     <p class="qr-instructions">
-        {{ "Escanea el código QR firmado del usuario con la cámara o selecciona una imagen. Revisa el código y pulsa Confirmar acceso para registrar una entrada o salida." if current_language == "es" else "Scan a user's signed QR using the camera or choose an image. Review the code and select Confirm Access to register check-in or check-out." }}
+        {% if is_student %}
+        {{ "Escanea y verifica únicamente tu propio QR. Para registrar una entrada o salida oficial, presenta tu QR al personal autorizado." if is_spanish else "Scan and verify only your own QR. Authorized staff must record official entry and exit." }}
+        {% else %}
+        {{ "Escanea el QR firmado con la cámara o una imagen y confirma para registrar entrada o salida." if is_spanish else "Scan a signed QR with the camera or a photo and confirm entry or exit." }}
+        {% endif %}
     </p>
 
-    <form method="POST" action="{{ url_for('admin_views.admin_access_control') }}" id="adminAccessQrForm">
+    <form method="POST" action="{{ access_form_target }}" id="adminAccessQrForm">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <label class="filter-label" for="admin_access_qr_text">
             {{ "Contenido del código QR" if current_language == "es" else "QR code content" }}
@@ -608,7 +616,7 @@
                   placeholder="{{ 'El contenido aparece aquí cuando la cámara detecta el QR' if current_language == 'es' else 'Camera QR content appears here' }}"></textarea>
         {% include "qr_camera_widget.html" %}
         <button type="submit" class="operator-qr-submit">
-            {{ "Confirmar acceso" if current_language == "es" else "Confirm Access" }}
+            {{ ("Verificar mi QR" if is_spanish else "Verify my QR") if is_student and not (self_scan_enabled|default(false)) else ("Confirmar acceso" if is_spanish else "Confirm Access") }}
         </button>
     </form>
 
@@ -616,7 +624,7 @@
     <div class="operator-qr-result {% if not scan_result.success %}error{% endif %}"
          role="alert" id="adminAccessScanResult">
         <strong>
-            {{ ("Escaneo correcto" if current_language == "es" else "Scan successful") if scan_result.success else ("Escaneo rechazado" if current_language == "es" else "Scan rejected") }}
+            {{ ("Código verificado" if is_spanish else "Code verified") if scan_result.success and is_student and not (self_scan_enabled|default(false)) else ("Escaneo correcto" if is_spanish else "Scan successful") if scan_result.success else ("Escaneo rechazado" if is_spanish else "Scan rejected") }}
         </strong>
         <p>{{ t(scan_result.message) }}</p>
         {% if scan_result.success %}
@@ -640,13 +648,13 @@
 <section class="operator-qr-card" aria-labelledby="operatorPassTitle">
     <h2 id="operatorPassTitle">{{ "Ingresar código de acceso" if current_language == "es" else "Enter Access Code" }}</h2>
     <p class="qr-instructions">
-        {{ "Si una persona no puede mostrar su QR, escribe su código temporal único. Prefijos: EST = estudiante, DOC = docente, PER = personal, ADM = administrador. No uses el ID permanente ni el código de validación de registro." if current_language == "es" else "If someone cannot show their QR, enter their unique temporary code. Prefixes: EST = student, DOC = professor, PER = staff, ADM = administrator. Do not use the permanent ID or registration validation code." }}
+        {{ ("Verifica únicamente tu propio código personal; el registro de acceso oficial requiere personal autorizado." if is_spanish else "Verify only your personal access code; official campus access requires authorized staff.") if is_student else ("Si no es posible leer el QR, introduce el código personal de respaldo. No utilices IDs de usuario ni códigos de registro." if is_spanish else "If the QR is unavailable, enter the personal backup access code. Do not enter user IDs or registration codes.") }}
     </p>
-    <form method="POST" action="{{ url_for('admin_views.admin_access_control') }}"
+    <form method="POST" action="{{ access_form_target }}"
           style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <label for="admin_pass_code" class="filter-label" style="width:100%;">
-            {{ "Código temporal" if current_language == "es" else "Temporary access code" }}
+            {{ "Código personal de acceso" if is_spanish else "Personal access code" }}
         </label>
         <input type="text" id="admin_pass_code" name="pass_code"
                autocomplete="off" spellcheck="false" maxlength="24" required
@@ -654,7 +662,7 @@
                style="flex:1;min-width:210px;padding:13px;border-radius:11px;border:1px solid #cbd5e1;
                       font-weight:800;font-size:16px;letter-spacing:0.08em;text-transform:uppercase;">
         <button type="submit" class="operator-qr-submit">
-            {{ "Registrar con código" if current_language == "es" else "Register with code" }}
+            {{ ("Verificar código" if is_spanish else "Verify code") if is_student and not (self_scan_enabled|default(false)) else ("Registrar con código" if is_spanish else "Register with code") }}
         </button>
     </form>
 </section>
@@ -695,7 +703,7 @@
     <div class="summary-header">
         <div class="summary-avatar">
             {% if current_user.photo_path %}
-                <img src="{{ url_for('private_profile_photo') }}" alt="{{ t('Admin Photo') }}">
+                <img src="{{ url_for('private_profile_photo') }}" alt="{{ "Foto de perfil" if is_spanish else "Profile photo" }}">
             {% elif current_user.profile_image %}
                 <img src="{{ url_for('private_profile_photo') }}" alt="{{ t('Admin Photo') }}">
             {% elif current_user.image %}
@@ -708,8 +716,8 @@
         </div>
 
         <div>
-            <h2 class="summary-name">{{ display_user_name(admin_name, current_user.username) if admin_name else t('admin') }}</h2>
-            <div class="summary-sub">{{ t('Admin ID / Username:') }} {{ current_user.username if current_user.username else "--" }}</div>
+            <h2 class="summary-name">{{ ((current_user.first_name or '') ~ ' ' ~ (current_user.last_name or ''))|trim or current_user.username }}</h2>
+            <div class="summary-sub">{{ "ID / Usuario:" if is_spanish else "ID / Username:" }} {{ current_user.username if current_user.username else "--" }}</div>
         </div>
 
         <div class="summary-status-wrap">
@@ -752,7 +760,8 @@
     </div>
 </div>
 
-<form method="GET" action="{{ url_for('admin_views.admin_access_control') }}">
+{% if is_campus_admin %}
+<form method="GET" action="{{ access_form_target }}">
     <div class="filter-card">
         <div class="filter-grid">
             <div>
@@ -852,5 +861,10 @@
     </div>
     {% endif %}
 </div>
+
+{% else %}
+{% include "personal_access_events.html" %}
+<script src="{{ url_for('static', filename='js/access-history-live.js') }}" defer></script>
+{% endif %}
 
 {% endblock %}
