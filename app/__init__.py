@@ -29,7 +29,6 @@ from .routes.admin_views import admin_views_bp
 from .routes.student_views import student_views_bp
 from .routes.personal_views import personal_views_bp
 from .routes.professor_views import professor_views_bp
-from .routes.attendance_views import attendance_bp
 
 # ✅ ADMIN SEED
 from .services.admin_seed_service import seed_default_admin
@@ -99,7 +98,7 @@ def create_app():
             "dashboard": "Dashboard",
             "access_control": "Access Control",
             "access_scanner": "Access Scanner",
-            "attendance_history": "Attendance History",
+            "attendance_history": "Access History",
             "settings": "Settings",
             "configuration": "Configuration",
             "Configuration": "Configuration",
@@ -121,13 +120,13 @@ def create_app():
             "cancel": "Cancel",
             "english": "English",
             "spanish": "Spanish",
-            "student_dashboard_subtitle": "This is your main UniTrack dashboard. From here you can access your attendance history, open the access control scanner, and review your student account information.",
+            "student_dashboard_subtitle": "This is your main UniTrack dashboard. From here you can access your campus entry and exit history, open the access control scanner, and review your student account information.",
             "professor_dashboard_subtitle": "Welcome to your UniTrack professor dashboard. From here you can access your access control scanner and review your professor account information.",
             "admin_dashboard_subtitle": "Welcome to your UniTrack admin dashboard. From here you can manage users, validation codes, access control, and your administrator account information.",
             "user_id": "User ID",
             "inactive": "Inactive",
             "open_access_scanner": "Open Access Scanner",
-            "view_attendance_history": "View Attendance History",
+            "view_attendance_history": "View Access History",
             "view_configuration": "View Configuration",
             "role": "Role",
             "your_role": "Your UniTrack role",
@@ -357,7 +356,7 @@ def create_app():
             "dashboard": "Tablero",
             "access_control": "Control de Acceso",
             "access_scanner": "Escáner de Acceso",
-            "attendance_history": "Historial de Asistencia",
+            "attendance_history": "Historial de Acceso",
             "settings": "Configuración",
             "configuration": "Configuración",
             "Configuration": "Configuración",
@@ -379,13 +378,13 @@ def create_app():
             "cancel": "Cancelar",
             "english": "Inglés",
             "spanish": "Español",
-            "student_dashboard_subtitle": "Este es tu tablero principal de UniTrack. Desde aquí puedes acceder a tu historial de asistencia, abrir el escáner de control de acceso y revisar la información de tu cuenta estudiantil.",
+            "student_dashboard_subtitle": "Este es tu tablero principal de UniTrack. Desde aquí puedes consultar tu historial de entradas y salidas, abrir el escáner de control de acceso y revisar la información de tu cuenta estudiantil.",
             "professor_dashboard_subtitle": "Bienvenido a tu tablero de profesor de UniTrack. Desde aquí puedes acceder a tu escáner de control de acceso y revisar la información de tu cuenta de profesor.",
             "admin_dashboard_subtitle": "Bienvenido a tu tablero de administrador de UniTrack. Desde aquí puedes gestionar usuarios, códigos de validación, control de acceso y la información de tu cuenta de administrador.",
             "user_id": "ID de Usuario",
             "inactive": "Inactivo",
             "open_access_scanner": "Abrir Escáner de Acceso",
-            "view_attendance_history": "Ver Historial de Asistencia",
+            "view_attendance_history": "Ver Historial de Acceso",
             "view_configuration": "Ver Configuración",
             "role": "Rol",
             "your_role": "Tu rol en UniTrack",
@@ -719,7 +718,6 @@ def create_app():
     app.register_blueprint(student_views_bp)
     app.register_blueprint(personal_views_bp)
     app.register_blueprint(professor_views_bp)
-    app.register_blueprint(attendance_bp)
 
     with app.app_context():
         # minimal models load
