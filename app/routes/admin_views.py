@@ -1171,6 +1171,49 @@ def admin_close_support_chat(message_id):
     return redirect(url_for("admin_views.admin_support_chat", message_id=message_id))
 
 
+@admin_views_bp.route("/contact-messages/<int:message_id>/delete", methods=["POST"])
+@login_required
+def admin_delete_support_chat(message_id):
+    """Irreversibly purge one support conversation, admin only.
+
+    Delete dependent records before the contact report to satisfy SQLite
+    foreign-key checks. No other conversation or access record is touched.
+    """
+    if not _is_admin_user():
+        return _reject_non_admin()
+    if request.form.get("confirm_delete", "").strip() != "ELIMINAR":
+        flash("Escribe ELIMINAR para confirmar el borrado permanente.", "error")
+        return redirect(url_for("admin_views.admin_support_chat", message_id=message_id))
+    from app.services.support_chat_service import load_conversation
+    from app.models.support_reply_model import SupportReply, SupportReportSender
+    from app.models.support_conversation_model import SupportChatMessage, SupportChatState
+    report, sender, state = load_conversation(message_id)
+    if report is None or sender is None:
+        abort(404)
+    try:
+        db.session.execute(db.delete(SupportChatMessage).where(
+            SupportChatMessage.report_id == message_id
+        ))
+        db.session.execute(db.delete(SupportReply).where(
+            SupportReply.report_id == message_id
+        ))
+        db.session.execute(db.delete(SupportChatState).where(
+            SupportChatState.report_id == message_id
+        ))
+        db.session.execute(db.delete(SupportReportSender).where(
+            SupportReportSender.report_id == message_id
+        ))
+        db.session.delete(report)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception("Failed deleting support conversation %s", message_id)
+        flash("No fue posible eliminar la conversación.", "error")
+        return redirect(url_for("admin_views.admin_support_chat", message_id=message_id))
+    flash("Chat y mensajes eliminados permanentemente de la base de datos actual.", "success")
+    return redirect(url_for("admin_views.admin_contact_messages", status="all"))
+
+
 @admin_views_bp.route("/contact-messages/<int:message_id>/reply", methods=["POST"])
 @login_required
 def admin_reply_to_report(message_id):
