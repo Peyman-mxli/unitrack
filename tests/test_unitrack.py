@@ -1487,8 +1487,11 @@ class UniTrackTests(unittest.TestCase):
             self.assertIsNotNone(self.db.session.get(SupportChatMessage, row_id).admin_read_at)
         other = self._signed_in_client("TeacherA")
         self.assertEqual(other.get(f"/credentials/messages/{rid}/chat").status_code, 403)
-        self.assertNotEqual(student.post(f"/admin/contact-messages/{rid}/close",
-                                         data={"csrf_token": student_csrf}).status_code, 302)
+        self.assertIn(student.post(f"/admin/contact-messages/{rid}/close",
+                                    data={"csrf_token": student_csrf}).status_code,
+                      (302, 403))
+        with self.app.app_context():
+            self.assertIsNone(self.db.session.get(SupportChatState, rid))
         self.assertEqual(admin.post(f"/admin/contact-messages/{rid}/close", data={
             "csrf_token": admin_csrf
         }).status_code, 302)
