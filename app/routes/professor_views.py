@@ -236,6 +236,8 @@ def build_professor_access_mobile_scan_url(user, token=None):
 
 
 def build_professor_access_qr_payload(user, token=None):
+    if token and str(token).startswith("P."):
+        return str(token)
     return build_professor_access_mobile_scan_url(user, token=token)
 
 
