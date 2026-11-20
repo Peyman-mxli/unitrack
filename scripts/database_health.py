@@ -30,6 +30,8 @@ SENSITIVE_TABLES = (
     "users", "access_logs", "access_scan_pairs", "scan_tokens",
     "class_attendance", "class_enrollments", "class_meetings",
     "university_notices", "university_notice_reads",
+    "permanent_credentials", "credential_replacement_requests",
+    "visitor_passes", "visitor_access_requests", "visitor_access_logs",
 )
 
 
@@ -87,6 +89,7 @@ def expected_schema() -> dict[str, set[str]]:
         scan_token_model, access_scan_pair_model, validation_revocation_model,
         user_presence_model, university_notice_model, university_notice_read_model,
         auth_attempt_model, access_log_model, contact_message_model, admin_mfa_model,
+        permanent_credential_model, visitor_access_model,
     )
     return {
         table.name: {column.name for column in table.columns}
