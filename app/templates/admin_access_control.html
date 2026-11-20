@@ -661,7 +661,7 @@
 <section class="operator-qr-card" aria-labelledby="operatorOwnQrTitle">
     <h2 id="operatorOwnQrTitle">{{ "Mi QR personal de acceso" if current_language == "es" else "My Personal Access QR" }}</h2>
     <p class="qr-instructions">
-        {{ "Cada persona tiene su propio QR. El primer escaneo registra Entrada (dentro de 5 minutos); el segundo escaneo del mismo QR registra Salida (dentro de 24 horas). Un tercer uso se rechaza." if current_language == "es" else "Each person has their own QR. The first scan records entry (within 5 minutes); the second scan of the same QR records exit (within 24 hours). A third use is rejected." }}
+        {{ "Tu QR personal es permanente. Cada escaneo alterna Entrada y Salida. Solo una solicitud aprobada permite reemplazarlo." if current_language == "es" else "Your personal QR is permanent. Each scan alternates entry and exit. Only an approved request replaces it." }}
     </p>
     <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
         {% if access_qr_image %}
@@ -673,18 +673,18 @@
         {% endif %}
         <div>
             <div style="font-size:13px;font-weight:800;margin-bottom:8px;">
-                {{ "Mi código de respaldo temporal:" if current_language == "es" else "My temporary backup code:" }}
+                {{ "Mi código personal de respaldo:" if current_language == "es" else "My permanent backup code:" }}
             </div>
             <div style="font:800 20px Consolas,monospace;letter-spacing:0.08em;overflow-wrap:anywhere;">
                 {{ access_qr_id_code }}
             </div>
             <p class="qr-instructions" style="margin-top:12px;">
-                {{ "Se renueva al actualizar esta página." if current_language == "es" else "Refresh this page to get a new one." }}
+                {{ "Este código no cambia al actualizar la página." if current_language == "es" else "This code does not change on refresh." }}
             </p>
-            <a href="{{ url_for('admin_views.admin_access_control') }}"
+            <a href="{{ url_for('credential.card') }}"
                style="display:inline-block;background:#7c3aed;color:white;border-radius:10px;
                       padding:11px 16px;text-decoration:none;font-weight:800;">
-                {{ "Generar nuevo QR" if current_language == "es" else "Generate new QR" }}
+                {{ "Ver credencial / Solicitar cambio" if current_language == "es" else "View ID / Request replacement" }}
             </a>
         </div>
     </div>
