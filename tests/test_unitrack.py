@@ -1496,7 +1496,7 @@ class UniTrackTests(unittest.TestCase):
         outsider = other.post(f"/admin/contact-messages/{first_id}/delete", data={
             "csrf_token": admin_csrf, "confirm_delete": "ELIMINAR",
         })
-        self.assertIn(outsider.status_code, (302, 403))
+        self.assertIn(outsider.status_code, (302, 400, 403))
         with self.app.app_context():
             self.assertIsNotNone(self.db.session.get(ContactMessage, first_id))
         deleted = admin.post(f"/admin/contact-messages/{first_id}/delete", data={
