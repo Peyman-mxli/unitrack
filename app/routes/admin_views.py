@@ -1897,10 +1897,10 @@ def admin_attendance_history():
                 visitor_history.append({
                     "name": permit.full_name, "pass_id": permit.id,
                     "action": action, "date": moment.strftime("%Y-%m-%d"),
-                    "time": moment.strftime("%I:%M:%S %p"),
+                    "time": moment.strftime("%I:%M:%S %p"), "sort_time": moment,
                     "starts_at": permit.starts_at, "expires_at": permit.expires_at,
                 })
-        visitor_history.sort(key=lambda e: (e["date"], e["time"]), reverse=True)
+        visitor_history.sort(key=lambda e: e["sort_time"], reverse=True)
     visitor_event_counts = {
         "check_ins": sum(1 for row in visitor_history if row["action"] == "check_in"),
         "check_outs": sum(1 for row in visitor_history if row["action"] == "check_out"),
