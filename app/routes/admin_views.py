@@ -1115,6 +1115,51 @@ def admin_contact_message_status(message_id):
     return redirect(url_for("admin_views.admin_contact_messages"))
 
 
+@admin_views_bp.route("/contact-messages/<int:message_id>/chat", methods=["GET"])
+@login_required
+def admin_support_chat(message_id):
+    """Private report discussion available to verified administrators."""
+    if not _is_admin_user():
+        return _reject_non_admin()
+    from app.services.support_chat_service import (
+        load_conversation, conversation_items, mark_chat_read
+    )
+    report, sender, state = load_conversation(message_id)
+    if report is None or sender is None:
+        abort(404)
+    mark_chat_read(message_id, "admin")
+    return render_template(
+        "support_chat.html", thread_base="admin_base.html",
+        report=report, messages=conversation_items(message_id),
+        closed=bool(state and state.closed_at), state=state, is_admin=True,
+        active_page="messages",
+    )
+
+
+@admin_views_bp.route("/contact-messages/<int:message_id>/close", methods=["POST"])
+@login_required
+def admin_close_support_chat(message_id):
+    """Only an admin may close a thread; closed conversations stay readable."""
+    if not _is_admin_user():
+        return _reject_non_admin()
+    from app.services.support_chat_service import load_conversation
+    from app.models.support_conversation_model import SupportChatState
+    report, sender, state = load_conversation(message_id)
+    if report is None or sender is None:
+        abort(404)
+    if state is None:
+        state = SupportChatState(report_id=message_id)
+        db.session.add(state)
+    if state.closed_at is None:
+        state.closed_at = datetime.utcnow()
+        state.closed_by_user_id = current_user.id
+        report.status = "reviewed"
+        report.reviewed_at = datetime.utcnow()
+        db.session.commit()
+        flash("Chat cerrado. El usuario ya no puede responder.", "success")
+    return redirect(url_for("admin_views.admin_support_chat", message_id=message_id))
+
+
 @admin_views_bp.route("/contact-messages/<int:message_id>/reply", methods=["POST"])
 @login_required
 def admin_reply_to_report(message_id):
@@ -1124,6 +1169,10 @@ def admin_reply_to_report(message_id):
     from app.models.support_reply_model import SupportReply, SupportReportSender
     report = db.session.get(ContactMessage, message_id)
     sender = db.session.get(SupportReportSender, message_id)
+    from app.models.support_conversation_model import SupportChatState
+    thread = db.session.get(SupportChatState, message_id)
+    if thread and thread.closed_at is not None:
+        abort(409, description="Esta conversación está cerrada.")
     text = str(request.form.get("reply", "")).strip()
     if report is None or sender is None:
         flash("Este reporte no pertenece a una cuenta registrada.", "error")
@@ -1149,7 +1198,7 @@ def admin_reply_to_report(message_id):
                 db.session.rollback()
                 current_app.logger.exception("Cannot send support reply")
                 flash("No fue posible enviar la respuesta.", "error")
-    return redirect(url_for("admin_views.admin_contact_messages", status="all"))
+    return redirect(url_for("admin_views.admin_support_chat", message_id=message_id))
 
 
 @admin_views_bp.route("/notices/create", methods=["POST"])
