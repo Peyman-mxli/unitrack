@@ -108,9 +108,20 @@ def my_messages():
         .order_by(SupportReply.created_at.desc(), SupportReply.id.desc())
         .limit(100)
     ).all()
+    from app.models.support_reply_model import SupportReportSender
+    from app.models.support_conversation_model import SupportChatState
+    from app.models.contact_message_model import ContactMessage
+    conversations = db.session.execute(
+        db.select(ContactMessage, SupportChatState)
+        .join(SupportReportSender, SupportReportSender.report_id == ContactMessage.id)
+        .outerjoin(SupportChatState, SupportChatState.report_id == ContactMessage.id)
+        .where(SupportReportSender.user_id == current_user.id)
+        .order_by(ContactMessage.created_at.desc(), ContactMessage.id.desc())
+        .limit(100)
+    ).all()
     return render_template(
         "credential_messages.html", inbox_base=base, replies=replies,
-        active_page="messages"
+        conversations=conversations, active_page="messages"
     )
 
 
