@@ -104,6 +104,14 @@ def manage():
     qr_requests = db.session.execute(db.select(CredentialReplacementRequest).where(
         CredentialReplacementRequest.status == "pending"
     ).order_by(CredentialReplacementRequest.id.desc())).scalars().all()
+    # Preserve the existing pending-approval area and show a separate
+    # chronological record of all decisions at the bottom of this page.
+    qr_history = db.session.execute(
+        db.select(CredentialReplacementRequest)
+        .order_by(CredentialReplacementRequest.requested_at.desc(),
+                  CredentialReplacementRequest.id.desc())
+        .limit(200)
+    ).scalars().all()
     visitor_requests = db.session.execute(db.select(VisitorRequest).where(
         VisitorRequest.status == "pending"
     ).order_by(VisitorRequest.id.desc())).scalars().all()
@@ -112,6 +120,7 @@ def manage():
     ).scalars().all()
     people = {u.id: u for u in db.session.execute(db.select(User)).scalars()}
     return render_template("credential_management.html", qr_requests=qr_requests,
+                           qr_history=qr_history,
                            visitor_requests=visitor_requests, passes=passes,
                            people=people, current_time=campus_now())
 
@@ -136,7 +145,7 @@ def review_qr(request_id):
             from flask import current_app
             current_app.logger.exception("Failed recording QR replacement review audit")
             flash("No se pudo guardar la auditoría de aprobación.", "error")
-    return redirect(url_for("admin_views.admin_contact_messages") + "#qr-replacement-requests")
+    return redirect(url_for("credential.manage") + "#qr-replacement-history")
 
 
 @credential_bp.route("/visitors/create", methods=["POST"])
