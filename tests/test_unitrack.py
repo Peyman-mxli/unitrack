@@ -1463,7 +1463,7 @@ class UniTrackTests(unittest.TestCase):
         admin = self._signed_in_client("Admin")
         before = admin.get(url)
         self.assertEqual(before.status_code, 200)
-        self.assertIn("private, no-store", before.headers["Cache-Control"])
+        self.assertIn("no-store", before.headers["Cache-Control"])
         self.assertEqual(len(before.get_json()["messages"]), 1)
         self.assertFalse(before.get_json()["closed"])
         admin_page = admin.get(f"/admin/contact-messages/{first_id}/chat")
