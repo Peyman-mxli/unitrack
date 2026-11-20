@@ -1280,29 +1280,6 @@ class UniTrackTests(unittest.TestCase):
             ).scalars().first()
             self.assertIsNone(latest.check_out_time)
 
-    def test_academic_absence_requires_finalization(self):
-        from app.models.user_model import User
-        from app.models.academic_models import UniversityClass, ClassEnrollment, ClassMeeting
-        from app.services.attendance_service import get_student_attendance_summary
-        with self.app.app_context():
-            student = self.db.session.execute(self.db.select(User).where(User.username == "StudentA")).scalar_one()
-            teacher = self.db.session.execute(self.db.select(User).where(User.username == "TeacherA")).scalar_one()
-            course = UniversityClass(code="TEST101", title="Test Course", professor_id=teacher.id)
-            self.db.session.add(course)
-            self.db.session.flush()
-            self.db.session.add(ClassEnrollment(class_id=course.id, student_id=student.id,
-                                                 enrolled_at=datetime.utcnow()-timedelta(days=4)))
-            meeting = ClassMeeting(class_id=course.id, starts_at=datetime.utcnow()-timedelta(days=2),
-                                   ends_at=datetime.utcnow()-timedelta(days=2)+timedelta(hours=1))
-            self.db.session.add(meeting)
-            self.db.session.commit()
-            before = get_student_attendance_summary(student.id, selected_class_name=course.code)
-            self.assertEqual(before["absent_count"], 0)
-            meeting.finalized_at = datetime.utcnow()
-            self.db.session.commit()
-            after = get_student_attendance_summary(student.id, selected_class_name=course.code)
-            self.assertEqual(after["absent_count"], 1)
-
     def test_csrf_rejects_unprotected_form(self):
         response = self.app.test_client().post("/auth/login-page", data={
             "login": "Admin", "password": "TestingPassword123!"
@@ -1326,22 +1303,34 @@ class UniTrackTests(unittest.TestCase):
         self.assertIn(response.status_code, (302, 303))
         return client
 
+    def test_qr_only_navigation_disables_academic_attendance(self):
+        """Academic attendance is removed; QR access history stays available."""
+        admin = self._signed_in_client()
+        teacher = self._signed_in_client("TeacherA")
+        student = self._signed_in_client("StudentA")
+        self.assertEqual(teacher.get("/attendance/classes").status_code, 404)
+        self.assertEqual(admin.get("/attendance/classes").status_code, 404)
+        self.assertEqual(student.get("/attendance/classes").status_code, 404)
+        self.assertNotIn(b"Clases y asistencia", teacher.get("/professor/dashboard").data)
+        response = admin.get("/admin/attendance-history")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Historial de Entradas y Salidas", response.data)
+        self.assertNotIn(b"Asistencia acad", response.data)
+        response = student.get("/student/attendance-history")
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/student/access-control", response.headers["Location"])
+
     def test_administrator_pages_render(self):
         client = self._signed_in_client()
         for url in (
             "/admin/dashboard", "/admin/users", "/admin/validation-codes",
             "/admin/configuration", "/admin/attendance-history",
-            "/attendance/classes", "/admin/access-control/scanner",
+            "/admin/access-control/scanner",
         ):
             with self.subTest(url=url):
                 response = client.get(url)
                 self.assertEqual(response.status_code, 200, url)
                 self.assertIn(b"UniTrack", response.data)
-
-    def test_teacher_class_management_page(self):
-        client = self._signed_in_client("TeacherA")
-        response = client.get("/attendance/classes")
-        self.assertEqual(response.status_code, 200)
 
     def test_admin_dashboard_shows_population_presence_and_notices(self):
         client = self._signed_in_client()
@@ -2107,109 +2096,6 @@ class UniTrackTests(unittest.TestCase):
                     AccessLog.student_id == user_id
                 )
             ).scalar_one(), 1)
-
-    def test_student_cannot_manage_academic_classes(self):
-        client = self._signed_in_client("StudentA")
-        self.assertEqual(client.get("/attendance/classes").status_code, 403)
-
-
-    def test_meeting_rejects_offset_aware_times_without_crashing(self):
-        """Attendance stores naive campus-local times, so offsets are invalid."""
-        from app.models.academic_models import UniversityClass, ClassMeeting
-        client = self._signed_in_client("TeacherA")
-        page = client.get("/attendance/classes")
-        csrf = re.search(rb'name="csrf_token" value="([^"]+)"', page.data).group(1).decode()
-        created = client.post("/attendance/classes/create", data={
-            "code": "OFFSETGUARD101", "title": "Offset guard test", "csrf_token": csrf,
-        })
-        self.assertEqual(created.status_code, 302)
-        with self.app.app_context():
-            course = self.db.session.execute(
-                self.db.select(UniversityClass).where(
-                    UniversityClass.code == "OFFSETGUARD101"
-                )
-            ).scalar_one()
-            course_id = course.id
-        for start, end in (
-            ("2026-11-04T09:00:00-08:00", "2026-11-04T10:00:00-08:00"),
-            ("2026-11-04T09:00:00", "2026-11-04T10:00:00+00:00"),
-        ):
-            response = client.post(f"/attendance/classes/{course_id}/meeting", data={
-                "starts_at": start, "ends_at": end, "csrf_token": csrf,
-            })
-            self.assertEqual(response.status_code, 302)
-        with self.app.app_context():
-            meetings = self.db.session.execute(
-                self.db.select(ClassMeeting).where(ClassMeeting.class_id == course_id)
-            ).scalars().all()
-            self.assertEqual(meetings, [])
-
-    def test_teacher_class_workflow_and_student_report(self):
-        from app.models.academic_models import UniversityClass, ClassMeeting, ClassEnrollment
-        from app.models.user_model import User
-        from app.services.attendance_service import get_student_attendance_summary
-        from app.utils.local_time import campus_now
-        client = self._signed_in_client("TeacherA")
-        page = client.get("/attendance/classes")
-        csrf_match = re.search(rb'name="csrf_token" value="([^"]+)"', page.data)
-        self.assertIsNotNone(csrf_match)
-        csrf = csrf_match.group(1).decode("utf-8")
-        create = client.post("/attendance/classes/create", data={
-            "code": "ENDTOEND101", "title": "Integration Test Class",
-            "csrf_token": csrf,
-        })
-        self.assertEqual(create.status_code, 302)
-        with self.app.app_context():
-            course = self.db.session.execute(
-                self.db.select(UniversityClass).where(UniversityClass.code == "ENDTOEND101")
-            ).scalar_one()
-            course_id = course.id
-
-        enroll = client.post(f"/attendance/classes/{course_id}/enroll", data={
-            "student_identifier": "StudentA", "csrf_token": csrf,
-        })
-        self.assertEqual(enroll.status_code, 302)
-        now = campus_now()
-        # Simulate a meeting after the student's existing enrollment.
-        with self.app.app_context():
-            student = self.db.session.execute(
-                self.db.select(User).where(User.username == "StudentA")
-            ).scalar_one()
-            membership = self.db.session.execute(self.db.select(ClassEnrollment).where(
-                ClassEnrollment.class_id == course_id,
-                ClassEnrollment.student_id == student.id
-            )).scalar_one()
-            membership.enrolled_at = now - timedelta(days=3)
-            self.db.session.commit()
-            student_id = student.id
-
-        start = now - timedelta(days=1)
-        end = start + timedelta(hours=1)
-        schedule = client.post(f"/attendance/classes/{course_id}/meeting", data={
-            "starts_at": start.strftime("%Y-%m-%dT%H:%M"),
-            "ends_at": end.strftime("%Y-%m-%dT%H:%M"),
-            "csrf_token": csrf
-        })
-        self.assertEqual(schedule.status_code, 302)
-        with self.app.app_context():
-            meeting = self.db.session.execute(
-                self.db.select(ClassMeeting).where(ClassMeeting.class_id == course_id)
-            ).scalar_one()
-            meeting_id = meeting.id
-        mark = client.post(f"/attendance/meetings/{meeting_id}/mark", data={
-            "student_id": student_id, "status": "Present", "csrf_token": csrf
-        })
-        self.assertEqual(mark.status_code, 302)
-        finalize = client.post(f"/attendance/meetings/{meeting_id}/finalize", data={
-            "csrf_token": csrf
-        })
-        self.assertEqual(finalize.status_code, 302)
-        with self.app.app_context():
-            report = get_student_attendance_summary(student_id, selected_class_name="ENDTOEND101")
-            self.assertEqual(report["present_count"], 1)
-            self.assertEqual(report["absent_count"], 0)
-            self.assertEqual(report["attendance_percentage"], 100.0)
-
 
     def test_admin_can_deactivate_and_reactivate_without_deleting_user(self):
         from app.models.user_model import User
