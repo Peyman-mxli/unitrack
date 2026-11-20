@@ -1172,6 +1172,41 @@ class UniTrackTests(unittest.TestCase):
             ).scalar_one()
             self.assertEqual(before_tokens, after_tokens)
 
+    def test_access_control_shared_admin_design_and_private_member_history(self):
+        """All roles see the same QR components, with personal-only member history."""
+        from app.models.user_model import User
+        from app.services.access_log_service import create_check_in
+        with self.app.app_context():
+            members = {}
+            for username in ("StudentA", "TeacherA", "StaffA"):
+                user = self.db.session.execute(self.db.select(User).where(
+                    User.username == username
+                )).scalar_one()
+                members[username] = user.id
+                create_check_in(student_id=user.id)
+        admin = self._signed_in_client("Admin")
+        self.assertIn(b'class="history-card"', admin.get("/admin/access-control").data)
+        for username, route in (
+            ("StudentA", "/student/access-control"),
+            ("TeacherA", "/professor/access-control"),
+            ("StaffA", "/personal/access-control"),
+        ):
+            with self.subTest(username=username):
+                client = self._signed_in_client(username)
+                response = client.get(route)
+                self.assertEqual(response.status_code, 200)
+                html = response.data.decode("utf-8")
+                for marker in ('class="operator-qr-card"', 'id="operatorQrTitle"',
+                               'id="operatorPassTitle"', 'id="operatorOwnQrTitle"',
+                               'class="summary-card"', 'data-live-campus-history'):
+                    self.assertIn(marker, html)
+                self.assertIn('name="qr_text"', html)
+                self.assertIn('name="pass_code"', html)
+                self.assertNotIn('Ver historial completo', html)
+                self.assertNotIn('class="history-card"', html)
+                body = client.get("/api/access-control/live").get_json()
+                self.assertEqual({e["username"] for e in body["events"]}, {username})
+
     def test_role_access_history_shows_each_event_with_counts(self):
         """All three role pages share the event-by-event design and own-user scope."""
         from app.models.user_model import User
