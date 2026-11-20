@@ -958,6 +958,12 @@
                         <span>{{ t('dashboard') }}</span>
                     </a>
 
+                    <a href="{{ url_for('notice_inbox') }}" class="nav-link {% if request.endpoint == 'notice_inbox' %}active{% endif %}" aria-label="{{ 'Notificaciones, ' ~ notice_unread_count ~ ' sin leer' if current_language == 'es' else 'Notifications, ' ~ notice_unread_count ~ ' unread' }}">
+                        <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg></span>
+                        <span>{{ "Notificaciones" if current_language == "es" else "Notifications" }}</span>
+                        {% if notice_unread_count %}<span data-notice-sidebar-count style="margin-left:auto;border-radius:20px;background:#7c3aed;color:white;padding:2px 8px;font-size:12px;font-weight:800">{{ notice_unread_count }}</span>{% endif %}
+                    </a>
+
                     <a href="/admin/validation-codes" class="nav-link {% block nav_validation_codes %}{% endblock %}">
                         <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M9 9h6M9 12h6M9 15h4"/><path d="m8 3 1 3m7-3 1 3"/></svg></span>
                         <span>{{ t('validation_codes') }}</span>
@@ -968,7 +974,7 @@
                         <span>{{ t('users') }}</span>
                     </a>
 
-                    <a href="/admin/dashboard#admin-notices" class="nav-link">
+                    <a href="{{ url_for('admin_views.admin_send_notices') }}" class="nav-link">
                         <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m3.5 7 8.5 6 8.5-6"/></svg></span>
                         <span>{{ "Enviar avisos" if current_language == "es" else "Send notices" }}</span>
                     </a>
@@ -1039,7 +1045,7 @@
                         {% endif %}
                     {% endwith %}
 
-                    {% include "_university_notices.html" %}
+                    {# Notices live in the inbox, never in the shared page layout. #}
 
 {% block content %}
                     <div class="content-card">
