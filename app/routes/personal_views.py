@@ -311,8 +311,8 @@ def access_control_page():
     access_events = build_personal_access_events(current_user, selected_date=parsed_date)
     access_event_counts = count_personal_access_events(access_events)
 
-    from app.services.scan_token_service import issue_access_credential
-    access_token, access_qr_id_code = issue_access_credential(current_user)
+    from app.services.permanent_credential_service import permanent_credential_for_user
+    access_token, access_qr_id_code = permanent_credential_for_user(current_user)
     access_qr_payload = build_personal_access_qr_payload(current_user, token=access_token)
     access_qr_image = generate_qr_image_data_uri(access_qr_payload)
 
