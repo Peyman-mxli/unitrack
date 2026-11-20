@@ -1393,6 +1393,105 @@ class UniTrackTests(unittest.TestCase):
         self.assertIn("Credenciales y Visitantes".encode("utf-8"),
                       admin.get("/credentials/manage").data)
 
+    def test_qr_replacement_request_is_reviewed_in_admin_messages_inbox(self):
+        """Users request, admin approves, both sides retain approval history."""
+        from app.models.user_model import User
+        from app.models.permanent_credential_model import CredentialReplacementRequest
+        from app.services.permanent_credential_service import (
+            permanent_credential_for_user, resolve_permanent_credential
+        )
+        from app.models.admin_audit_model import AdminAuditLog
+        from werkzeug.security import generate_password_hash
+
+        with self.app.app_context():
+            person = User(
+                username="QRInboxRequester", email="qr-inbox-requester@example.test",
+                first_name="Inbox", last_name="Requester", role="estudiante",
+                phone="0000000000", language="es", is_active_user=True,
+                password_hash=generate_password_hash("TestingPassword123!"),
+            )
+            self.db.session.add(person)
+            self.db.session.commit()
+            uid = person.id
+            previous_qr, _ = permanent_credential_for_user(person)
+
+        student = self._signed_in_client("QRInboxRequester")
+        card = student.get("/credentials/card")
+        csrf = re.search(rb'name="csrf_token" value="([^"]+)"', card.data).group(1).decode()
+        sent = student.post("/credentials/request-replacement", data={
+            "reason": "Extravié mi credencial QR impresa.",
+            "csrf_token": csrf,
+        })
+        self.assertEqual(sent.status_code, 302)
+        self.assertIn(b"Pendiente de aprobaci", student.get("/credentials/card").data)
+
+        admin = self._signed_in_client("Admin")
+        inbox = admin.get("/admin/contact-messages")
+        self.assertEqual(inbox.status_code, 200)
+        self.assertIn(b"QRInboxRequester", inbox.data)
+        self.assertIn(b"Extravi", inbox.data)
+        self.assertIn(b"Aprobar y cambiar QR", inbox.data)
+        token = re.search(rb'name="csrf_token" value="([^"]+)"', inbox.data).group(1).decode()
+
+        with self.app.app_context():
+            item = self.db.session.execute(
+                self.db.select(CredentialReplacementRequest).where(
+                    CredentialReplacementRequest.user_id == uid
+                )
+            ).scalar_one()
+            request_id = item.id
+            self.assertEqual(item.status, "pending")
+            self.assertEqual(resolve_permanent_credential(previous_qr)[0].id, uid)
+
+        # An unrelated account can neither view the admin queue nor approve.
+        other = self._signed_in_client("StudentA")
+        self.assertEqual(other.get("/admin/contact-messages").status_code, 302)
+        other_post = other.post(
+            f"/credentials/replacement/{request_id}/review",
+            data={"decision": "approve", "csrf_token": csrf},
+        )
+        self.assertIn(other_post.status_code, (302, 403, 400))
+        with self.app.app_context():
+            self.assertEqual(
+                self.db.session.get(CredentialReplacementRequest, request_id).status,
+                "pending",
+            )
+
+        approved = admin.post(
+            f"/credentials/replacement/{request_id}/review",
+            data={"decision": "approve", "csrf_token": token},
+        )
+        self.assertEqual(approved.status_code, 302)
+        self.assertIn("/admin/contact-messages", approved.headers["Location"])
+        with self.app.app_context():
+            reviewed = self.db.session.get(CredentialReplacementRequest, request_id)
+            self.assertEqual(reviewed.status, "approved")
+            self.assertIsNotNone(reviewed.reviewed_at)
+            admin_account = self.db.session.execute(
+                self.db.select(User).where(User.username == "Admin")
+            ).scalar_one()
+            self.assertEqual(reviewed.reviewed_by, admin_account.id)
+            with self.assertRaises(ValueError):
+                resolve_permanent_credential(previous_qr)
+            new_qr, _ = permanent_credential_for_user(self.db.session.get(User, uid))
+            self.assertNotEqual(new_qr, previous_qr)
+            self.assertEqual(resolve_permanent_credential(new_qr)[0].id, uid)
+            audit = self.db.session.execute(
+                self.db.select(AdminAuditLog).where(
+                    AdminAuditLog.action == "qr_replacement_approved",
+                    AdminAuditLog.target_user_id == uid,
+                )
+            ).scalars().first()
+            self.assertIsNotNone(audit)
+
+        updated_inbox = admin.get("/admin/contact-messages")
+        self.assertIn(b"QRInboxRequester", updated_inbox.data)
+        self.assertIn(b"Aprobado", updated_inbox.data)
+        self.assertIn(b"Revisado por", updated_inbox.data)
+        self.assertIn(b"Admin", updated_inbox.data)
+        self.assertIn(b"Fecha de resoluci", updated_inbox.data)
+        self.assertIn(b"Aprobada", student.get("/credentials/card").data)
+
     def test_permanent_cards_and_approved_qr_rotation(self):
         """A registered user's printed QR is stable until admin-approved replacement."""
         from werkzeug.security import generate_password_hash
