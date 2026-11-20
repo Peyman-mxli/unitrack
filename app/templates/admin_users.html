@@ -742,6 +742,49 @@
             font-size:28px;
         }
     }
+
+    /* Compact desktop directory: essential information stays visible at once. */
+    .users-page{gap:14px;padding:0 0 5px}
+    .users-hero,.users-panel,.summary-card{border-radius:15px;box-shadow:0 6px 18px rgba(77,60,145,.07)}
+    .users-hero{padding:15px 19px}
+    .users-hero h1{font-size:25px;margin-bottom:5px}
+    .users-hero p{font-size:12px;line-height:1.45;max-width:none}
+    .users-summary-grid{gap:9px}
+    .summary-card{padding:12px;min-width:0}
+    .summary-label{gap:7px;margin-bottom:5px;font-size:11px}
+    .summary-icon{width:29px;height:29px;font-size:15px;border-radius:9px}
+    .summary-value{font-size:25px}
+    .summary-subtext{font-size:11px;line-height:1.3;margin-top:5px}
+    .users-panel{padding:15px}
+    .panel-header{margin-bottom:11px}
+    .panel-title-wrap h2{font-size:20px}
+    .panel-title-wrap p{font-size:12px}
+    .users-toolbar{gap:9px;padding:10px;margin-bottom:11px;border-radius:12px;grid-template-columns:minmax(170px,2fr) minmax(115px,1fr) minmax(115px,1fr) auto}
+    .field-group{gap:4px}
+    .field-group label{font-size:11px}
+    .field-control{height:35px;border-radius:9px;padding:0 9px;font-size:12px}
+    .toolbar-actions{gap:6px;flex-wrap:nowrap}
+    .users-toolbar .btn{height:35px;font-size:12px;border-radius:9px;padding:0 10px}
+    .users-table-wrap{overflow-x:auto;border-radius:12px}
+    .users-table{min-width:1020px;table-layout:auto}
+    .users-table thead th{font-size:10px;letter-spacing:0;padding:9px 7px}
+    .users-table tbody td{font-size:11px;padding:8px 7px;vertical-align:middle;line-height:1.35}
+    .users-table td:nth-child(3){overflow-wrap:anywhere;max-width:180px}
+    .user-main{min-width:125px;gap:7px}
+    .user-avatar{width:29px;height:29px;flex:0 0 29px;border-radius:9px;font-size:12px}
+    .user-name{font-size:11px;line-height:1.2}
+    .user-username,.optional-muted{font-size:10px}
+    .users-table .badge,.users-table .must-change{min-height:22px;padding:4px 7px;font-size:10px}
+    .users-table .status-dot{width:6px;height:6px}
+    .user-actions-menu{min-width:84px}
+    .user-actions-menu summary{font-size:11px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:4px;color:#5b21b6;background:#f3ecff;border:1px solid #dac7ff;border-radius:8px;padding:6px 9px;list-style:none}
+    .user-actions-menu summary::-webkit-details-marker{display:none}
+    .user-actions-menu summary::after{content:"⌄"}
+    .user-actions-menu[open] summary::after{content:"⌃"}
+    .user-actions-menu .row-actions{min-width:0;max-width:300px;gap:5px;padding:7px 0;flex-wrap:wrap}
+    .user-actions-menu .action-btn{font-size:10px;min-height:27px;padding:6px 8px;border-radius:7px}
+    @media(max-width:1100px){.users-summary-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.users-toolbar{grid-template-columns:repeat(2,minmax(0,1fr))}.toolbar-actions{justify-content:flex-start}}
+    @media(max-width:600px){.users-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.users-hero h1{font-size:22px}.users-panel{padding:10px}.users-toolbar{grid-template-columns:1fr}}
 </style>
 
 <div class="users-page">
@@ -945,7 +988,9 @@
                         </td>
 
                         <td>
-                            <div class="row-actions">
+                            <details class="user-actions-menu">
+                              <summary>{{ "Acciones" if current_language == "es" else "Actions" }}</summary>
+                              <div class="row-actions">
                                 {% if user.role in ['estudiante','docente','personal','administrativo'] %}<a href="{{ url_for('credential.card',user_id=user.id) }}" class="action-btn action-id">Imprimir credencial</a>{% endif %}
                                 <a href="/admin/users/{{ user.id }}/edit" class="action-btn action-edit">{{ t('Edit') }}</a>
 
@@ -956,7 +1001,8 @@
                                 <a href="/admin/users/{{ user.id }}/change-password" class="action-btn action-password">{{ t('Change Password') }}</a>
 
                                 <a href="/admin/users/{{ user.id }}/delete" class="action-btn action-delete">{{ t('Remove') }}</a>
-                            </div>
+                              </div>
+                            </details>
                         </td>
                     </tr>
                     {% endfor %}
