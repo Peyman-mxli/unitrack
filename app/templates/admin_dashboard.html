@@ -560,7 +560,7 @@
       <a href="{{ url_for('admin_views.admin_users') }}" class="btn btn-primary">{{ "Administrar usuarios" if es else "Manage users" }}</a>
       <a href="/admin/attendance-history" class="btn btn-secondary">{{ "Historial de asistencia" if es else "Attendance history" }}</a>
       <a href="/admin/access-control" class="btn btn-secondary">{{ "Escanear acceso" if es else "Scan campus access" }}</a>
-      <a href="#admin-notices" class="btn btn-secondary">{{ "Enviar aviso" if es else "Send notice" }}</a>
+      <a href="{{ url_for('admin_views.admin_send_notices') }}" class="btn btn-secondary">{{ "Enviar aviso" if es else "Send notice" }}</a>
       <a href="{{ url_for('admin_views.admin_contact_messages') }}" class="btn btn-secondary">{{ "Ver mensajes y reportes" if es else "Read contact messages" }}</a>
     </div>
   </section>
@@ -633,49 +633,6 @@
     </div>
   </section>
 
-  <section class="section-panel panel-card" id="admin-notices">
-    <h3 class="panel-title">{{ "Avisos para la comunidad" if es else "Community notices" }}</h3>
-    <p class="panel-subtitle">{{ "Envía un comunicado dentro de UniTrack a todos o solo a estudiantes, docentes o trabajadores. Los destinatarios lo verán cuando abran o actualicen su página." if es else "Post an in-app announcement to everyone or a selected group. Recipients see it when they open or refresh UniTrack." }}</p>
-    <form method="POST" action="{{ url_for('admin_views.admin_create_notice') }}" style="display:grid;gap:12px;max-width:850px;">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <label for="notice_title"><strong>{{ "Asunto" if es else "Subject" }}</strong></label>
-      <input class="input-field" id="notice_title" name="title" minlength="3" maxlength="120" required placeholder="{{ 'Ejemplo: Aviso de acceso al campus' if es else 'e.g., Campus access notice' }}">
-      <label for="notice_audience"><strong>{{ "Destinatarios" if es else "Recipients" }}</strong></label>
-      <select class="select-field" id="notice_audience" name="audience" required>
-        <option value="all">{{ "Todos los usuarios" if es else "Everyone" }}</option>
-        <option value="estudiante">{{ "Solo estudiantes" if es else "Students only" }}</option>
-        <option value="docente">{{ "Solo docentes" if es else "Teachers only" }}</option>
-        <option value="personal">{{ "Solo trabajadores" if es else "Staff only" }}</option>
-        <option value="administrativo">{{ "Solo administradores" if es else "Admins only" }}</option>
-      </select>
-      <label for="notice_body"><strong>{{ "Mensaje" if es else "Message" }}</strong></label>
-      <textarea id="notice_body" name="body" minlength="5" maxlength="2000" rows="5" required
-                style="width:100%;box-sizing:border-box;border:1px solid #dbe4f0;border-radius:12px;padding:13px;font:inherit;"
-                placeholder="{{ 'Escribe el aviso que recibirán los usuarios...' if es else 'Write the announcement...' }}"></textarea>
-      <button type="submit" class="btn btn-primary" style="justify-self:start;">{{ "Publicar aviso" if es else "Publish notice" }}</button>
-    </form>
-    <h4 class="panel-title" style="margin-top:24px;">{{ "Avisos recientes" if es else "Recent notices" }}</h4>
-    <div class="table-wrap">
-      <table class="dashboard-table">
-        <thead><tr><th>{{ "Aviso" if es else "Notice" }}</th><th>{{ "Destinatarios" if es else "Recipients" }}</th><th>{{ "Fecha" if es else "Date" }}</th><th>{{ "Estado" if es else "Status" }}</th><th>{{ "Acción" if es else "Action" }}</th></tr></thead>
-        <tbody>
-          {% for notice in recent_notices %}
-          <tr>
-            <td><strong>{{ notice.title }}</strong><div style="white-space:pre-wrap;overflow-wrap:anywhere;max-width:430px;">{{ notice.body }}</div></td>
-            <td>{{ {'all':('Todos' if es else 'Everyone'),'estudiante':('Estudiantes' if es else 'Students'),'docente':('Docentes' if es else 'Teachers'),'personal':('Trabajadores' if es else 'Staff'),'administrativo':('Administradores' if es else 'Admins')}.get(notice.audience,notice.audience) }}</td>
-            <td>{{ notice.created_at.strftime('%d/%m/%Y %H:%M UTC') }}</td>
-            <td>{% if notice.is_active %}<span class="badge badge-success">{{ "Publicado" if es else "Published" }}</span>{% else %}<span class="badge badge-neutral">{{ "Archivado" if es else "Archived" }}</span>{% endif %}</td>
-            <td>{% if notice.is_active %}
-              <form method="POST" action="{{ url_for('admin_views.admin_archive_notice', notice_id=notice.id) }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button class="btn btn-secondary" type="submit">{{ "Archivar" if es else "Archive" }}</button>
-              </form>
-            {% else %}—{% endif %}</td>
-          </tr>
-          {% else %}<tr><td colspan="5">{{ "Todavía no se han publicado avisos." if es else "No notices have been published." }}</td></tr>{% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </section>
+
 </div>
 {% endblock %}
