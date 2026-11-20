@@ -708,10 +708,20 @@ def create_app():
         try:
             from .models.contact_message_model import ContactMessage
             from .models.support_reply_model import SupportReply, SupportReportSender
+        from .models.support_conversation_model import SupportChatState, SupportChatMessage
             if current_user.role == "administrativo":
-                return db.session.execute(db.select(db.func.count(ContactMessage.id)).where(
-                    ContactMessage.status == "new"
-                )).scalar_one()
+                from .models.support_conversation_model import SupportChatMessage
+                new_reports = db.session.execute(
+                    db.select(db.func.count(ContactMessage.id)).where(
+                        ContactMessage.status == "new"
+                    )
+                ).scalar_one()
+                unread_followups = db.session.execute(
+                    db.select(db.func.count(SupportChatMessage.id)).where(
+                        SupportChatMessage.admin_read_at.is_(None)
+                    )
+                ).scalar_one()
+                return new_reports + unread_followups
             return db.session.execute(db.select(db.func.count(SupportReply.id)).where(
                 SupportReply.recipient_user_id == current_user.id,
                 SupportReply.read_at.is_(None)
