@@ -25,17 +25,23 @@
 .ut-chat-actions{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:12px}
 .ut-chat-closed{padding:13px;background:#fff1f2;border:1px solid #fecdd3;color:#991b1b;border-radius:11px;margin-top:14px;font-weight:700;font-size:13px}
 @media(max-width:630px){.ut-chat{padding:12px}.ut-chat-bubble{max-width:97%}.ut-chat-stream{padding:9px}}
+.ut-chat-delete{margin-top:16px;border:1px solid #fecaca;background:#fff7f7;border-radius:12px;padding:12px 16px;color:#991b1b}
+.ut-chat-delete summary{cursor:pointer;font-size:13px;font-weight:800}
+.ut-chat-delete p{font-size:12px;line-height:1.5}
+.ut-chat-delete label{display:block;font-size:12px;font-weight:700;margin:10px 0 5px}
+.ut-chat-delete-controls{display:flex;gap:9px;flex-wrap:wrap}
+.ut-chat-delete-controls input{min-width:170px;border:1px solid #fca5a5;border-radius:9px;padding:10px;font-size:13px}
 </style>
 <section class="ut-chat">
 <div class="ut-chat-head">
 <div><h2>{{ report.name }} · {{ report.category|capitalize }}</h2>
 <small>{{ "Reporte original" if current_language == "es" else "Original report" }} #{{ report.id }} · {{ report.created_at.strftime('%Y-%m-%d %H:%M UTC') }}</small></div>
-<span class="ut-chat-pill {% if closed %}closed{% endif %}">{{ ("Cerrado" if current_language == "es" else "Closed") if closed else ("Chat abierto" if current_language == "es" else "Chat open") }}</span>
+<span id="ut-chat-status" class="ut-chat-pill {% if closed %}closed{% endif %}">{{ ("Cerrado" if current_language == "es" else "Closed") if closed else ("Chat abierto" if current_language == "es" else "Chat open") }}</span>
 </div>
-<div class="ut-chat-stream" aria-label="{{ 'Mensajes de la conversación' if current_language == 'es' else 'Conversation messages' }}">
+<div id="ut-chat-stream" data-chat-updates-url="{{ url_for('credential.support_chat_updates',report_id=report.id) }}" data-chat-admin="{{ '1' if is_admin else '0' }}" data-chat-reporter="{{ report.name }}" aria-label="{{ 'Mensajes de la conversación' if current_language == 'es' else 'Conversation messages' }}">
 {% for entry in messages %}
 {% set mine = (is_admin and entry.sender == 'admin') or (not is_admin and entry.sender == 'reporter') %}
-<article class="ut-chat-bubble {% if mine %}mine{% endif %}">
+<article class="ut-chat-bubble {% if mine %}mine{% endif %}" data-chat-key="{{ entry.kind }}-{{ entry.id }}">
 <strong>{{ ("Administrador" if current_language == "es" else "Administrator") if entry.sender == 'admin' else report.name }}</strong>
 <p class="text">{{ entry.body }}</p>
 <small>{{ entry.when.strftime('%Y-%m-%d %H:%M UTC') if entry.when else '—' }}</small>
@@ -43,10 +49,10 @@
 {% endfor %}
 </div>
 {% if closed %}
-<div class="ut-chat-closed">{{ "Esta conversación fue cerrada por un administrador. Los mensajes siguen disponibles, pero ya no se pueden enviar respuestas." if current_language == 'es' else "An administrator closed this conversation. Its history is available, but no more replies can be sent." }}
+<div id="ut-chat-closed" class="ut-chat-closed">{{ "Esta conversación fue cerrada por un administrador. Los mensajes siguen disponibles, pero ya no se pueden enviar respuestas." if current_language == 'es' else "An administrator closed this conversation. Its history is available, but no more replies can be sent." }}
 {% if state and state.closed_at %}<small> · {{ state.closed_at.strftime('%Y-%m-%d %H:%M UTC') }}</small>{% endif %}</div>
 {% else %}
-<form class="ut-chat-form" method="post" action="{{ url_for('admin_views.admin_reply_to_report',message_id=report.id) if is_admin else url_for('credential.my_support_chat',report_id=report.id) }}">
+<form id="ut-chat-reply-form" class="ut-chat-form" method="post" action="{{ url_for('admin_views.admin_reply_to_report',message_id=report.id) if is_admin else url_for('credential.my_support_chat',report_id=report.id) }}">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 <label for="chat-message">{{ "Escribe tu respuesta" if current_language == 'es' else "Write your reply" }}</label>
 <textarea id="chat-message" name="{{ 'reply' if is_admin else 'message' }}" required minlength="1" maxlength="3000" placeholder="{{ 'Escribe un mensaje privado...' if current_language == 'es' else 'Write a private message...' }}"></textarea>
@@ -56,11 +62,89 @@
 <div class="ut-chat-actions">
 <a class="ut-chat-button" href="{{ url_for('admin_views.admin_contact_messages',status='all') if is_admin else url_for('credential.my_messages') }}">{{ "Volver a mensajes" if current_language == 'es' else "Back to messages" }}</a>
 {% if is_admin and not closed %}
-<form method="post" action="{{ url_for('admin_views.admin_close_support_chat',message_id=report.id) }}" onsubmit="return confirm('¿Cerrar esta conversación? El usuario ya no podrá responder.')">
+<form id="ut-chat-close-form" method="post" action="{{ url_for('admin_views.admin_close_support_chat',message_id=report.id) }}" onsubmit="return confirm('¿Cerrar esta conversación? El usuario ya no podrá responder.')">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 <button type="submit" class="ut-chat-button danger">{{ "Cerrar chat" if current_language == 'es' else "Close chat" }}</button>
 </form>
 {% endif %}
 </div>
+{% if is_admin %}
+<details class="ut-chat-delete" id="ut-chat-delete">
+  <summary>Eliminar chat permanentemente</summary>
+  <p>Esta acción elimina el reporte, todos los mensajes y el historial de esta conversación de la base de datos actual. No se podrá recuperar desde UniTrack.</p>
+  <form method="post" action="{{ url_for('admin_views.admin_delete_support_chat',message_id=report.id) }}" onsubmit="return confirm('¿Eliminar PERMANENTEMENTE este chat y todos sus mensajes para ambas personas?')">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label for="ut-chat-delete-confirm">Escribe ELIMINAR para confirmar</label>
+    <div class="ut-chat-delete-controls">
+      <input id="ut-chat-delete-confirm" name="confirm_delete" required autocomplete="off" pattern="ELIMINAR" placeholder="ELIMINAR">
+      <button class="ut-chat-button danger" type="submit">Eliminar definitivamente</button>
+    </div>
+  </form>
+</details>
+{% endif %}
 </section>
+<script>
+(function(){
+  'use strict';
+  const stream=document.getElementById('ut-chat-stream');
+  if(!stream) return;
+  const status=document.getElementById('ut-chat-status');
+  const updatesUrl=stream.dataset.chatUpdatesUrl;
+  const admin=stream.dataset.chatAdmin==='1';
+  const existing=new Set([...stream.querySelectorAll('[data-chat-key]')].map(el=>el.dataset.chatKey));
+  let busy=false;
+  let lastClosed={{ 'true' if closed else 'false' }};
+  function stopInput(){
+    const reply=document.getElementById('ut-chat-reply-form');
+    if(reply) reply.remove();
+    const close=document.getElementById('ut-chat-close-form');
+    if(close) close.remove();
+    if(!document.getElementById('ut-chat-closed')){
+      const panel=document.createElement('div');
+      panel.id='ut-chat-closed';
+      panel.className='ut-chat-closed';
+      panel.textContent='Esta conversación fue cerrada por un administrador. Puedes consultar los mensajes, pero ya no responder.';
+      stream.insertAdjacentElement('afterend',panel);
+    }
+    if(status){status.textContent='Cerrado'; status.classList.add('closed');}
+  }
+  function appendMessage(item){
+    if(existing.has(item.key)) return;
+    existing.add(item.key);
+    const nearBottom=stream.scrollHeight-stream.scrollTop-stream.clientHeight<100;
+    const article=document.createElement('article');
+    article.className='ut-chat-bubble'+(((item.sender==='admin')===admin)?' mine':'');
+    article.dataset.chatKey=item.key;
+    const author=document.createElement('strong');
+    author.textContent=item.sender==='admin'?'Administrador':stream.dataset.chatReporter;
+    const body=document.createElement('p');
+    body.className='text';
+    body.textContent=item.body;
+    const stamp=document.createElement('small');
+    stamp.textContent=item.when;
+    article.append(author,body,stamp);
+    stream.appendChild(article);
+    if(nearBottom) stream.scrollTop=stream.scrollHeight;
+  }
+  async function refresh(){
+    if(busy||document.hidden) return;
+    busy=true;
+    try{
+      const response=await fetch(updatesUrl,{cache:'no-store',credentials:'same-origin',headers:{'Accept':'application/json'}});
+      if(response.status===404||response.status===410){
+        window.location.replace({{ (url_for('admin_views.admin_contact_messages',status='all') if is_admin else url_for('credential.my_messages'))|tojson }});
+        return;
+      }
+      if(!response.ok) return;
+      const payload=await response.json();
+      for(const item of payload.messages||[]) appendMessage(item);
+      if(payload.closed&&!lastClosed){lastClosed=true;stopInput();}
+    }catch(_error){/* Offline users can keep reading cached messages. */}
+    finally{busy=false;}
+  }
+  if(stream.scrollHeight>stream.clientHeight) stream.scrollTop=stream.scrollHeight;
+  window.setInterval(refresh,2500);
+  window.addEventListener('focus',refresh);
+})();
+</script>
 {% endblock %}
