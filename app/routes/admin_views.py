@@ -43,6 +43,8 @@ from app.services.account_security_service import set_new_password, password_reu
 from app.services.email_service import send_password_changed_alert
 from app.utils.session_security import bind_authenticated_session
 from app.models.user_model import User
+from app.models.permanent_credential_model import PermanentCredential, CredentialReplacementRequest
+from app.models.visitor_access_model import VisitorRequest, VisitorPass
 from app.models.password_history_model import PasswordHistory
 from app.models.login_security_model import LoginSecurityState
 from app.models.access_log_model import AccessLog
@@ -296,6 +298,18 @@ def can_delete_user(target_user, acting_user, check_history=True):
         uid = target_user.id
         referenced = [
             db.select(AccessLog.id).where(AccessLog.student_id == uid),
+            db.select(CredentialReplacementRequest.id).where(
+                db.or_(CredentialReplacementRequest.user_id == uid,
+                       CredentialReplacementRequest.reviewed_by == uid)
+            ),
+            db.select(VisitorRequest.id).where(
+                db.or_(VisitorRequest.user_id == uid,
+                       VisitorRequest.reviewed_by == uid)
+            ),
+            db.select(VisitorPass.id).where(
+                db.or_(VisitorPass.linked_user_id == uid,
+                       VisitorPass.issued_by == uid)
+            ),
             db.select(ClassEnrollment.id).where(ClassEnrollment.student_id == uid),
             db.select(ClassAttendance.id).where(
                 db.or_(ClassAttendance.student_id == uid, ClassAttendance.recorded_by == uid)
@@ -1658,6 +1672,7 @@ def admin_delete_user_action(user_id):
         # Short-lived security state has no historical value; remove it before
         # deleting an account that has no permanent attendance/audit history.
         db.session.execute(db.delete(ScanToken).where(ScanToken.user_id == user.id))
+        db.session.execute(db.delete(PermanentCredential).where(PermanentCredential.user_id == user.id))
         db.session.execute(db.delete(UserPresence).where(UserPresence.user_id == user.id))
         db.session.execute(db.delete(PasswordHistory).where(PasswordHistory.user_id == user.id))
         db.session.execute(db.delete(LoginSecurityState).where(LoginSecurityState.user_id == user.id))
