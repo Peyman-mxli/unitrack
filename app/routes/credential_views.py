@@ -39,7 +39,16 @@ def card(user_id=None):
     token, manual_code = permanent_credential_for_user(target)
     qr_text = build_student_access_qr_payload(target, token=token)
     image = generate_qr_image_data_uri(qr_text)
-    return render_template("credential_card.html", person=target, qr_image=image,
+    card_base = {
+        "administrativo": "admin_base.html",
+        "estudiante": "student_base.html",
+        "docente": "professor_base.html",
+        "personal": "personal_base.html",
+    }.get(current_user.role)
+    if not card_base:
+        abort(403)
+    return render_template("credential_card.html", card_base=card_base,
+                           active_page="credential", person=target, qr_image=image,
                            code=manual_code, role_labels={
                                "estudiante": "ESTUDIANTE", "docente": "DOCENTE",
                                "personal": "PERSONAL", "administrativo": "ADMINISTRACIÓN"
