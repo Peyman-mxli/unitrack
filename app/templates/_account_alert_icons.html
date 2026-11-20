@@ -1,0 +1,23 @@
+{# Compact unread shortcuts visible next to account role/name/active status. #}
+<style>
+.uni-account-alerts{display:flex;align-items:center;gap:7px;justify-content:flex-end;margin-top:6px}
+.uni-alert-link{position:relative;display:inline-flex;align-items:center;justify-content:center;width:30px;height:29px;border:1px solid rgba(255,255,255,.28);border-radius:9px;background:rgba(255,255,255,.15);color:#fff!important;text-decoration:none!important;transition:background .15s,transform .15s;flex-shrink:0}
+.uni-alert-link:hover,.uni-alert-link:focus-visible{background:rgba(255,255,255,.3);transform:translateY(-1px)}
+.uni-alert-link svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.uni-alert-count{position:absolute;top:-7px;right:-8px;min-width:17px;height:17px;padding:0 4px;border-radius:20px;background:#e21f38;border:1.5px solid #fff;color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;line-height:1;font-weight:900;box-shadow:0 2px 6px #0004}
+@media(max-width:540px){.uni-account-alerts{gap:5px}.uni-alert-link{width:27px;height:27px}}
+</style>
+<div class="uni-account-alerts" aria-label="{{ 'Mensajes y notificaciones' if current_language == 'es' else 'Messages and notifications' }}">
+<a class="uni-alert-link" href="{{ url_for('admin_views.admin_contact_messages') if current_user.role == 'administrativo' else url_for('credential.my_messages') }}"
+   title="{{ 'Mensajes sin leer' if current_language == 'es' else 'Unread messages' }}: {{ message_unread_count }}"
+   aria-label="{{ 'Mensajes' if current_language == 'es' else 'Messages' }}: {{ message_unread_count }}">
+  <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m3.5 7 8.5 6 8.5-6"/></svg>
+  {% if message_unread_count %}<span class="uni-alert-count" data-unread-messages>{{ '99+' if message_unread_count > 99 else message_unread_count }}</span>{% endif %}
+</a>
+<a class="uni-alert-link" href="{{ url_for('notice_inbox') }}"
+   title="{{ 'Notificaciones sin leer' if current_language == 'es' else 'Unread notifications' }}: {{ notice_unread_count }}"
+   aria-label="{{ 'Notificaciones' if current_language == 'es' else 'Notifications' }}: {{ notice_unread_count }}">
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>
+  {% if notice_unread_count %}<span class="uni-alert-count" data-unread-notices>{{ '99+' if notice_unread_count > 99 else notice_unread_count }}</span>{% endif %}
+</a>
+</div>
