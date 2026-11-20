@@ -31,6 +31,14 @@
 .contact-private-reply label{font-size:12px;font-weight:800;color:#334155}
 .contact-private-reply textarea{width:100%;padding:10px;border-radius:9px;border:1px solid #cbd5e1;resize:vertical;font:13px Arial}
 .contact-private-reply button{justify-self:start;padding:8px 14px}
+.support-chat-entries{display:grid;gap:8px;margin-top:14px}
+.support-chat-entry{background:#fff;border:1px solid #dce3f3;border-radius:12px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.support-chat-entry strong{font-size:14px;color:#172554}
+.support-chat-entry small,.support-chat-entry p{font-size:12px;color:#64748b;margin:5px 0 0}
+.support-chat-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.support-chat-actions .btn{padding:8px 12px;font-size:12px}
+.support-chat-state{font-size:12px;font-weight:800;color:#126538;background:#e2f8eb;border-radius:15px;padding:5px 10px}
+.support-chat-state.closed{color:#a01735;background:#fee8ec}
 </style>
 {% endblock %}
 {% block content %}
@@ -39,6 +47,22 @@
   <h3>✉ {{ pending_count }} {{ "mensaje(s) por revisar" if es else "message(s) pending review" }}</h3>
   <p>{{ "Cada formulario se guarda en la base de datos de UniTrack; esta bandeja no es pública." if es else "Each submission is stored in UniTrack's database; this inbox is not public." }}</p>
 </div>
+<section class="contact-inbox-summary" id="support-conversations">
+<h3>{{ "Conversaciones con usuarios" if es else "User conversations" }}</h3>
+<p>Chat privado bidireccional. Solo un administrador puede cerrar el chat. Un chat cerrado permanece disponible como historial.</p>
+<div class="support-chat-entries">
+{% for report, sender, state in recent_conversations %}
+<div class="support-chat-entry">
+<div><strong>{{ report.name }}</strong> <small>· #{{ report.id }} · {{ report.created_at.strftime('%Y-%m-%d %H:%M UTC') }}</small>
+<p>{{ report.category }} · {{ report.email }}</p></div>
+<div class="support-chat-actions"><span class="support-chat-state {% if state and state.closed_at %}closed{% endif %}">{{ "Cerrado" if state and state.closed_at else "Abierto" }}</span>
+<a class="btn btn-primary" href="{{ url_for('admin_views.admin_support_chat',message_id=report.id) }}">{{ "Ver conversación" if state and state.closed_at else "Abrir chat / Responder" }}</a></div>
+</div>
+{% else %}
+<p>No hay conversaciones creadas desde cuentas registradas.</p>
+{% endfor %}
+</div>
+</section>
 <div class="content-card">
   <form class="contact-filter" method="GET" action="{{ url_for('admin_views.admin_contact_messages') }}">
     <div><label for="filter_status">{{ "Estado" if es else "Status" }}</label>
@@ -81,12 +105,7 @@
           <a href="mailto:{{ item.email }}?subject=UniTrack%20-%20Respuesta%20a%20tu%20mensaje">{{ "Responder por correo" if es else "Reply by email" }}</a>
         </div>
         {% if item.id in authenticated_senders %}
-        <form class="contact-private-reply" method="POST" action="{{ url_for('admin_views.admin_reply_to_report',message_id=item.id) }}">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <label for="reply-{{ item.id }}">Responder dentro de UniTrack a @{{ authenticated_senders[item.id].username }}</label>
-          <textarea id="reply-{{ item.id }}" name="reply" required minlength="2" maxlength="3000" rows="2" placeholder="Escribe una respuesta privada para este usuario..."></textarea>
-          <button class="btn btn-primary" type="submit">Enviar respuesta</button>
-        </form>
+        <a class="btn btn-primary" href="{{ url_for('admin_views.admin_support_chat',message_id=item.id) }}">Abrir conversación privada</a>
         {% endif %}
       </article>
     {% else %}
