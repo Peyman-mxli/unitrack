@@ -934,6 +934,25 @@ def process_access_scan_qr_text(qr_text, *, allow_student_self_scan=False):
             "processed_at": _server_now_iso(),
         }, 403
 
+    # Visitors have separate, admin-approved date-limited passes. Students
+    # cannot self-report someone else's guest access.
+    from app.services.visitor_access_service import is_visitor_credential, scan_visitor
+    if is_visitor_credential(qr_text):
+        if not is_operator:
+            return {"success": False, "message": "An authorized operator must scan visitor passes.",
+                    "processed_at": _server_now_iso()}, 403
+        try:
+            return scan_visitor(qr_text), 200
+        except ValueError as exc:
+            db.session.rollback()
+            return {"success": False, "message": str(exc),
+                    "processed_at": _server_now_iso()}, 403
+        except Exception:
+            db.session.rollback()
+            current_app.logger.exception("Visitor access scan failed")
+            return {"success": False, "message": "Unable to record visitor access.",
+                    "processed_at": _server_now_iso()}, 500
+
     # Permanent campus credentials never expire or get consumed. The same
     # signed QR / manual code alternates between entry and exit each visit.
     from app.services.permanent_credential_service import (
