@@ -14,3 +14,11 @@ class SupportReply(db.Model):
     message = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, index=True)
     read_at = db.Column(db.DateTime, nullable=True)
+
+
+class SupportReportSender(db.Model):
+    """Trusted server-side attribution of new authenticated support reports."""
+    __tablename__ = "support_report_senders"
+
+    report_id = db.Column(db.Integer, db.ForeignKey("contact_messages.id"), primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
