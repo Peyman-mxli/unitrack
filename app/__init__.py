@@ -708,7 +708,6 @@ def create_app():
         try:
             from .models.contact_message_model import ContactMessage
             from .models.support_reply_model import SupportReply, SupportReportSender
-        from .models.support_conversation_model import SupportChatState, SupportChatMessage
             if current_user.role == "administrativo":
                 from .models.support_conversation_model import SupportChatMessage
                 new_reports = db.session.execute(
