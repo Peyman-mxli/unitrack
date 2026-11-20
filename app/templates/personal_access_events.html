@@ -26,6 +26,19 @@
 .access-events-tag.out{background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5}
 .access-events-empty{padding:20px;text-align:center;color:#64748b;background:#fff;border:1px solid #dbe4f0;border-radius:12px}
 @media(max-width:600px){.access-events-card{padding:15px}.access-events-filter input{max-width:100%}}
+
+/* The three member roles mirror the administrator access-history styling,
+   without ever rendering another person's records. */
+.access-events-card{background:#f4f7ff;border:1px solid #dbe4f0;border-radius:18px;padding:20px;margin:0 0 24px}
+.access-events-heading h2{font-size:22px;font-weight:900;color:#081a43}
+.access-events-heading p{font-size:13px;color:#475569}
+.access-events-pill{border:1px solid #dbe4f0;background:white;border-radius:12px;font-size:13px}
+.access-events-button{background:#7c3aed;color:white;border-radius:11px}
+.access-events-total{background:white;border:1px solid #d6e1ef;padding:12px 18px;border-radius:12px}
+.access-events-table-wrap{border-radius:12px}
+.access-events-table th{background:#e9efff;color:#081a43;font-weight:900}
+.access-events-table th,.access-events-table td{padding:11px 12px;font-size:12px}
+@media(max-width:640px){.access-events-card{padding:14px}.access-events-table-wrap{overflow-x:auto}}
 </style>
 <section class="access-events-card" data-live-campus-history aria-labelledby="personalAccessHistoryTitle">
   <div class="access-events-heading">
