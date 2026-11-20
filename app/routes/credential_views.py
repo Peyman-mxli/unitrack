@@ -59,11 +59,16 @@ def report_issue():
                 category=category,
                 body=(
                     f"[Reporte de usuario autenticado: @{current_user.username}; "
-                    f"rol: {current_user.role}; ID: {current_user.id}]\\n"
-                    f"Asunto: {subject}\\n\\n{description}"
+                    f"rol: {current_user.role}; ID: {current_user.id}]\n"
+                    f"Asunto: {subject}\n\n{description}"
                 ),
             )
+            from app.models.support_reply_model import SupportReportSender
             db.session.add(message)
+            db.session.flush()
+            db.session.add(SupportReportSender(
+                report_id=message.id, user_id=current_user.id,
+            ))
             try:
                 db.session.commit()
             except Exception:
