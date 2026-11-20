@@ -1861,26 +1861,6 @@ def admin_attendance_history():
     )
     access_event_counts = count_access_events(access_history)
 
-    academic_query = (
-        db.select(ClassAttendance, ClassMeeting, UniversityClass, User)
-        .join(ClassMeeting, ClassAttendance.meeting_id == ClassMeeting.id)
-        .join(UniversityClass, ClassMeeting.class_id == UniversityClass.id)
-        .join(User, ClassAttendance.student_id == User.id)
-        .order_by(ClassMeeting.starts_at.desc())
-    )
-    if selected_role and selected_role != "estudiante":
-        academic_query = academic_query.where(User.id == -1)
-    if search_text:
-        like = f"%{search_text}%"
-        academic_query = academic_query.where(db.or_(
-            User.first_name.ilike(like), User.last_name.ilike(like),
-            User.username.ilike(like), UniversityClass.code.ilike(like)
-        ))
-    if selected_date:
-        academic_query = academic_query.where(
-            db.func.date(ClassMeeting.starts_at) == selected_date
-        )
-    academic_rows = db.session.execute(academic_query.limit(500)).all()
     return render_template(
         "admin_attendance_history.html",
         search_text=search_text,
@@ -1888,10 +1868,6 @@ def admin_attendance_history():
         selected_date=selected_date,
         access_history=access_history,
         access_event_counts=access_event_counts,
-        class_history=[{
-            "attendance": record, "meeting": meeting,
-            "course": course, "student": student,
-        } for record, meeting, course, student in academic_rows],
     )
 
 
