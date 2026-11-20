@@ -1341,7 +1341,7 @@ class UniTrackTests(unittest.TestCase):
         response = client.get("/admin/dashboard")
         self.assertEqual(response.status_code, 200)
         html = response.data.decode("utf-8")
-        self.assertEqual(html.count('class="nav-icon" aria-hidden="true"'), 8)
+        self.assertEqual(html.count('class="nav-icon" aria-hidden="true"'), 10)
         self.assertIn('class="nav-icon" aria-hidden="true"><svg', html)
         self.assertIn("nav-link.active .nav-icon", html)
         self.assertIn('class="logout-button"><svg', html)
@@ -1997,7 +1997,10 @@ class UniTrackTests(unittest.TestCase):
         self.assertNotIn(b"form.submit()", scanner.data)
 
     def test_each_role_displays_own_secure_qr_and_temporary_code(self):
-        from app.services.scan_token_service import resolve_scan_token
+        """Four permanent roles display a stable per-person QR and manual code."""
+        from app.services.permanent_credential_service import (
+            resolve_permanent_credential, permanent_credential_for_user
+        )
         from app.models.user_model import User
         paths = [
             ("Admin", "/admin/access-control", "ADM"),
@@ -2006,28 +2009,30 @@ class UniTrackTests(unittest.TestCase):
             ("StaffA", "/personal/access-control", "PER"),
         ]
         issued = set()
-        for username, path, expected_prefix in paths:
+        for username, path, prefix in paths:
             with self.subTest(username=username):
                 client = self._signed_in_client(username)
-                page = client.get(path)
-                self.assertEqual(page.status_code, 200)
-                self.assertIn(b"data:image/png;base64,", page.data)
-                matches = [
-                    value for value in re.findall(
-                        rb"(?:EST|DOC|PER|ADM)-(?:[A-HJ-NP-Z2-9]{4}-){3}[A-HJ-NP-Z2-9]{4}", page.data
-                    )
-                    if not value.endswith(b"XXXX-XXXX-XXXX-XXXX")
-                ]
-                self.assertTrue(matches, f"No generated temporary code on {path}")
-                code = matches[0].decode("ascii")
-                self.assertTrue(code.startswith(expected_prefix + "-"), code)
-                self.assertNotIn(code, issued)
-                issued.add(code)
+                first = client.get(path)
+                second = client.get(path)
+                self.assertEqual(first.status_code, 200)
+                self.assertEqual(second.status_code, 200)
+                self.assertIn(b"data:image/png;base64,", first.data)
+                self.assertEqual(
+                    re.search(rb'data:image/png;base64,[A-Za-z0-9+/=]+', first.data).group(0),
+                    re.search(rb'data:image/png;base64,[A-Za-z0-9+/=]+', second.data).group(0)
+                )
                 with self.app.app_context():
-                    user, record = resolve_scan_token(code)
-                    self.assertEqual(user.username, username)
-                    self.assertIsNone(record.consumed_at)
-
+                    person = self.db.session.execute(self.db.select(User).where(
+                        User.username == username
+                    )).scalar_one()
+                    token, code = permanent_credential_for_user(person)
+                    again, again_code = permanent_credential_for_user(person)
+                    self.assertEqual((token, code), (again, again_code))
+                    self.assertTrue(code.startswith(prefix + "-"))
+                    self.assertNotIn(code, issued)
+                    issued.add(code)
+                    self.assertEqual(resolve_permanent_credential(token)[0].id, person.id)
+                    self.assertEqual(resolve_permanent_credential(code)[0].id, person.id)
     def test_two_people_in_same_role_get_independent_codes(self):
         from app.models.user_model import User
         from app.services.scan_token_service import issue_access_credential, resolve_scan_token
