@@ -130,7 +130,9 @@ def normalize_role(role_value):
         "professor": "docente",
         "staff": "personal",
         "admin": "administrativo",
-        "administrator": "administrativo"
+        "administrator": "administrativo",
+        "visitor": "visitante",
+        "guest": "visitante"
     }
 
     return role_aliases.get(role_value, role_value)
@@ -214,7 +216,7 @@ def validate_registration_fields(data):
 
     role = normalize_role(data.get("role", "estudiante"))
 
-    allowed_roles = {"estudiante", "docente", "personal", "administrativo"}
+    allowed_roles = {"estudiante", "docente", "personal", "administrativo", "visitante"}
 
     if role not in allowed_roles:
         return False, "Invalid role"
@@ -650,6 +652,7 @@ def get_safe_authenticated_redirect(user):
     role = normalize_role(getattr(user, "role", ""))
 
     role_candidates = {
+        "visitante": ["/credentials/visitor"],
         "administrativo": [
             "/admin/dashboard",
             "/admin",
