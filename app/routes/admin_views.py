@@ -1081,8 +1081,19 @@ def admin_contact_messages():
             .where(SupportReportSender.report_id.in_(report_ids))
         ).all()
         authenticated_senders = {link.report_id: user for link, user in attributed}
+    from app.models.support_conversation_model import SupportChatState
+    # Active threads remain accessible even when their original report is
+    # marked reviewed and the inbox is filtered to new public messages.
+    recent_conversations = db.session.execute(
+        db.select(ContactMessage, SupportReportSender, SupportChatState)
+        .join(SupportReportSender, SupportReportSender.report_id == ContactMessage.id)
+        .outerjoin(SupportChatState, SupportChatState.report_id == ContactMessage.id)
+        .order_by(ContactMessage.created_at.desc(), ContactMessage.id.desc())
+        .limit(100)
+    ).all()
     return render_template(
         "admin_contact_messages.html", messages=messages,
+        recent_conversations=recent_conversations,
         authenticated_senders=authenticated_senders,
         selected_status=selected_status, selected_category=selected_category,
         total=total, page=page, has_more=(page * 40 < total), pending_count=pending_count,
