@@ -1336,6 +1336,18 @@ class UniTrackTests(unittest.TestCase):
                 self.assertEqual(response.status_code, 200, url)
                 self.assertIn(b"UniTrack", response.data)
 
+    def test_admin_sidebar_uses_professional_svg_icons(self):
+        client = self._signed_in_client()
+        response = client.get("/admin/dashboard")
+        self.assertEqual(response.status_code, 200)
+        html = response.data.decode("utf-8")
+        self.assertEqual(html.count('class="nav-icon" aria-hidden="true"'), 8)
+        self.assertIn('class="nav-icon" aria-hidden="true"><svg', html)
+        self.assertIn("nav-link.active .nav-icon", html)
+        self.assertIn('class="logout-button"><svg', html)
+        self.assertNotIn('<span class="nav-icon">#</span>', html)
+        self.assertNotIn('<span class="nav-icon">⌂</span>', html)
+
     def test_admin_dashboard_shows_population_presence_and_notices(self):
         client = self._signed_in_client()
         result = client.get("/admin/dashboard")
