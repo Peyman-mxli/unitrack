@@ -3,7 +3,7 @@
 {% block nav_contact_messages %}active{% endblock %}
 {% block page_eyebrow %}{{ "Bandeja privada" if current_language == "es" else "Private inbox" }}{% endblock %}
 {% block page_title %}{{ "Mensajes y reportes de errores" if current_language == "es" else "Messages and bug reports" }}{% endblock %}
-{% block page_subtitle %}{{ "Solicitudes de cambio de QR de usuarios y mensajes públicos. Solo los administradores pueden revisarlos." if current_language == "es" else "Permanent QR replacement requests and public contact messages, available only to administrators." }}{% endblock %}
+{% block page_subtitle %}{{ "Solicitudes enviadas desde la página pública de UniTrack. Solo las cuentas administrativas pueden consultarlas." if current_language == "es" else "Requests sent from the public UniTrack landing page. Only administrators can view these messages." }}{% endblock %}
 {% block page_actions %}<a class="btn btn-secondary" href="{{ url_for('admin_views.admin_dashboard') }}">{{ "Volver al panel" if current_language == "es" else "Back to dashboard" }}</a>{% endblock %}
 {% block extra_css %}
 <style>
@@ -27,71 +27,10 @@
 .contact-empty{text-align:center;border:1px dashed #bbcce9;border-radius:16px;background:#fff;padding:42px 20px;color:#61708e}
 .contact-pagination{display:flex;gap:15px;align-items:center;justify-content:flex-end;margin-top:20px}
 @media(max-width:640px){.contact-entry{padding:16px}.contact-inbox-summary{padding:18px}.contact-entry-actions form{width:100%}.contact-entry-actions button{width:100%}}
-.qr-review-list{display:grid;gap:10px;margin-top:14px}
-.qr-review-item{border:1px solid #dbe3f3;border-radius:13px;background:#fff;padding:14px 16px}
-.qr-review-header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap}
-.qr-review-header strong{font-size:15px;color:#142656}
-.qr-review-meta{font-size:12px;color:#61708e;margin:6px 0;line-height:1.6}
-.qr-review-reason{font-size:14px;line-height:1.55;color:#26334c;margin:8px 0;white-space:pre-wrap;overflow-wrap:anywhere}
-.qr-review-actions{display:flex;gap:8px;flex-wrap:wrap}
-.qr-review-actions form{display:inline-flex}
-.qr-review-actions button{border:0;border-radius:9px;background:#7c3aed;color:white;font-weight:800;padding:9px 13px;cursor:pointer}
-.qr-review-actions button.reject{background:#b91c1c}
-.qr-review-status{border-radius:20px;background:#e8f0ff;color:#284076;font-size:12px;font-weight:800;padding:5px 10px}
-.qr-review-status.pending{background:#fff4db;color:#925b06}
-.qr-review-status.approved{background:#e2f8eb;color:#126538}
-.qr-review-status.rejected{background:#fee8ec;color:#a01735}
-@media(max-width:680px){.qr-review-item{padding:12px}.qr-review-actions form,.qr-review-actions button{width:100%}}
 </style>
 {% endblock %}
 {% block content %}
 {% set es = current_language == 'es' %}
-<section class="contact-inbox-summary" id="qr-replacement-requests" aria-label="{{ 'Solicitudes de cambio de QR' if es else 'QR replacement requests' }}">
-  <h3>{{ "Solicitudes de cambio de QR" if es else "QR replacement requests" }} · {{ pending_qr_count }} {{ "pendiente(s)" if es else "pending" }}</h3>
-  <p>{{ "Los usuarios permanentes solicitan aquí un nuevo QR. Solo al aprobar se invalida el anterior; las solicitudes anteriores permanecen registradas." if es else "Permanent users request replacement here. Only approval invalidates the old QR, and prior decisions remain recorded." }}</p>
-  <div class="qr-review-list">
-  {% for item in qr_requests %}
-    {% set requester = qr_people.get(item.user_id) %}
-    {% set reviewer = qr_people.get(item.reviewed_by) if item.reviewed_by else none %}
-    <article class="qr-review-item">
-      <div class="qr-review-header">
-        <div>
-          <strong>{{ requester.full_name() if requester else ('Usuario #' ~ item.user_id) }}</strong>
-          <div class="qr-review-meta">
-            {{ "Usuario" if es else "Username" }}: {{ requester.username if requester else "—" }}
-            · {{ "Rol" if es else "Role" }}: {{ requester.role if requester else "—" }}
-            · {{ "Solicitado" if es else "Requested" }}: {{ item.requested_at.strftime('%Y-%m-%d %H:%M UTC') }}
-            · #{{ item.id }}
-          </div>
-        </div>
-        <span class="qr-review-status {{ item.status }}">{{ {'pending':('Pendiente' if es else 'Pending'),'approved':('Aprobado' if es else 'Approved'),'rejected':('Rechazado' if es else 'Rejected')}.get(item.status, item.status) }}</span>
-      </div>
-      <p class="qr-review-reason"><strong>{{ "Motivo:" if es else "Reason:" }}</strong> {{ item.reason }}</p>
-      {% if item.status == 'pending' %}
-        <div class="qr-review-actions">
-          <form action="{{ url_for('credential.review_qr',request_id=item.id) }}" method="post">
-            <input name="csrf_token" type="hidden" value="{{ csrf_token() }}">
-            <button type="submit" name="decision" value="approve">{{ "Aprobar y cambiar QR" if es else "Approve and replace QR" }}</button>
-          </form>
-          <form action="{{ url_for('credential.review_qr',request_id=item.id) }}" method="post">
-            <input name="csrf_token" type="hidden" value="{{ csrf_token() }}">
-            <button type="submit" name="decision" value="reject" class="reject">{{ "Rechazar" if es else "Reject" }}</button>
-          </form>
-        </div>
-      {% else %}
-        <div class="qr-review-meta">
-          <strong>{{ "Revisado por" if es else "Reviewed by" }}:</strong> {{ reviewer.full_name() if reviewer else ('Admin #' ~ item.reviewed_by if item.reviewed_by else '—') }}
-          {% if reviewer %}(@{{ reviewer.username }}){% endif %}
-          · <strong>{{ "Fecha de resolución" if es else "Decision date" }}:</strong>
-          {{ item.reviewed_at.strftime('%Y-%m-%d %H:%M UTC') if item.reviewed_at else '—' }}
-        </div>
-      {% endif %}
-    </article>
-  {% else %}
-    <div class="contact-empty">{{ "Todavía no se han solicitado cambios de QR." if es else "No QR replacement requests yet." }}</div>
-  {% endfor %}
-  </div>
-</section>
 <div class="contact-inbox-summary">
   <h3>✉ {{ pending_count }} {{ "mensaje(s) por revisar" if es else "message(s) pending review" }}</h3>
   <p>{{ "Cada formulario se guarda en la base de datos de UniTrack; esta bandeja no es pública." if es else "Each submission is stored in UniTrack's database; this inbox is not public." }}</p>
