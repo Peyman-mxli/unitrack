@@ -1393,7 +1393,7 @@ class UniTrackTests(unittest.TestCase):
         self.assertIn("Credenciales y Visitantes".encode("utf-8"),
                       admin.get("/credentials/manage").data)
 
-    def test_qr_replacement_request_is_reviewed_in_admin_messages_inbox(self):
+    def test_qr_replacement_request_review_and_history_stay_in_credentials(self):
         """Users request, admin approves, both sides retain approval history."""
         from app.models.user_model import User
         from app.models.permanent_credential_model import CredentialReplacementRequest
@@ -1428,10 +1428,14 @@ class UniTrackTests(unittest.TestCase):
         admin = self._signed_in_client("Admin")
         inbox = admin.get("/admin/contact-messages")
         self.assertEqual(inbox.status_code, 200)
-        self.assertIn(b"QRInboxRequester", inbox.data)
-        self.assertIn(b"Extravi", inbox.data)
-        self.assertIn(b"Aprobar y cambiar QR", inbox.data)
-        token = re.search(rb'name="csrf_token" value="([^"]+)"', inbox.data).group(1).decode()
+        self.assertNotIn(b"QRInboxRequester", inbox.data)
+        management = admin.get("/credentials/manage")
+        self.assertEqual(management.status_code, 200)
+        self.assertIn(b"QRInboxRequester", management.data)
+        self.assertIn(b"Extravi", management.data)
+        self.assertIn(b"Aprobar y reemplazar", management.data)
+        self.assertIn(b"Historial de solicitudes de cambio de QR", management.data)
+        token = re.search(rb'name="csrf_token" value="([^"]+)"', management.data).group(1).decode()
 
         with self.app.app_context():
             item = self.db.session.execute(
@@ -1462,7 +1466,7 @@ class UniTrackTests(unittest.TestCase):
             data={"decision": "approve", "csrf_token": token},
         )
         self.assertEqual(approved.status_code, 302)
-        self.assertIn("/admin/contact-messages", approved.headers["Location"])
+        self.assertIn("/credentials/manage", approved.headers["Location"])
         with self.app.app_context():
             reviewed = self.db.session.get(CredentialReplacementRequest, request_id)
             self.assertEqual(reviewed.status, "approved")
@@ -1484,12 +1488,13 @@ class UniTrackTests(unittest.TestCase):
             ).scalars().first()
             self.assertIsNotNone(audit)
 
-        updated_inbox = admin.get("/admin/contact-messages")
-        self.assertIn(b"QRInboxRequester", updated_inbox.data)
-        self.assertIn(b"Aprobado", updated_inbox.data)
-        self.assertIn(b"Revisado por", updated_inbox.data)
-        self.assertIn(b"Admin", updated_inbox.data)
-        self.assertIn(b"Fecha de resoluci", updated_inbox.data)
+        updated_management = admin.get("/credentials/manage")
+        self.assertIn(b"QRInboxRequester", updated_management.data)
+        self.assertIn(b"Aprobada", updated_management.data)
+        self.assertIn(b"Revisado por", updated_management.data)
+        self.assertIn(b"Admin", updated_management.data)
+        self.assertIn(b"Fecha de revisi", updated_management.data)
+        self.assertNotIn(b"QRInboxRequester", admin.get("/admin/contact-messages").data)
         self.assertIn(b"Aprobada", student.get("/credentials/card").data)
 
     def test_permanent_cards_and_approved_qr_rotation(self):
