@@ -1341,7 +1341,7 @@ class UniTrackTests(unittest.TestCase):
         response = client.get("/admin/dashboard")
         self.assertEqual(response.status_code, 200)
         html = response.data.decode("utf-8")
-        self.assertEqual(html.count('class="nav-icon" aria-hidden="true"'), 10)
+        self.assertEqual(html.count('class="nav-icon" aria-hidden="true"'), 11)
         self.assertIn('class="nav-icon" aria-hidden="true"><svg', html)
         self.assertIn("nav-link.active .nav-icon", html)
         self.assertIn('class="logout-button"><svg', html)
