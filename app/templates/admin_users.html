@@ -829,6 +829,7 @@
                     <option value="administrativo" {% if selected_role == "administrativo" %}selected{% endif %}>{{ t('Admin') }}</option>
                     <option value="docente" {% if selected_role == "docente" %}selected{% endif %}>{{ t('Professor') }}</option>
                     <option value="personal" {% if selected_role == "personal" %}selected{% endif %}>{{ t('Staff') }}</option>
+                    <option value="visitante" {% if selected_role == "visitante" %}selected{% endif %}>{{ "Visitantes" if current_language == "es" else "Visitors" }}</option>
                 </select>
             </div>
 
