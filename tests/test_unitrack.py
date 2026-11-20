@@ -1393,6 +1393,74 @@ class UniTrackTests(unittest.TestCase):
         self.assertIn("Credenciales y Visitantes".encode("utf-8"),
                       admin.get("/credentials/manage").data)
 
+    def test_account_headers_keep_user_name_on_shared_pages(self):
+        """The professor name remains visible on dashboard, inbox, and ID card."""
+        for username, expected_name, routes in (
+            ("TeacherA", "Teacher", ("/professor/dashboard", "/avisos",
+                                      "/credentials/card", "/professor/configuration")),
+            ("StudentA", "Student", ("/student/dashboard", "/avisos",
+                                      "/credentials/card")),
+            ("StaffA", "Staff", ("/personal/dashboard", "/avisos",
+                                  "/credentials/card")),
+        ):
+            client = self._signed_in_client(username)
+            for route in routes:
+                with self.subTest(role=username, path=route):
+                    response = client.get(route)
+                    self.assertEqual(response.status_code, 200)
+                    self.assertIn(b'class="profile-name"', response.data)
+                    self.assertIn(expected_name.encode(), response.data)
+
+    def test_signed_in_users_can_report_issues_to_private_admin_inbox(self):
+        from app.models.contact_message_model import ContactMessage
+        from app.models.user_model import User
+        from werkzeug.security import generate_password_hash
+
+        with self.app.app_context():
+            visitor = User(
+                username="SupportVisitor", email="supportvisitor@example.test",
+                first_name="Support", last_name="Visitor", phone="0000000000",
+                role="visitante", language="es", is_active_user=True,
+                password_hash=generate_password_hash("TestingPassword123!"),
+            )
+            self.db.session.add(visitor)
+            self.db.session.commit()
+        submitted = []
+        for username in ("Admin", "StudentA", "TeacherA", "StaffA", "SupportVisitor"):
+            client = self._signed_in_client(username)
+            page = client.get("/credentials/report")
+            self.assertEqual(page.status_code, 200)
+            self.assertIn(b"Reportar un problema", page.data)
+            csrf = re.search(rb'name="csrf_token" value="([^"]+)"', page.data)
+            self.assertIsNotNone(csrf)
+            response = client.post("/credentials/report", data={
+                "category": "error", "subject": "Issue from " + username,
+                "description": "The scanner did not work for my account.",
+                "csrf_token": csrf.group(1).decode(),
+            })
+            self.assertEqual(response.status_code, 302)
+            submitted.append(username)
+        with self.app.app_context():
+            messages = self.db.session.execute(
+                self.db.select(ContactMessage).where(
+                    ContactMessage.category == "error",
+                    ContactMessage.body.contains("Issue from "),
+                )
+            ).scalars().all()
+            self.assertEqual(len(messages), 5)
+            for username in submitted:
+                self.assertTrue(any(
+                    "@" + username in item.body and "Issue from " + username in item.body
+                    for item in messages
+                ))
+        admin = self._signed_in_client("Admin")
+        inbox = admin.get("/admin/contact-messages?status=all")
+        self.assertEqual(inbox.status_code, 200)
+        self.assertIn(b"Issue from TeacherA", inbox.data)
+        self.assertIn(b"Issue from SupportVisitor", inbox.data)
+        student = self._signed_in_client("StudentA")
+        self.assertNotEqual(student.get("/admin/contact-messages").status_code, 200)
+
     def test_qr_replacement_request_review_and_history_stay_in_credentials(self):
         """Users request, admin approves, both sides retain approval history."""
         from app.models.user_model import User
