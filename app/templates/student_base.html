@@ -930,6 +930,7 @@ Polytechnic University of Baja California
 {% else %}
 <div class="profile-status inactive"><span class="status-lamp red"></span>{{ t("offline") }}</div>
 {% endif %}
+{% include "_account_alert_icons.html" %}
 </div>
 
 {% if current_user.photo_path %}
@@ -955,7 +956,8 @@ Polytechnic University of Baja California
 <a href="/student/access-control" class="{% if active_page == 'access_control' %}active{% endif %}">{{ t("access_control") }}</a>
 {% include "_university_notice_nav.html" %}
 
-<a href="{{ url_for('credential.report_issue') }}" class="{% if active_page == 'report' %}active{% endif %}">✉ {{ "Reportar un problema" if current_language == "es" else "Report an issue" }}</a>
+<a href="{{ url_for('credential.my_messages') }}" class="{% if active_page == 'messages' %}active{% endif %}">✉ {{ "Mensajes" if current_language == "es" else "Messages" }}{% if message_unread_count %} <span class="uni-alert-count" style="position:static;display:inline-flex;margin-left:5px">{{ message_unread_count }}</span>{% endif %}</a>
+<a href="{{ url_for('credential.report_issue') }}" class="{% if active_page == 'report' %}active{% endif %}">✉ {{ "Reportar" if current_language == "es" else "Report" }}</a>
 <a href="{{ url_for('credential.card') }}">{{ "Mi Credencial" if current_language == "es" else "My ID Card" }}</a>
 <a href="/student/configuration" class="{% if active_page == 'configuration' %}active{% endif %}">{{ t("configuration") }}</a>
 </nav>
