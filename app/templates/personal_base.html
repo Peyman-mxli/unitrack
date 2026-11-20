@@ -663,7 +663,7 @@ padding:10px 10px 16px 10px;
 <div class="profile-meta">
 <div class="profile-role">{{ "Personal" if is_spanish else "Staff" }}</div>
 <div class="profile-name">
-{{ current_user.first_name }} {{ current_user.last_name }}
+{{ ((current_user.first_name or "") ~ " " ~ (current_user.last_name or ""))|trim or current_user.username }}
 </div>
 
 {% if current_user.is_active_user %}
