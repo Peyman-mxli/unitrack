@@ -1348,6 +1348,51 @@ class UniTrackTests(unittest.TestCase):
         self.assertNotIn('<span class="nav-icon">#</span>', html)
         self.assertNotIn('<span class="nav-icon">⌂</span>', html)
 
+    def test_admin_pages_show_section_titles_without_repeated_dashboard_heading(self):
+        """Only Tablero uses the Administrator Dashboard heading."""
+        admin = self._signed_in_client("Admin")
+        for route, expected in (
+            ("/admin/users", "Administración de Usuarios"),
+            ("/admin/access-control", "Sistema de Control de Acceso"),
+            ("/admin/configuration", "Configuración del Administrador"),
+            ("/avisos", "Centro de Notificaciones"),
+        ):
+            with self.subTest(route=route):
+                response = admin.get(route)
+                self.assertEqual(response.status_code, 200)
+                self.assertIn(expected.encode("utf-8"), response.data)
+                self.assertNotIn(b"Administrador Tablero", response.data)
+                self.assertNotIn(
+                    b"Bienvenido a tu tablero de administrador de UniTrack",
+                    response.data,
+                )
+        dashboard = admin.get("/admin/dashboard")
+        self.assertIn(b"Tablero del Administrador", dashboard.data)
+
+    def test_personal_id_cards_use_normal_role_dashboards_and_print_only_card(self):
+        """ID views keep UPBC shell; printing hides dashboard chrome."""
+        for username, sidebar_marker in (
+            ("Admin", 'class="admin-sidebar"'),
+            ("StudentA", 'class="sidebar"'),
+            ("TeacherA", 'class="sidebar"'),
+            ("StaffA", 'class="sidebar"'),
+        ):
+            with self.subTest(username=username):
+                client = self._signed_in_client(username)
+                response = client.get("/credentials/card")
+                self.assertEqual(response.status_code, 200)
+                page = response.data.decode("utf-8")
+                self.assertIn("Mi Credencial", page)
+                self.assertIn("Universidad Politécnica", page)
+                self.assertIn(sidebar_marker, page)
+                self.assertIn('class="id-card"', page)
+                self.assertIn("window.print()", page)
+                self.assertIn("body *{visibility:hidden!important}", page)
+                self.assertNotIn("<!doctype html>\n<html lang=\"es\">\n<head>\n<meta", page)
+        admin = self._signed_in_client("Admin")
+        self.assertIn("Credenciales y Visitantes".encode("utf-8"),
+                      admin.get("/credentials/manage").data)
+
     def test_permanent_cards_and_approved_qr_rotation(self):
         """A registered user's printed QR is stable until admin-approved replacement."""
         from werkzeug.security import generate_password_hash
