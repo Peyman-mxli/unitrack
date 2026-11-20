@@ -10,6 +10,23 @@
 
 ---
 
+## QR access only (November 2026)
+
+UniTrack focuses on campus QR **entry and exit**, for administrators,
+students, teachers and staff. Every accepted scan creates an entry or closes
+the matching visit, and the campus access timeline shows each entry and exit
+as separate events. Administrator history can filter by user, role and date.
+
+The **academic class attendance module** (classes, enrollment, class meetings,
+Present/Late/Absent) is disabled and removed from active navigation and reports.
+Existing academic tables and historical rows are deliberately **not deleted**
+from private databases; no destructive migration runs during update.
+
+The old student `/student/attendance-history` bookmark redirects to
+`/student/access-control`, where QR movements and personal history appear.
+The admin's existing `/admin/attendance-history` URL remains available for
+QR access records.
+
 ## ✅ QR access and entry/exit records (November 2026)
 
 - An **authorized admin, teacher or staff** uses **Control de Acceso** to scan a signed QR with a camera or enter its short-lived manual code. Each accepted submission records a timestamped check-in or check-out. The second deliberate scan closes the visit, and a new credential starts the next visit. A rapid duplicate camera submission is rejected to prevent accidental checkout.
