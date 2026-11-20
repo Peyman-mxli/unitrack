@@ -880,6 +880,10 @@ class UniTrackTests(unittest.TestCase):
         self.assertIn(b'name="login"', login.data)
         self.assertIn(b'name="password"', login.data)
         self.assertIn(b'name="csrf_token"', login.data)
+        self.assertIn(b'class="back-home-link"', login.data)
+        self.assertIn(b'href="/"', login.data)
+        spanish_login = client.get("/auth/login-page?language=es")
+        self.assertIn("Volver al inicio".encode("utf-8"), spanish_login.data)
         self.assertIn(b'name="csrf_token"', register.data)
 
     def test_public_landing_feature_cards_link_to_explanations_and_logo_goes_top(self):
