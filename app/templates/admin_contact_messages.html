@@ -27,6 +27,10 @@
 .contact-empty{text-align:center;border:1px dashed #bbcce9;border-radius:16px;background:#fff;padding:42px 20px;color:#61708e}
 .contact-pagination{display:flex;gap:15px;align-items:center;justify-content:flex-end;margin-top:20px}
 @media(max-width:640px){.contact-entry{padding:16px}.contact-inbox-summary{padding:18px}.contact-entry-actions form{width:100%}.contact-entry-actions button{width:100%}}
+.contact-private-reply{border-top:1px solid #e5eaf5;margin-top:13px;padding-top:13px;display:grid;gap:7px}
+.contact-private-reply label{font-size:12px;font-weight:800;color:#334155}
+.contact-private-reply textarea{width:100%;padding:10px;border-radius:9px;border:1px solid #cbd5e1;resize:vertical;font:13px Arial}
+.contact-private-reply button{justify-self:start;padding:8px 14px}
 </style>
 {% endblock %}
 {% block content %}
@@ -67,7 +71,7 @@
           <div><span class="contact-tag">{{ {'consulta': ('Pregunta' if es else 'Question'), 'soporte': ('Soporte' if es else 'Support'), 'error': ('Error' if es else 'Bug report'), 'sugerencia': ('Sugerencia' if es else 'Suggestion')}.get(item.category, item.category) }}</span>
           <span class="contact-tag {% if item.status == 'new' %}contact-tag-new{% endif %}">{{ ('Nuevo' if es else 'New') if item.status == 'new' else ('Revisado' if es else 'Reviewed') }}</span></div>
         </div>
-        <div class="contact-entry-body">{{ item.body }}</div>
+        <div class="contact-entry-body">{{ item.body.replace('\\\\n', '\\n') }}</div>
         <div class="contact-entry-actions">
           <form method="POST" action="{{ url_for('admin_views.admin_contact_message_status', message_id=item.id) }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -76,6 +80,14 @@
           </form>
           <a href="mailto:{{ item.email }}?subject=UniTrack%20-%20Respuesta%20a%20tu%20mensaje">{{ "Responder por correo" if es else "Reply by email" }}</a>
         </div>
+        {% if item.id in authenticated_senders %}
+        <form class="contact-private-reply" method="POST" action="{{ url_for('admin_views.admin_reply_to_report',message_id=item.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <label for="reply-{{ item.id }}">Responder dentro de UniTrack a @{{ authenticated_senders[item.id].username }}</label>
+          <textarea id="reply-{{ item.id }}" name="reply" required minlength="2" maxlength="3000" rows="2" placeholder="Escribe una respuesta privada para este usuario..."></textarea>
+          <button class="btn btn-primary" type="submit">Enviar respuesta</button>
+        </form>
+        {% endif %}
       </article>
     {% else %}
       <div class="contact-empty">{{ "No hay mensajes con estos filtros." if es else "No messages match these filters." }}</div>
