@@ -727,6 +727,7 @@ def create_app():
         from .models.admin_audit_model import AdminAuditLog
         from .models.scan_token_model import ScanToken
         from .models.permanent_credential_model import PermanentCredential, CredentialReplacementRequest
+        from .models.visitor_access_model import VisitorRequest, VisitorPass, VisitorAccessLog
         from .models.access_scan_pair_model import AccessScanPair
         from .models.validation_revocation_model import ValidationCodeRevocation
         from .models.user_presence_model import UserPresence
