@@ -1,0 +1,66 @@
+{% extends thread_base %}
+{% block title %}Conversación #{{ report.id }} | UniTrack{% endblock %}
+{% block page_eyebrow %}{{ "SOPORTE PRIVADO" if current_language == "es" else "PRIVATE SUPPORT" }}{% endblock %}
+{% block page_title %}{{ "Conversación de soporte" if current_language == "es" else "Support conversation" }} #{{ report.id }}{% endblock %}
+{% block page_subtitle %}{{ "Reporte privado y respuestas guardadas" if current_language == "es" else "Private report and saved replies" }}{% endblock %}
+{% block content %}
+<style>
+.ut-chat{max-width:920px;margin:0 auto;border:1px solid #dce3f2;border-radius:18px;background:#f5f7ff;padding:20px;color:#15264b}
+.ut-chat-head{display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap;margin-bottom:15px}
+.ut-chat-head h2{margin:0;font-size:21px;color:#142451}
+.ut-chat-head small{display:block;color:#657490;margin-top:5px}
+.ut-chat-pill{background:#e2f8eb;color:#126538;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:800}
+.ut-chat-pill.closed{background:#fee7e7;color:#a01735}
+.ut-chat-stream{display:grid;gap:10px;max-height:560px;overflow-y:auto;padding:15px;background:#fff;border:1px solid #e1e7f4;border-radius:13px}
+.ut-chat-bubble{max-width:83%;padding:12px 15px;border-radius:14px;background:#f0f3ff;justify-self:start;border:1px solid #dce4f3}
+.ut-chat-bubble.mine{background:#e9dbff;border-color:#d6bdf9;justify-self:end}
+.ut-chat-bubble strong{font-size:12px;color:#4b25aa;display:block}
+.ut-chat-bubble .text{margin:6px 0 0;font-size:14px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere;color:#15264b}
+.ut-chat-bubble small{display:block;margin-top:7px;font-size:11px;color:#64748b}
+.ut-chat-form{display:grid;gap:9px;margin-top:14px}
+.ut-chat-form label{font-size:13px;font-weight:800}
+.ut-chat-form textarea{width:100%;min-height:90px;resize:vertical;border:1px solid #cdd6ea;border-radius:11px;padding:12px;font:14px Arial}
+.ut-chat-button{display:inline-flex;align-items:center;justify-content:center;padding:11px 17px;border:0;border-radius:11px;background:#7c3aed;color:white;font-weight:800;text-decoration:none;cursor:pointer}
+.ut-chat-button.danger{background:#b91c1c}
+.ut-chat-actions{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:12px}
+.ut-chat-closed{padding:13px;background:#fff1f2;border:1px solid #fecdd3;color:#991b1b;border-radius:11px;margin-top:14px;font-weight:700;font-size:13px}
+@media(max-width:630px){.ut-chat{padding:12px}.ut-chat-bubble{max-width:97%}.ut-chat-stream{padding:9px}}
+</style>
+<section class="ut-chat">
+<div class="ut-chat-head">
+<div><h2>{{ report.name }} · {{ report.category|capitalize }}</h2>
+<small>{{ "Reporte original" if current_language == "es" else "Original report" }} #{{ report.id }} · {{ report.created_at.strftime('%Y-%m-%d %H:%M UTC') }}</small></div>
+<span class="ut-chat-pill {% if closed %}closed{% endif %}">{{ ("Cerrado" if current_language == "es" else "Closed") if closed else ("Chat abierto" if current_language == "es" else "Chat open") }}</span>
+</div>
+<div class="ut-chat-stream" aria-label="{{ 'Mensajes de la conversación' if current_language == 'es' else 'Conversation messages' }}">
+{% for entry in messages %}
+{% set mine = (is_admin and entry.sender == 'admin') or (not is_admin and entry.sender == 'reporter') %}
+<article class="ut-chat-bubble {% if mine %}mine{% endif %}">
+<strong>{{ ("Administrador" if current_language == "es" else "Administrator") if entry.sender == 'admin' else report.name }}</strong>
+<p class="text">{{ entry.body }}</p>
+<small>{{ entry.when.strftime('%Y-%m-%d %H:%M UTC') if entry.when else '—' }}</small>
+</article>
+{% endfor %}
+</div>
+{% if closed %}
+<div class="ut-chat-closed">{{ "Esta conversación fue cerrada por un administrador. Los mensajes siguen disponibles, pero ya no se pueden enviar respuestas." if current_language == 'es' else "An administrator closed this conversation. Its history is available, but no more replies can be sent." }}
+{% if state and state.closed_at %}<small> · {{ state.closed_at.strftime('%Y-%m-%d %H:%M UTC') }}</small>{% endif %}</div>
+{% else %}
+<form class="ut-chat-form" method="post" action="{{ url_for('admin_views.admin_reply_to_report',message_id=report.id) if is_admin else url_for('credential.my_support_chat',report_id=report.id) }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<label for="chat-message">{{ "Escribe tu respuesta" if current_language == 'es' else "Write your reply" }}</label>
+<textarea id="chat-message" name="{{ 'reply' if is_admin else 'message' }}" required minlength="1" maxlength="3000" placeholder="{{ 'Escribe un mensaje privado...' if current_language == 'es' else 'Write a private message...' }}"></textarea>
+<div><button class="ut-chat-button" type="submit">{{ "Enviar mensaje" if current_language == 'es' else "Send message" }}</button></div>
+</form>
+{% endif %}
+<div class="ut-chat-actions">
+<a class="ut-chat-button" href="{{ url_for('admin_views.admin_contact_messages',status='all') if is_admin else url_for('credential.my_messages') }}">{{ "Volver a mensajes" if current_language == 'es' else "Back to messages" }}</a>
+{% if is_admin and not closed %}
+<form method="post" action="{{ url_for('admin_views.admin_close_support_chat',message_id=report.id) }}" onsubmit="return confirm('¿Cerrar esta conversación? El usuario ya no podrá responder.')">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<button type="submit" class="ut-chat-button danger">{{ "Cerrar chat" if current_language == 'es' else "Close chat" }}</button>
+</form>
+{% endif %}
+</div>
+</section>
+{% endblock %}
