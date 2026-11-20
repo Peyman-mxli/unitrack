@@ -388,7 +388,7 @@ img{max-width:100%}
   </div>
 </header>
 
-<main id="contenido-principal">
+<main id="contenido-principal" data-homepage-version="qr-access-2026-11">
 <section class="hero" aria-label="{{ 'Bienvenido a UniTrack' if es else 'Welcome to UniTrack' }}">
   <img class="hero-photo"
        src="{{ url_for('static', filename='img/upbc-campus-enhanced.jpg') }}"
@@ -423,7 +423,7 @@ img{max-width:100%}
 
 <section class="features-rail container" id="caracteristicas" aria-label="{{ 'Características de UniTrack' if es else 'UniTrack features' }}">
   <div class="features-rail-inner">
-    <a class="mini-feature" href="#detalle-gestion"><span class="mini-icon blue" aria-hidden="true">▣</span><div><h3>{{ "Credencial permanente" if es else "Permanent ID card" }}</h3><p>{{ "QR personal e impresión" if es else "Personal QR and printing" }}</p><span class="mini-more">{{ "Conocer más" if es else "Learn more" }} →</span></div></a>
+    <a class="mini-feature" href="#detalle-credencial"><span class="mini-icon blue" aria-hidden="true">▣</span><div><h3>{{ "Credencial permanente" if es else "Permanent ID card" }}</h3><p>{{ "QR personal e impresión" if es else "Personal QR and printing" }}</p><span class="mini-more">{{ "Conocer más" if es else "Learn more" }} →</span></div></a>
     <a class="mini-feature" href="#detalle-qr"><span class="mini-icon mint" aria-hidden="true">▦</span><div><h3>{{ "Control de acceso QR" if es else "QR access control" }}</h3><p>{{ "Entrada y salida independientes" if es else "Separate entry and exit" }}</p><span class="mini-more">{{ "Conocer más" if es else "Learn more" }} →</span></div></a>
     <a class="mini-feature" href="#detalle-avisos"><span class="mini-icon violet" aria-hidden="true">♧</span><div><h3>{{ "Notificaciones" if es else "Notifications" }}</h3><p>{{ "Avisos con lectura individual" if es else "Notices with read status" }}</p><span class="mini-more">{{ "Conocer más" if es else "Learn more" }} →</span></div></a>
     <a class="mini-feature" href="#detalle-historial"><span class="mini-icon orange" aria-hidden="true">▤</span><div><h3>{{ "Historial de accesos" if es else "Access history" }}</h3><p>{{ "Movimientos según permisos" if es else "Role-based access records" }}</p><span class="mini-more">{{ "Conocer más" if es else "Learn more" }} →</span></div></a>
@@ -440,7 +440,7 @@ img{max-width:100%}
       <p>{{ "Un sistema enfocado en identificar personas, registrar movimientos, gestionar visitantes y comunicar incidencias con privacidad." if es else "A system for identification, recording campus access, managing visitors and communicating issues privately." }}</p>
     </div>
     <div class="feature-detail-grid">
-      <article class="feature-detail" id="detalle-gestion" tabindex="-1">
+      <article class="feature-detail" id="detalle-credencial" tabindex="-1">
         <div class="feature-detail-head"><span class="feature-detail-icon blue" aria-hidden="true">▣</span><div><span class="feature-detail-kicker">01 · {{ "Identidad" if es else "Identity" }}</span><h3>{{ "QR permanente y credencial institucional" if es else "Permanent QR and university ID card" }}</h3></div></div>
         <p>{{ "Estudiantes, profesores, personal y administradores tienen un QR personal que permanece igual al iniciar sesión, actualizar la página o imprimir su credencial." if es else "Students, teachers, staff and administrators have a personal QR that stays the same across sign-ins, page refreshes and ID-card printing." }}</p>
         <ul>
