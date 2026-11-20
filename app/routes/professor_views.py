@@ -310,7 +310,7 @@ def access_control_page():
     access_qr_image = generate_qr_image_data_uri(access_qr_payload)
 
     return render_template(
-        "professor_access_control.html",
+        "admin_access_control.html",
         active_page="access_control",
         professor_name=_professor_name(),
         role_label="Professor",
@@ -330,6 +330,7 @@ def access_control_page():
         access_qr_id_code=access_qr_id_code,
         current_access_status=status,
         demo_records=records,
+        access_records=records,
     )
 
 
