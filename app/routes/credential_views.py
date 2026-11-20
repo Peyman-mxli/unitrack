@@ -39,6 +39,15 @@ def card(user_id=None):
     token, manual_code = permanent_credential_for_user(target)
     qr_text = build_student_access_qr_payload(target, token=token)
     image = generate_qr_image_data_uri(qr_text)
+    own_qr_requests = []
+    if target.id == current_user.id:
+        own_qr_requests = db.session.execute(
+            db.select(CredentialReplacementRequest)
+            .where(CredentialReplacementRequest.user_id == current_user.id)
+            .order_by(CredentialReplacementRequest.requested_at.desc(),
+                      CredentialReplacementRequest.id.desc())
+            .limit(20)
+        ).scalars().all()
     card_base = {
         "administrativo": "admin_base.html",
         "estudiante": "student_base.html",
@@ -49,6 +58,7 @@ def card(user_id=None):
         abort(403)
     return render_template("credential_card.html", card_base=card_base,
                            active_page="credential", person=target, qr_image=image,
+                           own_qr_requests=own_qr_requests,
                            code=manual_code, role_labels={
                                "estudiante": "ESTUDIANTE", "docente": "DOCENTE",
                                "personal": "PERSONAL", "administrativo": "ADMINISTRACIÓN"
