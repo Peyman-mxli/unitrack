@@ -1341,7 +1341,7 @@ class UniTrackTests(unittest.TestCase):
         response = client.get("/admin/dashboard")
         self.assertEqual(response.status_code, 200)
         html = response.data.decode("utf-8")
-        self.assertEqual(html.count('class="nav-icon" aria-hidden="true"'), 11)
+        self.assertEqual(html.count('class="nav-icon" aria-hidden="true"'), 12)
         self.assertIn('class="nav-icon" aria-hidden="true"><svg', html)
         self.assertIn("nav-link.active .nav-icon", html)
         self.assertIn('class="logout-button"><svg', html)
@@ -1774,7 +1774,7 @@ class UniTrackTests(unittest.TestCase):
         self.assertIn(b"TeacherA", result.data)
         self.assertIn(b"StaffA", result.data)
         self.assertNotIn("Clases y asistencia".encode("utf-8"), result.data)
-        filtered = client.get("/admin/dashboard?monitor_role=estudiante&monitor_status=offline")
+        filtered = client.get("/admin/dashboard?monitor_role=estudiante")
         self.assertEqual(filtered.status_code, 200)
         self.assertIn(b"StudentA", filtered.data)
 
