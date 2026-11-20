@@ -1,5 +1,20 @@
 {% extends "admin_base.html" %}
-{% block title %}{{ "Historial de Entradas y Salidas" if current_language == "es" else "Entry and Exit History" }} | UniTrack{% endblock %}
+{% block title %}{{ "Historial de Entradas y Salidas" if current_language == "es" else "Entry and Exit History" }} | UniTrack<div class="history-sheet">
+<h2>{{ "Historial de visitantes" if es else "Visitor Entry & Exit History" }} ({{ visitor_event_counts.total }})</h2>
+<p>{{ "Entradas y salidas de visitantes con permisos temporales aprobados. Estos registros son independientes de las cuentas permanentes." if es else "Check-ins and check-outs for approved temporary visitor passes, separate from permanent accounts." }}</p>
+<div class="access-event-summary">
+<div class="access-event-stat"><small>{{ "Entradas de visitantes" if es else "Visitor entries" }}</small><strong class="access-event-entry">{{ visitor_event_counts.check_ins }}</strong></div>
+<div class="access-event-stat"><small>{{ "Salidas de visitantes" if es else "Visitor exits" }}</small><strong class="access-event-exit">{{ visitor_event_counts.check_outs }}</strong></div>
+</div>
+<div class="history-tablewrap"><table class="history-table">
+<thead><tr><th>{{ "Visitante" if es else "Visitor" }}</th><th>{{ "Fecha" if es else "Date" }}</th><th>{{ "Hora" if es else "Time" }}</th><th>{{ "Movimiento" if es else "Action" }}</th><th>{{ "Pase temporal" if es else "Temporary pass" }}</th></tr></thead>
+<tbody>{% for event in visitor_history %}
+<tr><td>{{ event.name }}</td><td>{{ event.date }}</td><td>{{ event.time }}</td>
+<td>{% if event.action == 'check_in' %}<span class="access-event-entry">{{ "Entrada" if es else "Check-in" }}</span>{% else %}<span class="access-event-exit">{{ "Salida" if es else "Check-out" }}</span>{% endif %}</td>
+<td><a href="{{ url_for('credential.visitor_pass',pass_id=event.pass_id) }}">#{{ event.pass_id }}</a></td></tr>
+{% else %}<tr><td colspan="5">{{ "No hay movimientos de visitantes." if es else "No visitor events." }}</td></tr>{% endfor %}</tbody>
+</table></div></div>
+{% endblock %}
 {% block page_title %}{{ "Historial de Entradas y Salidas" if current_language == "es" else "Entry and Exit History" }}{% endblock %}
 {% block page_subtitle %}{{ "Consulta entradas y salidas registradas por código QR." if current_language == "es" else "Review recorded campus QR check-ins and check-outs." }}{% endblock %}
 {% block content %}
@@ -24,7 +39,7 @@
 <form method="GET" action="{{ url_for('admin_views.admin_attendance_history') }}" class="history-form">
   <input type="text" name="search" value="{{ search_text }}" placeholder="{{ 'Nombre o ID' if es else 'Name or ID' }}">
   <select name="role"><option value="">{{ "Todos los roles" if es else "All roles" }}</option>
-  {% for role, label in [('estudiante','Estudiante' if es else 'Student'),('docente','Profesor' if es else 'Professor'),('personal','Personal' if es else 'Staff'),('administrativo','Administrador' if es else 'Admin')] %}
+  {% for role, label in [('estudiante','Estudiante' if es else 'Student'),('docente','Profesor' if es else 'Professor'),('personal','Personal' if es else 'Staff'),('administrativo','Administrador' if es else 'Admin'),('visitante','Visitante' if es else 'Visitor')] %}
   <option value="{{ role }}" {% if selected_role==role %}selected{% endif %}>{{ label }}</option>
   {% endfor %}</select>
   <input type="date" name="date" value="{{ selected_date }}">
