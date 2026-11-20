@@ -316,7 +316,9 @@ img{max-width:100%}
   *,*::before,*::after{transition:none!important}
 }
 
-/* Updated campus-access homepage: six clearly differentiated feature shortcuts. */
+/* UniTrack public homepage: consistent spacing, navigation and role cards. */
+.skip-link{position:absolute;left:12px;top:-85px;z-index:100;padding:11px 18px;background:#fff;color:#6112ba;border-radius:10px;font-weight:800}
+.skip-link:focus{top:12px}
 .features-rail-inner{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .mini-feature{min-width:0}
 .feature-detail{scroll-margin-top:var(--landing-nav-offset,135px)}
@@ -324,14 +326,39 @@ img{max-width:100%}
 .feature-detail li{line-height:1.65}
 .feature-detail h3{overflow-wrap:anywhere}
 .hero-text{max-width:690px}
+.role-panel{width:350px;padding:20px 23px}
+.role-item{padding:9px 2px;gap:12px}
+.role-icon{height:43px;width:43px;font-size:21px}
+.hero-content{gap:clamp(26px,3.5vw,65px)}
 @media(max-width:1050px){.features-rail-inner{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:600px){.features-rail-inner{grid-template-columns:1fr}.feature-detail{padding:22px}}
+@media(min-width:921px) and (max-width:1150px){.role-panel{width:275px;padding:15px}.role-item{gap:8px}.role-icon{width:36px;height:36px;font-size:18px}}
+@media(max-width:920px){
+  .hero-content{display:flex;flex-direction:column;align-items:stretch;min-height:0;padding-block:50px 77px}
+  .hero{min-height:0}
+  .hero-copy{width:100%}
+  .role-panel{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;max-width:none;gap:0 13px;margin-top:8px}
+  .role-panel-label{grid-column:1/-1}
+  .role-item{min-width:0}
+  .role-item+.role-item{border-top:0}
+  .role-item:nth-of-type(n+3){border-top:1px solid #ffffff23}
+}
+@media(max-width:600px){
+  .features-rail-inner{grid-template-columns:1fr}
+  .feature-detail{padding:22px}
+  .role-panel{grid-template-columns:1fr;gap:0;padding:17px}
+  .role-item+.role-item,.role-item:nth-of-type(n+3){border-top:1px solid #ffffff23}
+  .hero-content{padding-block:35px 68px}
+  .role-panel-label{font-size:11px}
+  .mini-feature{min-height:0}
+}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 </style>
 </head>
 <body>
+<a class="skip-link" href="#contenido-principal">{{ "Saltar al contenido" if es else "Skip to content" }}</a>
 <header class="site-header" id="inicio">
   <div class="header-inner">
-    <a class="brand" href="#inicio" data-return-top aria-label="UniTrack · UPBC">
+    <a class="brand" href="#inicio" data-return-top aria-label="{{ 'Ir al inicio de UniTrack' if es else 'Go to UniTrack homepage' }}">
       <img src="{{ url_for('static', filename='img/UPBCmark.png') }}" alt="UniTrack">
       <span class="brand-copy">
         <strong class="brand-title">Uni<span>Track</span></strong>
@@ -361,13 +388,12 @@ img{max-width:100%}
   </div>
 </header>
 
-<main>
+<main id="contenido-principal">
 <section class="hero" aria-label="{{ 'Bienvenido a UniTrack' if es else 'Welcome to UniTrack' }}">
   <img class="hero-photo"
        src="{{ url_for('static', filename='img/upbc-campus-enhanced.jpg') }}"
-       data-fallback="https://www.elimparcial.com/resizer/v2/M7HPOPHKDNAM7BN7QSHL5XX52Q.jpg?auth=adf1e672c47ee6ddc0c59bdc16f3eef3270a337a50df093831d3295f0b265961&amp;height=630&amp;quality=70&amp;smart=true&amp;width=1200"
        alt="{{ 'Fachada de la Universidad Politécnica de Baja California en Mexicali' if es else 'Polytechnic University of Baja California campus facade in Mexicali' }}"
-       onerror="if(!this.dataset.failed){this.dataset.failed='1';this.src=this.dataset.fallback;}else{this.onerror=null;this.src='https://universidadesgratuitas.com/storage/2020/03/Sede-de-la-Universidad-Politecnica-de-Baja-California-UPBC.jpg';}">
+       onerror="this.onerror=null;this.style.display='none';">
   <div class="container hero-content">
     <div class="hero-copy">
       <span class="hero-kicker"><span class="spark"></span>{{ "Tecnología para la comunidad UPBC · Mexicali" if es else "Technology for UPBC community · Mexicali" }}</span>
