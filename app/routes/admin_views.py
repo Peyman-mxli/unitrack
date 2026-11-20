@@ -1712,8 +1712,8 @@ def admin_access_control():
     global_access_records = build_global_access_records(selected_date)
     access_event_counts = count_access_events(global_access_records)
 
-    from app.services.scan_token_service import issue_access_credential
-    access_token, access_qr_id_code = issue_access_credential(current_user)
+    from app.services.permanent_credential_service import permanent_credential_for_user
+    access_token, access_qr_id_code = permanent_credential_for_user(current_user)
     access_qr_payload = build_access_qr_payload_for_user(current_user, token=access_token)
     access_qr_image = generate_qr_image_data_uri(access_qr_payload)
 
