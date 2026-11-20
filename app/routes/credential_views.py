@@ -24,6 +24,61 @@ def _admin():
     return current_user.is_authenticated and current_user.is_active_user and current_user.role == "administrativo"
 
 
+@credential_bp.route("/report", methods=["GET", "POST"])
+@login_required
+def report_issue():
+    """Private authenticated support report; delivered to existing admin inbox."""
+    if not current_user.is_active_user:
+        abort(403)
+    base = {
+        "administrativo": "admin_base.html",
+        "estudiante": "student_base.html",
+        "docente": "professor_base.html",
+        "personal": "personal_base.html",
+        "visitante": "credential_visitor_base.html",
+    }.get(current_user.role)
+    if base is None:
+        abort(403)
+    if request.method == "POST":
+        from app.models.contact_message_model import ContactMessage
+        category = str(request.form.get("category", "")).strip().lower()
+        subject = str(request.form.get("subject", "")).strip()
+        description = str(request.form.get("description", "")).strip()
+        if category not in {"soporte", "error", "consulta", "sugerencia"}:
+            flash("Selecciona un tipo de reporte válido.", "error")
+        elif not 5 <= len(subject) <= 120:
+            flash("Escribe un asunto de entre 5 y 120 caracteres.", "error")
+        elif not 10 <= len(description) <= 3000:
+            flash("Describe el problema con entre 10 y 3000 caracteres.", "error")
+        else:
+            user_name = current_user.full_name() or current_user.username
+            email = (current_user.email or "").strip()
+            message = ContactMessage(
+                name=user_name[:100],
+                email=email[:160] or "sin-correo@unitrack.local",
+                category=category,
+                body=(
+                    f"[Reporte de usuario autenticado: @{current_user.username}; "
+                    f"rol: {current_user.role}; ID: {current_user.id}]\\n"
+                    f"Asunto: {subject}\\n\\n{description}"
+                ),
+            )
+            db.session.add(message)
+            try:
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+                from flask import current_app
+                current_app.logger.exception("Could not save authenticated user report")
+                flash("No fue posible enviar el reporte. Intenta de nuevo.", "error")
+            else:
+                flash("Tu reporte se envió al administrador.", "success")
+                return redirect(url_for("credential.report_issue"))
+    return render_template(
+        "credential_report.html", report_base=base, active_page="report"
+    )
+
+
 @credential_bp.route("/card")
 @credential_bp.route("/card/<int:user_id>")
 @login_required
