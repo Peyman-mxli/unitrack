@@ -2,7 +2,7 @@
 from datetime import timedelta
 from pathlib import Path
 
-from flask import Blueprint, abort, flash, redirect, render_template, request, send_file, url_for
+from flask import Blueprint, abort, flash, redirect, render_template, request, send_file, url_for, jsonify
 from flask_login import current_user, login_required
 from app.database import db
 from app.models.user_model import User
@@ -123,6 +123,36 @@ def my_messages():
         "credential_messages.html", inbox_base=base, replies=replies,
         conversations=conversations, active_page="messages"
     )
+
+
+@credential_bp.route("/messages/<int:report_id>/updates", methods=["GET"])
+@login_required
+def support_chat_updates(report_id):
+    """Authorized, no-cache updates for the currently open support thread."""
+    if not current_user.is_active_user:
+        abort(403)
+    from app.services.support_chat_service import (
+        load_conversation, conversation_items, mark_chat_read
+    )
+    report, sender, state = load_conversation(report_id)
+    if report is None or sender is None:
+        return jsonify({"deleted": True}), 404
+    admin = _admin()
+    if not admin and sender.user_id != current_user.id:
+        abort(403)
+    mark_chat_read(report_id, "admin" if admin else "reporter", current_user.id)
+    items = conversation_items(report_id)
+    response = jsonify({
+        "closed": bool(state and state.closed_at),
+        "messages": [{
+            "key": item["kind"] + "-" + str(item["id"]),
+            "sender": item["sender"],
+            "body": item["body"],
+            "when": item["when"].strftime("%Y-%m-%d %H:%M UTC") if item["when"] else "",
+        } for item in items],
+    })
+    response.headers["Cache-Control"] = "private, no-store"
+    return response
 
 
 @credential_bp.route("/messages/<int:report_id>/chat", methods=["GET", "POST"])
