@@ -894,12 +894,12 @@ class UniTrackTests(unittest.TestCase):
                 response = client.get("/?lang=" + language)
                 self.assertEqual(response.status_code, 200)
                 html = response.data.decode("utf-8")
-                for slug in ("gestion", "qr", "avisos", "historial", "seguridad"):
+                for slug in ("gestion", "qr", "avisos", "historial", "seguridad", "soporte"):
                     target = "detalle-" + slug
                     self.assertIn('class="mini-feature" href="#' + target + '"', html)
                     self.assertIn('class="feature-detail" id="' + target + '"', html)
-                self.assertEqual(html.count('class="mini-feature" href="#detalle-'), 5)
-                self.assertEqual(html.count('class="feature-detail" id="detalle-'), 5)
+                self.assertEqual(html.count('class="mini-feature" href="#detalle-'), 6)
+                self.assertEqual(html.count('class="feature-detail" id="detalle-'), 6)
 
                 nav = re.search(r'<nav class="nav-links" id="mainNav".*?</nav>', html, re.S)
                 self.assertIsNotNone(nav)
@@ -921,6 +921,42 @@ class UniTrackTests(unittest.TestCase):
                 self.assertIn('.site-header{background:linear-gradient(90deg,#740018,#8a0021 55%,#5f0017)', html)
                 self.assertIn('href="/auth/login-page"', html)
                 self.assertIn('href="/auth/register-page"', html)
+
+    def test_public_homepage_reflects_current_qr_campus_access_features(self):
+        """Homepage accurately describes current features without legacy attendance claims."""
+        for lang in ("es", "en"):
+            response = self.app.test_client().get("/?lang=" + lang)
+            self.assertEqual(response.status_code, 200)
+            body = response.data.decode("utf-8")
+            self.assertIn("UniTrack", body)
+            self.assertIn('href="/auth/login-page"', body)
+            self.assertIn('href="/auth/register-page"', body)
+            self.assertIn('name="csrf_token"', body)
+            self.assertIn('id="contact_category"', body)
+            self.assertIn('id="detalle-soporte"', body)
+            self.assertIn('id="detalle-seguridad"', body)
+            self.assertNotIn("Academic management project bringing together", body)
+            self.assertNotIn("Clases, asistencia y acceso", body)
+            if lang == "es":
+                for phrase in (
+                    "QR permanente y credencial institucional",
+                    "Permisos y pases temporales",
+                    "Reportar, responder y cerrar conversaciones",
+                    "Historial de entradas y salidas",
+                    "Centro de notificaciones",
+                    "Proyecto independiente",
+                ):
+                    self.assertIn(phrase, body)
+            else:
+                for phrase in (
+                    "Permanent QR and university ID card",
+                    "Permissions and temporary passes",
+                    "Report, reply and close conversations",
+                    "Entry and exit history",
+                    "Notification center",
+                    "Independent project",
+                ):
+                    self.assertIn(phrase, body)
 
     def test_login_username_case_insensitive(self):
         from app.services.user_service import get_user_by_username
