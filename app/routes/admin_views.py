@@ -1104,6 +1104,43 @@ def admin_contact_message_status(message_id):
     return redirect(url_for("admin_views.admin_contact_messages"))
 
 
+@admin_views_bp.route("/contact-messages/<int:message_id>/reply", methods=["POST"])
+@login_required
+def admin_reply_to_report(message_id):
+    """Admin-only account reply; it becomes unread for exactly the sender."""
+    if not _is_admin_user():
+        return _reject_non_admin()
+    from app.models.support_reply_model import SupportReply, SupportReportSender
+    report = db.session.get(ContactMessage, message_id)
+    sender = db.session.get(SupportReportSender, message_id)
+    text = str(request.form.get("reply", "")).strip()
+    if report is None or sender is None:
+        flash("Este reporte no pertenece a una cuenta registrada.", "error")
+    elif not 2 <= len(text) <= 3000:
+        flash("La respuesta debe tener entre 2 y 3000 caracteres.", "error")
+    else:
+        recipient = db.session.get(User, sender.user_id)
+        if not recipient or not recipient.is_active_user:
+            flash("La cuenta del destinatario ya no está activa.", "error")
+        else:
+            db.session.add(SupportReply(
+                report_id=report.id, recipient_user_id=recipient.id,
+                admin_user_id=current_user.id, message=text,
+            ))
+            # Replying counts as handling the report. The recipient's unread
+            # badge stays independent until they explicitly mark it as read.
+            report.status = "reviewed"
+            report.reviewed_at = datetime.utcnow()
+            try:
+                db.session.commit()
+                flash("Respuesta enviada a la bandeja del usuario.", "success")
+            except Exception:
+                db.session.rollback()
+                current_app.logger.exception("Cannot send support reply")
+                flash("No fue posible enviar la respuesta.", "error")
+    return redirect(url_for("admin_views.admin_contact_messages", status="all"))
+
+
 @admin_views_bp.route("/notices/create", methods=["POST"])
 @login_required
 def admin_create_notice():
