@@ -403,6 +403,7 @@
 </style>
 {% endblock %}
 
+{% block page_header %}{% endblock %}
 {% block content %}
 {% set admin_profile_photo = current_user.profile_image or current_user.photo_path or current_user.image %}
 {% set admin_profile_photo_cache = request.args.get('message', '') or request.args.get('error', '') or request.args.get('success', '') or 'admin-config-photo' %}
