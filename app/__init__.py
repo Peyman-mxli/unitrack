@@ -1029,6 +1029,8 @@ def create_app():
             "estudiante": "student_base.html",
             "docente": "professor_base.html",
             "personal": "personal_base.html",
+            "administrativo": "admin_base.html",
+            "visitante": "credential_visitor_base.html",
         }[current_user.role]
         page = request.args.get("page", 1, type=int) or 1
         pagination, read_ids = inbox_page(current_user, page=max(1, page))
