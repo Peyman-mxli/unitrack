@@ -412,6 +412,27 @@ background:#f8fafc;
 color:#374151;
 }
 
+
+/* Clear, keyboard-accessible return link to the public homepage. */
+.back-home-link{
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ gap:8px;
+ margin-top:16px;
+ padding:10px;
+ color:#4c1d95;
+ font-size:14px;
+ font-weight:800;
+ text-decoration:underline;
+ text-underline-offset:3px;
+ border-radius:10px;
+}
+.back-home-link:hover,.back-home-link:focus-visible{
+ color:#6d28d9;
+ background:rgba(124,58,237,0.08);
+}
+
 /* FOOTER */
 
 .page-footer{
@@ -850,6 +871,10 @@ Login
 
 <a href="/auth/register-page" class="register-button">
 {{ text.register_button }}
+</a>
+
+<a href="{{ url_for('home') }}" class="back-home-link">
+{{ "← Volver al inicio" if current_language == "es" else "← Back to Home" }}
 </a>
 
 </div>
