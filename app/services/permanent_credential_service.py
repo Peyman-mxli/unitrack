@@ -95,8 +95,17 @@ def is_permanent_credential(value):
     if "scan_token=" in raw:
         from urllib.parse import urlparse, parse_qs
         raw = parse_qs(urlparse(raw).query).get("scan_token", [""])[0]
-    return raw.startswith("P.") or raw.upper().startswith(tuple(prefix + "-" for prefix in ROLES.values()))
-
+    if raw.startswith("P."):
+        return True
+    # Legacy 5-minute codes deliberately share EST-/DOC-/PER-/ADM- prefixes.
+    # Distinguish by the persisted digest, not by prefix, so old sessions keep
+    # working until those short-lived credentials expire naturally.
+    normalized = raw.upper().replace(" ", "")
+    if not normalized.startswith(tuple(prefix + "-" for prefix in ROLES.values())):
+        return False
+    return db.session.execute(db.select(PermanentCredential.user_id).where(
+        PermanentCredential.code_hash == _hash_code(normalized)
+    )).first() is not None
 
 def request_replacement(user, reason):
     if user.role not in ROLES:
