@@ -1071,26 +1071,8 @@ def admin_contact_messages():
     pending_count = db.session.execute(
         db.select(db.func.count(ContactMessage.id)).where(ContactMessage.status == "new")
     ).scalar_one()
-    # QR replacement requests are independent from public contact forms.
-    # Show both pending and resolved requests here so decisions remain auditable.
-    qr_requests = db.session.execute(
-        db.select(CredentialReplacementRequest)
-        .order_by(CredentialReplacementRequest.requested_at.desc(),
-                  CredentialReplacementRequest.id.desc())
-        .limit(200)
-    ).scalars().all()
-    qr_user_ids = {item.user_id for item in qr_requests}
-    qr_user_ids.update(item.reviewed_by for item in qr_requests if item.reviewed_by is not None)
-    qr_people = {
-        person.id: person for person in db.session.execute(
-            db.select(User).where(User.id.in_(qr_user_ids))
-        ).scalars()
-    } if qr_user_ids else {}
-    pending_qr_count = sum(item.status == "pending" for item in qr_requests)
     return render_template(
         "admin_contact_messages.html", messages=messages,
-        qr_requests=qr_requests, qr_people=qr_people,
-        pending_qr_count=pending_qr_count,
         selected_status=selected_status, selected_category=selected_category,
         total=total, page=page, has_more=(page * 40 < total), pending_count=pending_count,
     )
