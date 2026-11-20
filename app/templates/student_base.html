@@ -955,6 +955,7 @@ Polytechnic University of Baja California
 <a href="/student/access-control" class="{% if active_page == 'access_control' %}active{% endif %}">{{ t("access_control") }}</a>
 {% include "_university_notice_nav.html" %}
 
+<a href="{{ url_for('credential.report_issue') }}" class="{% if active_page == 'report' %}active{% endif %}">✉ {{ "Reportar un problema" if current_language == "es" else "Report an issue" }}</a>
 <a href="{{ url_for('credential.card') }}">{{ "Mi Credencial" if current_language == "es" else "My ID Card" }}</a>
 <a href="/student/configuration" class="{% if active_page == 'configuration' %}active{% endif %}">{{ t("configuration") }}</a>
 </nav>
