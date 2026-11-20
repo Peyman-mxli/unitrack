@@ -1436,6 +1436,81 @@ class UniTrackTests(unittest.TestCase):
                     self.assertIn(b'class="profile-name"', response.data)
                     self.assertIn(expected_name.encode(), response.data)
 
+    def test_two_way_support_chat_can_only_be_closed_by_admin(self):
+        """Reporter replies back; closing prevents further messages on either side."""
+        from app.models.contact_message_model import ContactMessage
+        from app.models.support_conversation_model import (
+            SupportChatMessage, SupportChatState
+        )
+        student = self._signed_in_client("StudentA")
+        page = student.get("/credentials/report")
+        token = re.search(rb'name="csrf_token" value="([^"]+)"', page.data).group(1).decode()
+        self.assertEqual(student.post("/credentials/report", data={
+            "csrf_token": token, "category": "error",
+            "subject": "Two way support conversation",
+            "description": "I cannot access my QR scanner.",
+        }).status_code, 302)
+        with self.app.app_context():
+            report = self.db.session.execute(self.db.select(ContactMessage).where(
+                ContactMessage.body.contains("Two way support conversation")
+            )).scalar_one()
+            rid = report.id
+        self.assertIn(f"/credentials/messages/{rid}/chat".encode(),
+                      student.get("/credentials/messages").data)
+        admin = self._signed_in_client("Admin")
+        self.assertIn(f"/admin/contact-messages/{rid}/chat".encode(),
+                      admin.get("/admin/contact-messages").data)
+        admin_page = admin.get(f"/admin/contact-messages/{rid}/chat")
+        self.assertIn(b"Cerrar chat", admin_page.data)
+        admin_csrf = re.search(rb'name="csrf_token" value="([^"]+)"',
+                               admin_page.data).group(1).decode()
+        self.assertEqual(admin.post(f"/admin/contact-messages/{rid}/reply", data={
+            "csrf_token": admin_csrf, "reply": "What happened on scanning?"
+        }).status_code, 302)
+        student_page = student.get(f"/credentials/messages/{rid}/chat")
+        self.assertIn(b"What happened on scanning?", student_page.data)
+        self.assertNotIn(b"Cerrar chat", student_page.data)
+        student_csrf = re.search(rb'name="csrf_token" value="([^"]+)"',
+                                 student_page.data).group(1).decode()
+        self.assertEqual(student.post(f"/credentials/messages/{rid}/chat", data={
+            "csrf_token": student_csrf, "message": "The scan showed an empty screen."
+        }).status_code, 302)
+        with self.app.app_context():
+            row = self.db.session.execute(self.db.select(SupportChatMessage).where(
+                SupportChatMessage.report_id == rid
+            )).scalar_one()
+            row_id = row.id
+            self.assertIsNone(row.admin_read_at)
+        admin_page = admin.get(f"/admin/contact-messages/{rid}/chat")
+        self.assertIn(b"The scan showed an empty screen.", admin_page.data)
+        with self.app.app_context():
+            self.assertIsNotNone(self.db.session.get(SupportChatMessage, row_id).admin_read_at)
+        other = self._signed_in_client("TeacherA")
+        self.assertEqual(other.get(f"/credentials/messages/{rid}/chat").status_code, 403)
+        self.assertNotEqual(student.post(f"/admin/contact-messages/{rid}/close",
+                                         data={"csrf_token": student_csrf}).status_code, 302)
+        self.assertEqual(admin.post(f"/admin/contact-messages/{rid}/close", data={
+            "csrf_token": admin_csrf
+        }).status_code, 302)
+        with self.app.app_context():
+            self.assertIsNotNone(self.db.session.get(SupportChatState, rid).closed_at)
+        closed_page = student.get(f"/credentials/messages/{rid}/chat")
+        self.assertIn(b"Cerrado", closed_page.data)
+        self.assertIn(b"The scan showed an empty screen.", closed_page.data)
+        self.assertNotIn(b'name="message"', closed_page.data)
+        self.assertEqual(student.post(f"/credentials/messages/{rid}/chat", data={
+            "csrf_token": student_csrf, "message": "After closure"
+        }).status_code, 409)
+        self.assertEqual(admin.post(f"/admin/contact-messages/{rid}/reply", data={
+            "csrf_token": admin_csrf, "reply": "After closure"
+        }).status_code, 409)
+        with self.app.app_context():
+            self.assertEqual(self.db.session.execute(
+                self.db.select(db.func.count(SupportChatMessage.id)).where(
+                    SupportChatMessage.report_id == rid
+                )
+            ).scalar_one(), 1)
+
     def test_in_app_support_reply_badge_clears_only_after_read(self):
         """Admin reply count belongs to recipient, and is cleared on acknowledgement."""
         from app.models.contact_message_model import ContactMessage
@@ -1463,7 +1538,7 @@ class UniTrackTests(unittest.TestCase):
         admin = self._signed_in_client("Admin")
         inbox = admin.get("/admin/contact-messages?status=all")
         self.assertEqual(inbox.status_code, 200)
-        self.assertIn(f"/admin/contact-messages/{rid}/reply".encode(), inbox.data)
+        self.assertIn(f"/admin/contact-messages/{rid}/chat".encode(), inbox.data)
         admin_csrf = re.search(rb'name="csrf_token" value="([^"]+)"', inbox.data).group(1).decode()
         self.assertEqual(admin.post(f"/admin/contact-messages/{rid}/reply", data={
             "csrf_token": admin_csrf, "reply": "Please try again; the credential is active.",
