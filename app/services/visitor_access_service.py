@@ -97,8 +97,7 @@ def resolve_visitor_pass(text):
         normalized = raw.upper().replace(" ", "")
         item = None
         for candidate in db.session.execute(db.select(VisitorPass).where(
-            VisitorPass.revoked_at.is_(None),
-            VisitorPass.expires_at >= campus_now() - timedelta(days=1)
+            VisitorPass.expires_at >= campus_now() - timedelta(days=30)
         )).scalars():
             if hmac.compare_digest(visitor_code(candidate), normalized):
                 item = candidate
@@ -107,8 +106,8 @@ def resolve_visitor_pass(text):
             raise ValueError("Unknown visitor code.")
     else:
         raise ValueError("Invalid visitor credential.")
-    if item.revoked_at is not None:
-        raise ValueError("This visitor permission was revoked.")
+    # Revocation blocks any NEW entry, but an already-admitted visitor may
+    # still scan out so the exit is faithfully recorded.
     if item.linked_user_id is not None:
         user = db.session.get(User, item.linked_user_id)
         if not user or user.role != "visitante" or not user.is_active_user:
@@ -130,6 +129,8 @@ def scan_visitor(text):
         action = "check_out"
         event = open_log
     else:
+        if item.revoked_at is not None:
+            raise ValueError("This visitor permission was revoked.")
         if not item.starts_at <= now < item.expires_at:
             raise ValueError("Visitor permission is not active at this date/time.")
         latest = db.session.execute(db.select(VisitorAccessLog).where(
