@@ -5,7 +5,7 @@ from app.database import db
 from app.models.university_notice_model import UniversityNotice
 from app.models.university_notice_read_model import UniversityNoticeRead
 
-INBOX_ROLES = frozenset(("estudiante", "docente", "personal"))
+INBOX_ROLES = frozenset(("estudiante", "docente", "personal", "administrativo", "visitante"))
 
 
 def can_access_inbox(user):
