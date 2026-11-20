@@ -241,6 +241,8 @@ def build_personal_access_mobile_scan_url(user, token=None):
 
 
 def build_personal_access_qr_payload(user, token=None):
+    if token and str(token).startswith("P."):
+        return str(token)
     return build_personal_access_mobile_scan_url(user, token=token)
 
 
