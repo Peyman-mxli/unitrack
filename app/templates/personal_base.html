@@ -694,6 +694,7 @@ padding:10px 10px 16px 10px;
 <a href="{{ url_for('personal_views.access_control_page') }}" class="{% if active_page == 'access_control' %}active{% endif %}">{{ "Control de Acceso" if is_spanish else "Access Control" }}</a>
 {% include "_university_notice_nav.html" %}
 
+<a href="{{ url_for('credential.report_issue') }}" class="{% if active_page == 'report' %}active{% endif %}">✉ {{ "Reportar un problema" if is_spanish else "Report an issue" }}</a>
 <a href="{{ url_for('credential.card') }}">{{ "Mi Credencial" if is_spanish else "My ID Card" }}</a>
 <a href="{{ url_for('personal_views.configuration_page') }}" class="{% if active_page == 'configuration' %}active{% endif %}">{{ "Configuración" if is_spanish else "Configuration" }}</a>
 </nav>
