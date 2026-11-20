@@ -1862,6 +1862,34 @@ def admin_attendance_history():
     )
     access_event_counts = count_access_events(access_history)
 
+    from app.models.visitor_access_model import VisitorPass, VisitorAccessLog
+    visitor_history = []
+    if not selected_role or selected_role == "visitante":
+        visitor_query = (
+            db.select(VisitorAccessLog, VisitorPass)
+            .join(VisitorPass, VisitorAccessLog.pass_id == VisitorPass.id)
+            .order_by(VisitorAccessLog.checked_in_at.desc())
+        )
+        if search_text:
+            visitor_query = visitor_query.where(VisitorPass.full_name.ilike(f"%{search_text}%"))
+        for visit, permit in db.session.execute(visitor_query.limit(500)).all():
+            for action, moment in (("check_in", visit.checked_in_at),
+                                   ("check_out", visit.checked_out_at)):
+                if moment is None or (selected_date and moment.date().isoformat() != selected_date):
+                    continue
+                visitor_history.append({
+                    "name": permit.full_name, "pass_id": permit.id,
+                    "action": action, "date": moment.strftime("%Y-%m-%d"),
+                    "time": moment.strftime("%I:%M:%S %p"),
+                    "starts_at": permit.starts_at, "expires_at": permit.expires_at,
+                })
+        visitor_history.sort(key=lambda e: (e["date"], e["time"]), reverse=True)
+    visitor_event_counts = {
+        "check_ins": sum(1 for row in visitor_history if row["action"] == "check_in"),
+        "check_outs": sum(1 for row in visitor_history if row["action"] == "check_out"),
+        "total": len(visitor_history),
+    }
+
     return render_template(
         "admin_attendance_history.html",
         search_text=search_text,
@@ -1869,6 +1897,8 @@ def admin_attendance_history():
         selected_date=selected_date,
         access_history=access_history,
         access_event_counts=access_event_counts,
+        visitor_history=visitor_history,
+        visitor_event_counts=visitor_event_counts,
     )
 
 
