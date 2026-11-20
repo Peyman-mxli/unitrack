@@ -985,8 +985,9 @@
                         <span>{{ "Reportar" if current_language == "es" else "Report" }}</span>
                     </a>
                     <a href="{{ url_for('admin_views.admin_contact_messages') }}" class="nav-link {% block nav_contact_messages %}{% endblock %}">
-                        <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-5 3v-3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/><path d="M7 10h10M7 14h7"/></svg></span>{% if message_unread_count %}<span class="uni-alert-count" style="position:static;margin-left:auto">{{ message_unread_count }}</span>{% endif %}
+                        <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-5 3v-3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/><path d="M7 10h10M7 14h7"/></svg></span>
                         <span>{{ "Mensajes y reportes" if current_language == "es" else "Messages and reports" }}</span>
+                        {% if message_unread_count %}<span class="uni-alert-count" style="position:static;margin-left:auto">{{ message_unread_count }}</span>{% endif %}
                     </a>
 
                     <a href="/admin/access-control" class="nav-link {% block nav_access_control %}{% endblock %}">
