@@ -118,7 +118,8 @@
                 <option value="estudiante">{{ t('Student') }}</option>
                 <option value="docente">{{ t('Teacher') }}</option>
                 <option value="personal">{{ t('Staff') }}</option>
-                <option value="administrativo">{{ t('Admin') }}</option>
+                <option value="visitante">{{ "Visitante" if current_language == "es" else "Visitor" }}</option>
+                        <option value="administrativo">{{ t('Admin') }}</option>
             </select>
 
             <select name="hours" class="select-field">
