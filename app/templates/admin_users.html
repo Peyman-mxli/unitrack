@@ -944,6 +944,7 @@
 
                         <td>
                             <div class="row-actions">
+                                {% if user.role in ['estudiante','docente','personal','administrativo'] %}<a href="{{ url_for('credential.card',user_id=user.id) }}" class="action-btn action-id">Imprimir credencial</a>{% endif %}
                                 <a href="/admin/users/{{ user.id }}/edit" class="action-btn action-edit">{{ t('Edit') }}</a>
 
                                 <a href="/admin/users/{{ user.id }}/change-role" class="action-btn action-role">{{ t('Change Role') }}</a>
