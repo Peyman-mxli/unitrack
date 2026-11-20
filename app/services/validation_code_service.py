@@ -26,6 +26,7 @@ ALLOWED_VALIDATION_CODE_ROLES = {
     "docente",
     "personal",
     "administrativo",
+    "visitante",
 }
 
 
