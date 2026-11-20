@@ -10,6 +10,59 @@
 
 ---
 
+## Permanent member IDs and temporary visitors (November 2026)
+
+UniTrack provides two distinct QR types:
+
+- **Permanent university ID** for `administrativo`, `estudiante`,
+  `docente` and `personal`. The same unpredictable, signed QR and backup
+  code are shown on every refresh and on a printable ID card. A new QR is
+  issued only after a replacement request is approved by an administrator;
+  previously printed codes then stop working. Changing the password alone
+  does not rotate the printed campus credential.
+- **Temporary visitor passes** for `visitante` accounts or guests without
+  accounts. An administrator can issue a 24-, 48-, or 72-hour pass or select
+  exact campus-local start and expiration times. QR access is denied before
+  the start and after the end; an existing visit may still be checked out.
+  Expired visitors request a new authorized pass.
+
+### Administrator workflow
+
+1. Open **Credenciales y Visitantes** in the administrator sidebar
+   (`/credentials/manage`).
+2. Review pending member QR replacements and visitor account requests.
+3. For a person without an account, create a visitor pass using a name,
+   reason for visit, and duration; print or share the private pass.
+4. For recurring visitors, generate a role-specific registration validation
+   code for **Visitante**; after signing in, the visitor submits the visit
+   request through `/credentials/visitor`. Only an admin can approve it.
+5. Monitor visitor check-ins/check-outs in **Historial de Acceso**.
+6. Revoke guest permissions from the admin visitor-management page.
+
+### Printable university credentials
+
+All four permanent roles can open **Mi Credencial** (`/credentials/card`)
+to view their current QR and print an 85.6 × 54 mm ID card with their name,
+role, photo and university identifier. In the print dialog, choose
+**Save as PDF** for a downloadable PDF. Admins can print other permanent
+members' cards from the Users page. The QR is a signed portable credential,
+not a public username or predictable student ID; it is accepted only by
+authorized UniTrack scanners.
+
+**Security/operational requirements:** keep a persistent, strong
+`SECRET_KEY` across restarts and across all machines sharing one database.
+Do not publish printed credentials or temporary guest codes online. A
+replaced/revoked credential is rejected on the next scan. Legacy short-lived
+codes remain compatible during their prior 5-minute/24-hour lifecycle, but
+new member pages no longer create them. The optional local student
+self-scanning mode is for demonstrations only and is disabled in production.
+
+**Migration safety:** new tables are created additively by the existing app
+startup; `users`, `access_logs`, attendance records and photos are not
+dropped or altered. Always back up the private database before updating.
+Existing local SQLite and remote databases are separate unless deliberately
+configured to share persistent storage.
+
 ## Permanently reset all local users and start over
 
 **Destructive operation:** this deletes all accounts (admin, student, teacher,
