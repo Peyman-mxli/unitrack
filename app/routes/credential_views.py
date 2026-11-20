@@ -114,6 +114,53 @@ def my_messages():
     )
 
 
+@credential_bp.route("/messages/<int:report_id>/chat", methods=["GET", "POST"])
+@login_required
+def my_support_chat(report_id):
+    """Only the authenticated original sender can view or respond to a thread."""
+    if not current_user.is_active_user:
+        abort(403)
+    from app.models.support_conversation_model import SupportChatMessage
+    from app.services.support_chat_service import (
+        load_conversation, conversation_items, mark_chat_read
+    )
+    report, sender, state = load_conversation(report_id)
+    if report is None or sender is None:
+        abort(404)
+    if sender.user_id != current_user.id:
+        abort(403)
+    if request.method == "POST":
+        if state and state.closed_at is not None:
+            abort(409, description="Esta conversación está cerrada.")
+        body = str(request.form.get("message", "")).strip()
+        if not 1 <= len(body) <= 3000:
+            flash("Escribe un mensaje de entre 1 y 3000 caracteres.", "error")
+        else:
+            db.session.add(SupportChatMessage(
+                report_id=report_id,
+                sender_user_id=current_user.id,
+                body=body,
+            ))
+            db.session.commit()
+            flash("Mensaje enviado al administrador.", "success")
+            return redirect(url_for("credential.my_support_chat", report_id=report_id))
+    mark_chat_read(report_id, "reporter", current_user.id)
+    base = {
+        "administrativo": "admin_base.html",
+        "estudiante": "student_base.html",
+        "docente": "professor_base.html",
+        "personal": "personal_base.html",
+        "visitante": "credential_visitor_base.html",
+    }.get(current_user.role)
+    if base is None:
+        abort(403)
+    return render_template(
+        "support_chat.html", thread_base=base, active_page="messages",
+        report=report, messages=conversation_items(report_id),
+        closed=bool(state and state.closed_at), state=state, is_admin=False,
+    )
+
+
 @credential_bp.route("/messages/<int:reply_id>/read", methods=["POST"])
 @login_required
 def read_message(reply_id):
