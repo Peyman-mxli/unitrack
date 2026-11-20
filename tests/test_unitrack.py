@@ -1348,6 +1348,201 @@ class UniTrackTests(unittest.TestCase):
         self.assertNotIn('<span class="nav-icon">#</span>', html)
         self.assertNotIn('<span class="nav-icon">⌂</span>', html)
 
+    def test_permanent_cards_and_approved_qr_rotation(self):
+        """A registered user's printed QR is stable until admin-approved replacement."""
+        from werkzeug.security import generate_password_hash
+        from app.models.user_model import User
+        from app.services.permanent_credential_service import (
+            permanent_credential_for_user, resolve_permanent_credential,
+            request_replacement, review_replacement,
+        )
+        from app.models.permanent_credential_model import CredentialReplacementRequest
+
+        with self.app.app_context():
+            person = User(
+                username="PermanentCardMember", email="permanent-card@example.test",
+                first_name="Permanent", last_name="Card", phone="0000000000",
+                role="estudiante", language="es", is_active_user=True,
+                password_hash=generate_password_hash("TestingPassword123!"),
+            )
+            self.db.session.add(person)
+            self.db.session.commit()
+            uid = person.id
+            token, code = permanent_credential_for_user(person)
+            self.assertEqual((token, code), permanent_credential_for_user(person))
+            self.assertEqual(resolve_permanent_credential(token)[0].id, uid)
+            self.assertEqual(resolve_permanent_credential(code)[0].id, uid)
+            self.assertEqual(resolve_permanent_credential("EST-" + code[4:])[0].id, uid)
+        owner = self._signed_in_client("PermanentCardMember")
+        card = owner.get("/credentials/card")
+        self.assertEqual(card.status_code, 200)
+        self.assertIn(b"Imprimir / Guardar como PDF", card.data)
+        self.assertIn(b"data:image/png;base64,", card.data)
+        self.assertEqual(card.data, owner.get("/credentials/card").data)
+        other = self._signed_in_client("StudentA")
+        self.assertEqual(other.get(f"/credentials/card/{uid}").status_code, 403)
+        csrf = re.search(rb'name="csrf_token" value="([^"]+)"', card.data).group(1).decode()
+        requested = owner.post("/credentials/request-replacement", data={
+            "csrf_token": csrf, "reason": "Extravié mi credencial impresa.",
+        })
+        self.assertEqual(requested.status_code, 302)
+        with self.app.app_context():
+            item = self.db.session.execute(self.db.select(CredentialReplacementRequest).where(
+                CredentialReplacementRequest.user_id == uid
+            )).scalar_one()
+            admin = self.db.session.execute(self.db.select(User).where(
+                User.username == "Admin"
+            )).scalar_one()
+            review_replacement(item.id, admin, True)
+            updated = self.db.session.get(User, uid)
+            new_token, new_code = permanent_credential_for_user(updated)
+            self.assertNotEqual(token, new_token)
+            self.assertNotEqual(code, new_code)
+            with self.assertRaises(ValueError):
+                resolve_permanent_credential(token)
+            with self.assertRaises(ValueError):
+                resolve_permanent_credential(code)
+            self.assertEqual(resolve_permanent_credential(new_token)[0].id, uid)
+        administrator = self._signed_in_client("Admin")
+        self.assertEqual(administrator.get(f"/credentials/card/{uid}").status_code, 200)
+        self.assertEqual(administrator.get("/credentials/manage").status_code, 200)
+
+    def test_permanent_qr_reuses_same_code_for_multiple_visits(self):
+        from app.models.user_model import User
+        from app.models.access_log_model import AccessLog
+        from app.services.permanent_credential_service import permanent_credential_for_user
+        from app.utils.local_time import campus_now
+        with self.app.app_context():
+            person = User(username="RepeatPermanentMember", email="repeat-permanent@example.test",
+                first_name="Repeat", last_name="Member", phone="0000000000", role="docente",
+                language="es", is_active_user=True, password_hash="not-used-in-this-test")
+            self.db.session.add(person)
+            self.db.session.commit()
+            uid = person.id
+            token, code = permanent_credential_for_user(person)
+        client = self._signed_in_client("Admin")
+        page = client.get("/admin/access-control")
+        csrf = re.search(rb'name="csrf_token" value="([^"]+)"', page.data).group(1).decode()
+        form = {"csrf_token": csrf, "qr_text": token}
+        first = client.post("/admin/access-control", data=form)
+        self.assertIn("Escaneo correcto".encode("utf-8"), first.data)
+        fast = client.post("/admin/access-control", data={"csrf_token": csrf, "pass_code": code})
+        self.assertIn("Escaneo rechazado".encode("utf-8"), fast.data)
+        with self.app.app_context():
+            open_log = self.db.session.execute(self.db.select(AccessLog).where(
+                AccessLog.student_id == uid, AccessLog.check_out_time.is_(None)
+            )).scalar_one()
+            open_log.check_in_time = campus_now() - timedelta(seconds=10)
+            self.db.session.commit()
+        second = client.post("/admin/access-control", data={"csrf_token": csrf, "pass_code": code})
+        self.assertIn("Escaneo correcto".encode("utf-8"), second.data)
+        with self.app.app_context():
+            previous = self.db.session.execute(self.db.select(AccessLog).where(
+                AccessLog.student_id == uid
+            )).scalar_one()
+            self.assertIsNotNone(previous.check_out_time)
+            previous.check_out_time = campus_now() - timedelta(seconds=10)
+            self.db.session.commit()
+        third = client.post("/admin/access-control", data=form)
+        self.assertIn("Escaneo correcto".encode("utf-8"), third.data)
+        with self.app.app_context():
+            logs = self.db.session.execute(self.db.select(AccessLog).where(
+                AccessLog.student_id == uid
+            )).scalars().all()
+            self.assertEqual(len(logs), 2)
+
+    def test_admin_guest_pass_expiry_and_visitor_history(self):
+        """Admin can create a non-account visitor pass; expired QR blocks reentry."""
+        from app.models.user_model import User
+        from app.models.visitor_access_model import VisitorPass, VisitorAccessLog
+        from app.services.visitor_access_service import (
+            issue_visitor_pass, visitor_token, visitor_code
+        )
+        from app.utils.local_time import campus_now
+        with self.app.app_context():
+            admin = self.db.session.execute(self.db.select(User).where(
+                User.username == "Admin"
+            )).scalar_one()
+            now = campus_now()
+            item = issue_visitor_pass(admin, "Guest Unique", "Campus tour",
+                now.isoformat(timespec="seconds"),
+                (now + timedelta(hours=24)).isoformat(timespec="seconds"))
+            token, manual, pid = visitor_token(item), visitor_code(item), item.id
+        admin_client = self._signed_in_client("Admin")
+        self.assertEqual(admin_client.get(f"/credentials/visitor-pass/{pid}").status_code, 200)
+        self.assertEqual(admin_client.get("/credentials/manage").status_code, 200)
+        outsider = self._signed_in_client("StudentA")
+        self.assertEqual(outsider.get(f"/credentials/visitor-pass/{pid}").status_code, 403)
+        page = admin_client.get("/admin/access-control")
+        csrf = re.search(rb'name="csrf_token" value="([^"]+)"', page.data).group(1).decode()
+        first = admin_client.post("/admin/access-control", data={
+            "csrf_token": csrf, "qr_text": token
+        })
+        self.assertIn("Escaneo correcto".encode("utf-8"), first.data)
+        with self.app.app_context():
+            log = self.db.session.execute(self.db.select(VisitorAccessLog).where(
+                VisitorAccessLog.pass_id == pid
+            )).scalar_one()
+            log.checked_in_at = campus_now() - timedelta(seconds=10)
+            saved_pass = self.db.session.get(VisitorPass, pid)
+            saved_pass.expires_at = campus_now() - timedelta(seconds=1)
+            self.db.session.commit()
+        exit_resp = admin_client.post("/admin/access-control", data={
+            "csrf_token": csrf, "pass_code": manual
+        })
+        self.assertIn("Escaneo correcto".encode("utf-8"), exit_resp.data)
+        new_entry = admin_client.post("/admin/access-control", data={
+            "csrf_token": csrf, "qr_text": token
+        })
+        self.assertIn("Escaneo rechazado".encode("utf-8"), new_entry.data)
+        with self.app.app_context():
+            logs = self.db.session.execute(self.db.select(VisitorAccessLog).where(
+                VisitorAccessLog.pass_id == pid
+            )).scalars().all()
+            self.assertEqual(len(logs), 1)
+            self.assertIsNotNone(logs[0].checked_out_at)
+
+    def test_registered_visitor_account_requires_admin_permission(self):
+        from werkzeug.security import generate_password_hash
+        from app.models.user_model import User
+        from app.models.visitor_access_model import VisitorRequest, VisitorPass
+        from app.services.visitor_access_service import review_visitor_request
+        from app.utils.local_time import campus_now
+        with self.app.app_context():
+            person = User(username="RecurringVisitor", email="recurring-visitor@example.test",
+                first_name="Recurring", last_name="Visitor", phone="0000000000",
+                role="visitante", language="es", is_active_user=True,
+                password_hash=generate_password_hash("TestingPassword123!"))
+            self.db.session.add(person)
+            self.db.session.commit()
+            uid = person.id
+        visitor = self._signed_in_client("RecurringVisitor")
+        page = visitor.get("/credentials/visitor")
+        self.assertEqual(page.status_code, 200)
+        self.assertEqual(visitor.get("/credentials/manage").status_code, 403)
+        csrf = re.search(rb'name="csrf_token" value="([^"]+)"', page.data).group(1).decode()
+        now = campus_now()
+        answer = visitor.post("/credentials/visitor/request", data={
+            "csrf_token": csrf, "purpose": "Reunión de coordinación",
+            "starts_at": now.isoformat(timespec="minutes"),
+            "expires_at": (now + timedelta(hours=48)).isoformat(timespec="minutes"),
+        })
+        self.assertEqual(answer.status_code, 302)
+        with self.app.app_context():
+            request_row = self.db.session.execute(self.db.select(VisitorRequest).where(
+                VisitorRequest.user_id == uid
+            )).scalar_one()
+            administrator = self.db.session.execute(self.db.select(User).where(
+                User.username == "Admin"
+            )).scalar_one()
+            review_visitor_request(request_row.id, administrator, True)
+            issued = self.db.session.execute(self.db.select(VisitorPass).where(
+                VisitorPass.linked_user_id == uid
+            )).scalar_one()
+            pid = issued.id
+        self.assertEqual(visitor.get(f"/credentials/visitor-pass/{pid}").status_code, 200)
+        self.assertIn(b"QR", visitor.get("/credentials/visitor").data)
+
     def test_admin_dashboard_shows_population_presence_and_notices(self):
         client = self._signed_in_client()
         result = client.get("/admin/dashboard")
