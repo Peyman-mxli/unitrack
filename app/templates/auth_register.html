@@ -676,6 +676,7 @@ body{
                         <option value="estudiante" {% if role == 'estudiante' %}selected{% endif %}>{{ text.role_student }}</option>
                         <option value="docente" {% if role == 'docente' %}selected{% endif %}>{{ text.role_teacher }}</option>
                         <option value="personal" {% if role == 'personal' %}selected{% endif %}>{{ text.role_staff }}</option>
+                        <option value="visitante" {% if role == 'visitante' %}selected{% endif %}>{{ "Visitante" if current_language == "es" else "Visitor" }}</option>
                         <option value="administrativo" {% if role == 'administrativo' %}selected{% endif %}>{{ text.role_admin }}</option>
                     </select>
                 </div>
