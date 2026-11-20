@@ -947,7 +947,8 @@ def process_access_scan_qr_text(qr_text, *, allow_student_self_scan=False):
             open_entry = get_open_access_log_for_student(permanent_user.id)
             from app.services.access_log_service import get_latest_access_log_for_user
             latest = get_latest_access_log_for_user(permanent_user.id)
-            now = _server_now()
+            from app.services.access_log_service import get_current_system_datetime
+            now = get_current_system_datetime()
             if open_entry is not None:
                 if (now - open_entry.check_in_time).total_seconds() < 2:
                     return {"success": False,
@@ -1206,6 +1207,9 @@ def access_control_page():
     scan_result = None
     if request.method == "POST":
         from app.services.scan_token_service import resolve_scan_token
+        from app.services.permanent_credential_service import (
+            is_permanent_credential, resolve_permanent_credential,
+        )
         submitted = (request.form.get("pass_code") or request.form.get("qr_text") or "").strip()
         if not submitted:
             scan_result = {"success": False, "message": "Ingresa un código QR o un código temporal válido."}
@@ -1223,7 +1227,10 @@ def access_control_page():
             }
         else:
             try:
-                scanned_user, _scanned_credential = resolve_scan_token(submitted)
+                scanned_user, _scanned_credential = (
+                    resolve_permanent_credential(submitted)
+                    if is_permanent_credential(submitted) else resolve_scan_token(submitted)
+                )
                 if scanned_user.id != current_user.id:
                     scan_result = {
                         "success": False,
