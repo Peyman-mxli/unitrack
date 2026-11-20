@@ -1,5 +1,5 @@
 {% extends inbox_base %}
-{% block title %}{{ "Avisos" if current_language == "es" else "Notices" }} | UniTrack{% endblock %}
+{% block title %}{{ "Notificaciones" if current_language == "es" else "Notifications" }} | UniTrack{% endblock %}
 {% block content %}
 {% set es = current_language == 'es' %}
 <style>
@@ -30,8 +30,8 @@
 <section class="notice-inbox" aria-label="{{ 'Centro de Avisos' if es else 'Notice Center' }}">
   <div class="notice-inbox-header">
     <div>
-      <h1>🔔 {{ "Centro de Avisos" if es else "Notice Center" }}</h1>
-      <p class="notice-inbox-desc">{{ "Aquí encontrarás los avisos de la universidad dirigidos a tu cuenta. Tus lecturas se guardan para que puedas volver a consultar los mensajes." if es else "Find university announcements for your account here. Read messages remain available for future reference." }}</p>
+      <h1>🔔 {{ "Centro de Notificaciones" if es else "Notification Center" }}</h1>
+      <p class="notice-inbox-desc">{{ "Aquí encontrarás los comunicados dirigidos a tu cuenta. Al marcarlos como leídos, permanecerán guardados para consultarlos después." if es else "Messages addressed to your account appear here. Marking them as read keeps them available for future reference." }}</p>
     </div>
     <span class="notice-count" data-notice-unread-total>{{ notice_unread_count }} {{ "sin leer" if es else "unread" }}</span>
   </div>
