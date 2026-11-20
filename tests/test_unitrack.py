@@ -894,7 +894,7 @@ class UniTrackTests(unittest.TestCase):
                 response = client.get("/?lang=" + language)
                 self.assertEqual(response.status_code, 200)
                 html = response.data.decode("utf-8")
-                for slug in ("gestion", "qr", "avisos", "historial", "seguridad", "soporte"):
+                for slug in ("credencial", "qr", "avisos", "historial", "seguridad", "soporte"):
                     target = "detalle-" + slug
                     self.assertIn('class="mini-feature" href="#' + target + '"', html)
                     self.assertIn('class="feature-detail" id="' + target + '"', html)
@@ -963,6 +963,42 @@ class UniTrackTests(unittest.TestCase):
         with self.app.app_context():
             for typed in ("Admin", "admin", "ADMIN", "aDmIn"):
                 self.assertEqual(get_user_by_username(typed).username, "Admin")
+
+    def test_public_homepage_all_roles_and_updated_campus_mission(self):
+        """Five roles, current QR product, accessible mobile layout and public contact."""
+        for lang in ("es", "en"):
+            response = self.app.test_client().get("/?lang=" + lang)
+            self.assertEqual(response.status_code, 200)
+            html = response.data.decode("utf-8")
+            self.assertIn('data-homepage-version="qr-access-2026-11"', html)
+            self.assertIn('id="contenido-principal"', html)
+            self.assertIn('class="skip-link" href="#contenido-principal"', html)
+            self.assertEqual(html.count('class="role-item"'), 5)
+            self.assertIn('id="detalle-credencial"', html)
+            self.assertNotIn('id="detalle-gestion"', html)
+            self.assertNotIn("Clases, asistencia y acceso", html)
+            self.assertNotIn("Gestión académica</h3>", html)
+            self.assertNotIn("Academic management</h3>", html)
+            self.assertNotIn("www.elimparcial.com/resizer/v2/", html)
+            self.assertIn("upbc-campus-enhanced.jpg", html)
+            self.assertIn("role-panel{display:grid", html)
+            self.assertIn('class="contact-form" method="POST"', html)
+            self.assertIn('name="csrf_token"', html)
+            expected = (
+                ("Visitantes", "Pases temporales autorizados",
+                 "Identidad digital y control de acceso",
+                 "UniTrack se enfoca en el acceso al campus",
+                 "Fuera del periodo autorizado",
+                 "El reemplazo de QR requiere aprobación")
+                if lang == "es" else
+                ("Visitors", "Authorized temporary passes",
+                 "Digital credentials and campus access control",
+                 "UniTrack focuses on campus access",
+                 "Outside its authorized period",
+                 "QR replacement requires approval")
+            )
+            for text in expected:
+                self.assertIn(text, html)
 
     def test_public_mobile_get_does_not_check_in(self):
         from app.models.user_model import User
