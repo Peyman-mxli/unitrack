@@ -597,7 +597,7 @@
 </div>
 {% endif %}
 
-<section class="operator-qr-card" aria-labelledby="operatorQrTitle">
+<section class="operator-qr-card" id="{{ 'studentAccessCamera' if is_student else 'operatorAccessScanner' }}" aria-labelledby="operatorQrTitle">
     <h2 id="operatorQrTitle">{{ "Escáner QR de Acceso" if current_language == "es" else "Campus Access QR Scanner" }}</h2>
     <p class="qr-instructions">
         {% if is_student %}
@@ -624,7 +624,7 @@
     <div class="operator-qr-result {% if not scan_result.success %}error{% endif %}"
          role="alert" id="adminAccessScanResult">
         <strong>
-            {{ ("Código verificado" if is_spanish else "Code verified") if scan_result.success and is_student and not (self_scan_enabled|default(false)) else ("Escaneo correcto" if is_spanish else "Scan successful") if scan_result.success else ("Escaneo rechazado" if is_spanish else "Scan rejected") }}
+            {% if scan_result.success and is_student and scan_result.action == 'check_in' %}{{ "Entrada registrada" if is_spanish else "Check-in recorded" }}{% elif scan_result.success and is_student and scan_result.action == 'check_out' %}{{ "Salida registrada" if is_spanish else "Check-out recorded" }}{% elif scan_result.success and is_student %}{{ "Código verificado" if is_spanish else "Code verified" }}{% elif scan_result.success %}{{ "Escaneo correcto" if is_spanish else "Scan successful" }}{% else %}{{ "Escaneo rechazado" if is_spanish else "Scan rejected" }}{% endif %}
         </strong>
         <p>{{ t(scan_result.message) }}</p>
         {% if scan_result.success %}
@@ -667,7 +667,7 @@
     </form>
 </section>
 
-<section class="operator-qr-card" aria-labelledby="operatorOwnQrTitle">
+<section class="operator-qr-card" id="{{ 'studentPersonalAccess' if is_student else 'personalAccessQr' }}" aria-labelledby="operatorOwnQrTitle">
     <h2 id="operatorOwnQrTitle">{{ "Mi QR personal de acceso" if current_language == "es" else "My Personal Access QR" }}</h2>
     <p class="qr-instructions">
         {{ "Tu QR personal es permanente. Cada escaneo alterna Entrada y Salida. Solo una solicitud aprobada permite reemplazarlo." if current_language == "es" else "Your personal QR is permanent. Each scan alternates entry and exit. Only an approved request replaces it." }}
