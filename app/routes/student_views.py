@@ -80,31 +80,6 @@ except (ModuleNotFoundError, ImportError):
         }
 
 try:
-    from app.services.attendance_service import (
-        build_student_attendance_history_rows,
-        get_student_attendance_class_options,
-        get_student_attendance_summary,
-    )
-    ATTENDANCE_SERVICE_AVAILABLE = True
-except (ModuleNotFoundError, ImportError):
-    ATTENDANCE_SERVICE_AVAILABLE = False
-
-    def build_student_attendance_history_rows(*args, **kwargs):
-        return []
-
-    def get_student_attendance_class_options(*args, **kwargs):
-        return []
-
-    def get_student_attendance_summary(*args, **kwargs):
-        return {
-            "attendance_percentage": 0,
-            "attendance_percentage_color": "red",
-            "present_count": 0,
-            "late_count": 0,
-            "absent_count": 0,
-        }
-
-try:
     from app.utils.role_required import role_required
 except (ModuleNotFoundError, ImportError):
     def role_required(*allowed_roles):
@@ -1284,46 +1259,8 @@ def access_control_page():
 @login_required
 @role_required("estudiante")
 def attendance_history_page():
-    """
-    Real student academic attendance history page.
-    """
-
-    _sync_student_language_from_session()
-    student_name = _student_full_name(current_user)
-
-    selected_date = request.args.get("date", "").strip()
-    selected_class_name = request.args.get("class_name", "").strip()
-
-    attendance_records = build_student_attendance_history_rows(
-        student_id=current_user.id,
-        selected_date=selected_date,
-        selected_class_name=selected_class_name
-    )
-
-    class_options = get_student_attendance_class_options(
-        student_id=current_user.id
-    )
-
-    summary = get_student_attendance_summary(
-        student_id=current_user.id,
-        selected_date=selected_date,
-        selected_class_name=selected_class_name
-    )
-
-    return render_template(
-        "student_attendance_history.html",
-        student_name=student_name,
-        active_page="attendance_history",
-        attendance_records=attendance_records,
-        class_options=class_options,
-        selected_date=selected_date,
-        selected_class_name=selected_class_name,
-        attendance_percentage=summary["attendance_percentage"],
-        attendance_percentage_color=summary["attendance_percentage_color"],
-        present_count=summary["present_count"],
-        late_count=summary["late_count"],
-        absent_count=summary["absent_count"]
-    )
+    """Legacy bookmark: campus QR entry/exit history lives in Access Control."""
+    return redirect(url_for("student_views.access_control_page"))
 
 
 @student_views_bp.route("/configuration", methods=["GET"])
