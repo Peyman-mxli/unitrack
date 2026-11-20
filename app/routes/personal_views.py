@@ -319,7 +319,7 @@ def access_control_page():
     access_qr_image = generate_qr_image_data_uri(access_qr_payload)
 
     return render_template(
-        "personal_access_control.html",
+        "admin_access_control.html",
         active_page="access_control",
         staff_name=_staff_name(),
         role_label=role_label,
@@ -332,6 +332,7 @@ def access_control_page():
         access_qr_payload=access_qr_payload,
         access_qr_id_code=access_qr_id_code,
         demo_records=records,
+        access_records=records,
         selected_date=selected_date,
         access_events=access_events,
         access_event_counts=access_event_counts,
