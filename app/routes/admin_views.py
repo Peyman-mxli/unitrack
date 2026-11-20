@@ -1071,8 +1071,19 @@ def admin_contact_messages():
     pending_count = db.session.execute(
         db.select(db.func.count(ContactMessage.id)).where(ContactMessage.status == "new")
     ).scalar_one()
+    from app.models.support_reply_model import SupportReportSender
+    report_ids = [message.id for message in messages]
+    authenticated_senders = {}
+    if report_ids:
+        attributed = db.session.execute(
+            db.select(SupportReportSender, User)
+            .join(User, User.id == SupportReportSender.user_id)
+            .where(SupportReportSender.report_id.in_(report_ids))
+        ).all()
+        authenticated_senders = {link.report_id: user for link, user in attributed}
     return render_template(
         "admin_contact_messages.html", messages=messages,
+        authenticated_senders=authenticated_senders,
         selected_status=selected_status, selected_category=selected_category,
         total=total, page=page, has_more=(page * 40 < total), pending_count=pending_count,
     )
