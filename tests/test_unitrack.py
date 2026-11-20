@@ -1436,6 +1436,80 @@ class UniTrackTests(unittest.TestCase):
                     self.assertIn(b'class="profile-name"', response.data)
                     self.assertIn(expected_name.encode(), response.data)
 
+    def test_in_app_support_reply_badge_clears_only_after_read(self):
+        """Admin reply count belongs to recipient, and is cleared on acknowledgement."""
+        from app.models.contact_message_model import ContactMessage
+        from app.models.support_reply_model import SupportReply, SupportReportSender
+        from app.models.user_model import User
+
+        student = self._signed_in_client("StudentA")
+        form = student.get("/credentials/report")
+        csrf = re.search(rb'name="csrf_token" value="([^"]+)"', form.data).group(1).decode()
+        self.assertEqual(student.post("/credentials/report", data={
+            "csrf_token": csrf, "category": "soporte",
+            "subject": "Unread badge support request",
+            "description": "Please help me check my account credential.",
+        }).status_code, 302)
+        with self.app.app_context():
+            report = self.db.session.execute(self.db.select(ContactMessage).where(
+                ContactMessage.body.contains("Unread badge support request")
+            )).scalar_one()
+            rid = report.id
+            self.assertIn("Asunto: Unread badge support request\n\n", report.body)
+            owner = self.db.session.execute(self.db.select(User).where(
+                User.username == "StudentA"
+            )).scalar_one()
+            self.assertEqual(self.db.session.get(SupportReportSender, rid).user_id, owner.id)
+        admin = self._signed_in_client("Admin")
+        inbox = admin.get("/admin/contact-messages?status=all")
+        self.assertEqual(inbox.status_code, 200)
+        self.assertIn(f"/admin/contact-messages/{rid}/reply".encode(), inbox.data)
+        admin_csrf = re.search(rb'name="csrf_token" value="([^"]+)"', inbox.data).group(1).decode()
+        self.assertEqual(admin.post(f"/admin/contact-messages/{rid}/reply", data={
+            "csrf_token": admin_csrf, "reply": "Please try again; the credential is active.",
+        }).status_code, 302)
+        messages = student.get("/credentials/messages")
+        self.assertIn(b"Please try again; the credential is active.", messages.data)
+        self.assertIn(b"data-unread-messages", messages.data)
+        with self.app.app_context():
+            reply = self.db.session.execute(self.db.select(SupportReply).where(
+                SupportReply.report_id == rid
+            )).scalar_one()
+            reply_id = reply.id
+        read_csrf = re.search(rb'name="csrf_token" value="([^"]+)"', messages.data).group(1).decode()
+        other = self._signed_in_client("TeacherA")
+        self.assertNotEqual(other.post(f"/credentials/messages/{reply_id}/read",
+                                       data={"csrf_token": read_csrf}).status_code, 302)
+        self.assertEqual(student.post(f"/credentials/messages/{reply_id}/read",
+                                      data={"csrf_token": read_csrf}).status_code, 302)
+        with self.app.app_context():
+            self.assertIsNotNone(self.db.session.get(SupportReply, reply_id).read_at)
+        self.assertIn(b"Please try again; the credential is active.", student.get("/credentials/messages").data)
+
+    def test_compact_report_link_and_header_alerts_for_each_role(self):
+        from app.models.user_model import User
+        from werkzeug.security import generate_password_hash
+        with self.app.app_context():
+            visitor = User(username="SupportBadgeVisitor", email="badge@example.test",
+                first_name="Support", last_name="Visitor", phone="0000000000",
+                role="visitante", language="es", is_active_user=True,
+                password_hash=generate_password_hash("TestingPassword123!"))
+            self.db.session.add(visitor)
+            self.db.session.commit()
+        for username, path in (("Admin", "/admin/dashboard"),
+                               ("StudentA", "/student/dashboard"),
+                               ("TeacherA", "/professor/dashboard"),
+                               ("StaffA", "/personal/dashboard"),
+                               ("SupportBadgeVisitor", "/credentials/visitor")):
+            with self.subTest(username=username):
+                page = self._signed_in_client(username).get(path)
+                self.assertEqual(page.status_code, 200)
+                self.assertIn(b'uni-account-alerts', page.data)
+                self.assertIn(b'aria-label="Mensajes', page.data)
+                self.assertIn(b'aria-label="Notificaciones', page.data)
+                self.assertIn(b'href="/credentials/report"', page.data)
+                self.assertIn(b"Reportar", page.data)
+
     def test_signed_in_users_can_report_issues_to_private_admin_inbox(self):
         from app.models.contact_message_model import ContactMessage
         from app.models.user_model import User
