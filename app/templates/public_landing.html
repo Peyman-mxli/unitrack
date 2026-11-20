@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="{{ 'UniTrack: plataforma de gestión académica, asistencia, control de acceso QR y comunicación para la comunidad UPBC. Proyecto independiente de Peyman Miyandashti.' if es else 'UniTrack: academic management, attendance, QR access and campus communication. An independent project by Peyman Miyandashti.' }}">
+<meta name="description" content="{{ 'UniTrack: acceso al campus con QR permanente, credenciales institucionales, visitantes, historial de entradas y salidas y mensajes privados para la comunidad UPBC. Proyecto independiente de Peyman Miyandashti.' if es else 'UniTrack: permanent QR campus access, institutional ID cards, visitors, entry and exit records, and private messaging for the UPBC community. An independent project by Peyman Miyandashti.' }}">
 <title>UniTrack | {{ 'Gestión académica en un solo lugar' if es else 'Campus management in one place' }}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -315,6 +315,17 @@ img{max-width:100%}
   html{scroll-behavior:auto}
   *,*::before,*::after{transition:none!important}
 }
+
+/* Updated campus-access homepage: six clearly differentiated feature shortcuts. */
+.features-rail-inner{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.mini-feature{min-width:0}
+.feature-detail{scroll-margin-top:var(--landing-nav-offset,135px)}
+.feature-detail-grid{align-items:stretch}
+.feature-detail li{line-height:1.65}
+.feature-detail h3{overflow-wrap:anywhere}
+.hero-text{max-width:690px}
+@media(max-width:1050px){.features-rail-inner{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.features-rail-inner{grid-template-columns:1fr}.feature-detail{padding:22px}}
 </style>
 </head>
 <body>
@@ -364,8 +375,8 @@ img{max-width:100%}
         <img class="hero-icon" src="{{ url_for('static', filename='img/UPBCmark.png') }}" alt="">
         <h1>Uni<span>Track</span></h1>
       </div>
-      <p class="hero-subtitle">{{ "Tu vida universitaria, organizada en un solo lugar." if es else "Your university life, organized in one place." }}</p>
-      <p class="hero-text">{{ "Un proyecto de gestión académica que reúne acceso al campus con código QR, asistencia, clases y avisos para estudiantes, docentes y personal, con herramientas especiales de administración." if es else "An academic management project bringing together QR campus access, attendance, classes, and notices for students, teachers, and staff, alongside administration tools." }}</p>
+      <p class="hero-subtitle">{{ "Acceso al campus, credenciales y comunicación en un solo lugar." if es else "Campus access, credentials and communication in one place." }}</p>
+      <p class="hero-text">{{ "Control de entradas y salidas mediante QR personal, credenciales imprimibles, pases temporales para visitantes, notificaciones y soporte privado para estudiantes, docentes, personal y administradores." if es else "QR check-in and check-out, printable ID cards, time-limited visitor passes, notices and private support for students, teachers, staff and administrators." }}</p>
       <div class="hero-ctas">
         <a class="button button-main" href="{{ url_for('auth.login_page') }}">↗ {{ "Iniciar sesión" if es else "Sign in" }}</a>
         <a class="button button-outline" href="#como-funciona">▶ {{ "¿Cómo funciona?" if es else "How it works" }}</a>
@@ -374,88 +385,98 @@ img{max-width:100%}
       <p class="hero-note">{{ "Desarrollado por Peyman Miyandashti · Proyecto independiente, no es el portal oficial de UPBC." if es else "Developed by Peyman Miyandashti · Independent project, not the official UPBC portal." }}</p>
     </div>
     <aside class="role-panel" aria-label="{{ 'Módulos por tipo de usuario' if es else 'Role modules' }}">
-      <p class="role-panel-label">{{ "Una plataforma, cuatro experiencias" if es else "One platform, four experiences" }}</p>
-      <div class="role-item"><span class="role-icon">🎓</span><div><strong>{{ "Estudiantes" if es else "Students" }}</strong><small>{{ "Su QR, asistencia y avisos" if es else "QR, attendance and notices" }}</small></div></div>
-      <div class="role-item"><span class="role-icon">👩‍🏫</span><div><strong>{{ "Docentes" if es else "Teachers" }}</strong><small>{{ "Clases, asistencia y acceso" if es else "Classes, attendance and access" }}</small></div></div>
-      <div class="role-item"><span class="role-icon">🧑‍💼</span><div><strong>{{ "Personal" if es else "Staff" }}</strong><small>{{ "Acceso al campus y comunicación" if es else "Campus access and communication" }}</small></div></div>
-      <div class="role-item"><span class="role-icon">🛡️</span><div><strong>{{ "Administradores" if es else "Administrators" }}</strong><small>{{ "Control, usuarios e informes" if es else "Management, users and reports" }}</small></div></div>
+      <p class="role-panel-label">{{ "Una plataforma, permisos según tu rol" if es else "One platform, permissions for each role" }}</p>
+      <div class="role-item"><span class="role-icon">🎓</span><div><strong>{{ "Estudiantes" if es else "Students" }}</strong><small>{{ "Credencial, historial personal y avisos" if es else "ID card, personal history and notices" }}</small></div></div>
+      <div class="role-item"><span class="role-icon">👩‍🏫</span><div><strong>{{ "Docentes" if es else "Teachers" }}</strong><small>{{ "QR personal, acceso y reportes" if es else "Personal QR, access and reports" }}</small></div></div>
+      <div class="role-item"><span class="role-icon">🧑‍💼</span><div><strong>{{ "Personal" if es else "Staff" }}</strong><small>{{ "Control de acceso y mensajes" if es else "Access control and messages" }}</small></div></div>
+      <div class="role-item"><span class="role-icon">🛡️</span><div><strong>{{ "Administradores" if es else "Administrators" }}</strong><small>{{ "Accesos, visitantes y autorizaciones" if es else "Access, visitors and approvals" }}</small></div></div>
     </aside>
   </div>
 </section>
 
 <section class="features-rail container" id="caracteristicas" aria-label="{{ 'Características de UniTrack' if es else 'UniTrack features' }}">
   <div class="features-rail-inner">
-    <a class="mini-feature" href="#detalle-gestion"><span class="mini-icon blue" aria-hidden="true">🎓</span><div><h3>{{ "Gestión académica" if es else "Academic management" }}</h3><p>{{ "Clases y seguimiento de actividades" if es else "Classes and activity tracking" }}</p><span class="mini-more">{{ "Ver cómo funciona" if es else "Learn how it works" }} →</span></div></a>
-    <a class="mini-feature" href="#detalle-qr"><span class="mini-icon mint" aria-hidden="true">▦</span><div><h3>{{ "Acceso con QR" if es else "QR campus access" }}</h3><p>{{ "Entradas y salidas registradas" if es else "Recorded check-ins and exits" }}</p><span class="mini-more">{{ "Ver cómo funciona" if es else "Learn how it works" }} →</span></div></a>
-    <a class="mini-feature" href="#detalle-avisos"><span class="mini-icon violet" aria-hidden="true">🔔</span><div><h3>{{ "Avisos" if es else "Notices" }}</h3><p>{{ "Comunicación según el rol" if es else "Role-based announcements" }}</p><span class="mini-more">{{ "Ver cómo funciona" if es else "Learn how it works" }} →</span></div></a>
-    <a class="mini-feature" href="#detalle-historial"><span class="mini-icon orange" aria-hidden="true">▥</span><div><h3>{{ "Historial" if es else "History" }}</h3><p>{{ "Consulta de registros y asistencias" if es else "Access and attendance records" }}</p><span class="mini-more">{{ "Ver cómo funciona" if es else "Learn how it works" }} →</span></div></a>
-    <a class="mini-feature" href="#detalle-seguridad"><span class="mini-icon pink" aria-hidden="true">♢</span><div><h3>{{ "Seguridad" if es else "Security" }}</h3><p>{{ "Permisos por tipo de cuenta" if es else "Role-specific permissions" }}</p><span class="mini-more">{{ "Ver cómo funciona" if es else "Learn how it works" }} →</span></div></a>
+    <a class="mini-feature" href="#detalle-gestion"><span class="mini-icon blue" aria-hidden="true">▣</span><div><h3>{{ "Credencial permanente" if es else "Permanent ID card" }}</h3><p>{{ "QR personal e impresión" if es else "Personal QR and printing" }}</p><span class="mini-more">{{ "Conocer más" if es else "Learn more" }} →</span></div></a>
+    <a class="mini-feature" href="#detalle-qr"><span class="mini-icon mint" aria-hidden="true">▦</span><div><h3>{{ "Control de acceso QR" if es else "QR access control" }}</h3><p>{{ "Entrada y salida independientes" if es else "Separate entry and exit" }}</p><span class="mini-more">{{ "Conocer más" if es else "Learn more" }} →</span></div></a>
+    <a class="mini-feature" href="#detalle-avisos"><span class="mini-icon violet" aria-hidden="true">♧</span><div><h3>{{ "Notificaciones" if es else "Notifications" }}</h3><p>{{ "Avisos con lectura individual" if es else "Notices with read status" }}</p><span class="mini-more">{{ "Conocer más" if es else "Learn more" }} →</span></div></a>
+    <a class="mini-feature" href="#detalle-historial"><span class="mini-icon orange" aria-hidden="true">▤</span><div><h3>{{ "Historial de accesos" if es else "Access history" }}</h3><p>{{ "Movimientos según permisos" if es else "Role-based access records" }}</p><span class="mini-more">{{ "Conocer más" if es else "Learn more" }} →</span></div></a>
+    <a class="mini-feature" href="#detalle-seguridad"><span class="mini-icon pink" aria-hidden="true">♢</span><div><h3>{{ "Visitantes y seguridad" if es else "Visitors and security" }}</h3><p>{{ "Pases QR con vencimiento" if es else "Expiring QR visitor passes" }}</p><span class="mini-more">{{ "Conocer más" if es else "Learn more" }} →</span></div></a>
+    <a class="mini-feature" href="#detalle-soporte"><span class="mini-icon blue" aria-hidden="true">✉</span><div><h3>{{ "Soporte privado" if es else "Private support" }}</h3><p>{{ "Reportes y chat con administración" if es else "Reports and admin chat" }}</p><span class="mini-more">{{ "Conocer más" if es else "Learn more" }} →</span></div></a>
   </div>
 </section>
-
 
 <section class="feature-explain-section" aria-labelledby="feature-explain-title">
   <div class="container">
     <div class="section-heading centered">
-      <span class="eyebrow">{{ "Explora UniTrack" if es else "Explore UniTrack" }}</span>
-      <h2 id="feature-explain-title">{{ "Conoce cada función de UniTrack" if es else "Explore every UniTrack feature" }}</h2>
-      <p>{{ "Selecciona una tarjeta para venir directamente a su explicación. Así sabrás qué hace cada módulo y cómo se usa." if es else "Choose any feature card to jump directly to a full explanation of what it does and how to use it." }}</p>
+      <span class="eyebrow">{{ "Funciones actuales" if es else "Current features" }}</span>
+      <h2 id="feature-explain-title">{{ "Así funciona UniTrack hoy" if es else "What UniTrack does today" }}</h2>
+      <p>{{ "Un sistema enfocado en identificar personas, registrar movimientos, gestionar visitantes y comunicar incidencias con privacidad." if es else "A system for identification, recording campus access, managing visitors and communicating issues privately." }}</p>
     </div>
     <div class="feature-detail-grid">
       <article class="feature-detail" id="detalle-gestion" tabindex="-1">
-        <div class="feature-detail-head"><span class="feature-detail-icon blue" aria-hidden="true">🎓</span><div><span class="feature-detail-kicker">01 · {{ "Académico" if es else "Academics" }}</span><h3>{{ "Gestión académica" if es else "Academic management" }}</h3></div></div>
-        <p>{{ "Los docentes pueden organizar sus clases y sus listas de estudiantes, programar sesiones y gestionar la asistencia de cada grupo. Los estudiantes consultan la información académica disponible para su cuenta." if es else "Teachers can organize their classes and student lists, schedule sessions, and manage attendance for each group. Students can consult the academic information available to their account." }}</p>
+        <div class="feature-detail-head"><span class="feature-detail-icon blue" aria-hidden="true">▣</span><div><span class="feature-detail-kicker">01 · {{ "Identidad" if es else "Identity" }}</span><h3>{{ "QR permanente y credencial institucional" if es else "Permanent QR and university ID card" }}</h3></div></div>
+        <p>{{ "Estudiantes, profesores, personal y administradores tienen un QR personal que permanece igual al iniciar sesión, actualizar la página o imprimir su credencial." if es else "Students, teachers, staff and administrators have a personal QR that stays the same across sign-ins, page refreshes and ID-card printing." }}</p>
         <ul>
-          <li>{{ "El docente abre su panel y selecciona una clase." if es else "Teachers open their dashboard and select a class." }}</li>
-          <li>{{ "Registra asistencia, retardos o ausencias y finaliza la sesión." if es else "They record present, late or absent students and finalize the session." }}</li>
-          <li>{{ "Cada usuario consulta únicamente los datos permitidos para su rol." if es else "Each user sees only the academic information allowed for their role." }}</li>
+          <li>{{ "Cada persona puede imprimir o guardar su credencial como PDF." if es else "Each person can print or save their ID card as a PDF." }}</li>
+          <li>{{ "Si se pierde o compromete, el titular solicita el reemplazo e indica el motivo." if es else "If lost or compromised, the owner submits a replacement request with a reason." }}</li>
+          <li>{{ "Solo un administrador aprueba el cambio; el QR anterior deja de ser válido." if es else "Only an administrator approves replacement; the old QR becomes invalid." }}</li>
         </ul>
-        <a class="feature-next" href="#como-funciona">{{ "Ver guía paso a paso" if es else "See the step-by-step guide" }} →</a>
+        <a class="feature-next" href="#como-funciona">{{ "Cómo empezar" if es else "How to get started" }} →</a>
       </article>
       <article class="feature-detail" id="detalle-qr" tabindex="-1">
-        <div class="feature-detail-head"><span class="feature-detail-icon mint" aria-hidden="true">▦</span><div><span class="feature-detail-kicker">02 · {{ "Acceso" if es else "Access" }}</span><h3>{{ "Acceso al campus con QR" if es else "QR campus access" }}</h3></div></div>
-        <p>{{ "Cada persona tiene un código QR para identificarse. Un operador autorizado —administrador, docente o personal— utiliza el escáner para registrar el acceso al campus." if es else "Each person has a QR code for identification. An authorized operator—administrator, teacher or staff member—uses the scanner to record campus access." }}</p>
+        <div class="feature-detail-head"><span class="feature-detail-icon mint" aria-hidden="true">▦</span><div><span class="feature-detail-kicker">02 · {{ "Acceso" if es else "Access" }}</span><h3>{{ "Entrada y salida con código QR" if es else "Check-in and check-out with QR" }}</h3></div></div>
+        <p>{{ "El sistema permite escanear un QR con la cámara o utilizar el código permitido como alternativa. El registro oficial lo realiza un operador autorizado conforme a los permisos del sistema." if es else "A QR can be read using the camera or an allowed backup code. Official check-in and check-out are performed by authorized operators according to system permissions." }}</p>
         <ul>
-          <li>{{ "Primer escaneo válido: se registra Entrada con fecha y hora." if es else "First valid scan: an entry is recorded with date and time." }}</li>
-          <li>{{ "Siguiente escaneo válido: se registra Salida con otra hora." if es else "Next valid scan: an exit is recorded with a separate timestamp." }}</li>
-          <li>{{ "La cámara identifica el QR y el sistema mantiene el historial." if es else "The camera detects the QR and the system keeps the history." }}</li>
+          <li>{{ "El primer acceso válido registra una Entrada con fecha y hora." if es else "A valid first access records entry with date and time." }}</li>
+          <li>{{ "El siguiente acceso válido registra la Salida como otro movimiento." if es else "The next valid access records exit as a separate event." }}</li>
+          <li>{{ "Los usuarios conservan su historial individual; administración supervisa todos los movimientos." if es else "Members see their own records; administrators oversee campus-wide access." }}</li>
         </ul>
-        <a class="feature-next" href="#detalle-historial">{{ "Cómo consultar los movimientos" if es else "How to review access events" }} →</a>
+        <a class="feature-next" href="#detalle-historial">{{ "Ver historial de accesos" if es else "Explore access history" }} →</a>
       </article>
       <article class="feature-detail" id="detalle-avisos" tabindex="-1">
-        <div class="feature-detail-head"><span class="feature-detail-icon violet" aria-hidden="true">🔔</span><div><span class="feature-detail-kicker">03 · {{ "Comunicación" if es else "Communication" }}</span><h3>{{ "Avisos a la comunidad" if es else "Community notices" }}</h3></div></div>
-        <p>{{ "El administrador publica comunicados para todos o para grupos específicos. Los destinatarios reciben sus mensajes dentro de UniTrack sin entrar al panel de administración." if es else "An administrator publishes announcements for everyone or selected groups. Recipients see their messages inside UniTrack without needing access to the admin dashboard." }}</p>
+        <div class="feature-detail-head"><span class="feature-detail-icon violet" aria-hidden="true">♧</span><div><span class="feature-detail-kicker">03 · {{ "Comunicación" if es else "Communication" }}</span><h3>{{ "Centro de notificaciones" if es else "Notification center" }}</h3></div></div>
+        <p>{{ "Los administradores publican avisos para toda la comunidad o roles específicos. Los destinatarios los reciben en Notificaciones y pueden consultarlos después de marcarlos como leídos." if es else "Administrators publish campus announcements to everyone or selected roles. Recipients read them in Notifications and can revisit them after marking them read." }}</p>
         <ul>
-          <li>{{ "Avisos dirigidos a estudiantes, docentes, personal o todos." if es else "Target students, teachers, staff or everyone." }}</li>
-          <li>{{ "Los mensajes aparecen en avisos de página y en la sección 🔔 Avisos." if es else "Messages appear in page banners and in the 🔔 Notices inbox." }}</li>
-          <li>{{ "Cada usuario puede marcar avisos como leídos y consultar los activos." if es else "Each user can mark announcements as read and revisit active notices." }}</li>
+          <li>{{ "La campana muestra un contador de avisos sin leer." if es else "The bell displays the unread notice count." }}</li>
+          <li>{{ "Los avisos nuevos se presentan al iniciar sesión y luego permanecen en la bandeja." if es else "New announcements are shown at sign-in and remain in the inbox afterward." }}</li>
+          <li>{{ "Los avisos y las conversaciones privadas son secciones diferentes." if es else "Announcements and private conversations have separate inboxes." }}</li>
         </ul>
-        <a class="feature-next" href="#beneficios">{{ "Conocer los beneficios" if es else "Explore the benefits" }} →</a>
+        <a class="feature-next" href="#detalle-soporte">{{ "Conocer los mensajes privados" if es else "Learn about private messages" }} →</a>
       </article>
       <article class="feature-detail" id="detalle-historial" tabindex="-1">
-        <div class="feature-detail-head"><span class="feature-detail-icon orange" aria-hidden="true">▥</span><div><span class="feature-detail-kicker">04 · {{ "Seguimiento" if es else "Tracking" }}</span><h3>{{ "Historial de acceso y asistencia" if es else "Access and attendance history" }}</h3></div></div>
-        <p>{{ "En Control de Acceso, cada Entrada y cada Salida se muestra como un movimiento independiente. Las fechas, horas y totales ayudan a comprobar cuántas veces entró o salió una persona. La asistencia a clases se consulta por separado." if es else "In Access Control, every check-in and check-out appears as a separate event. Dates, times and totals show how often someone entered or exited. Classroom attendance is tracked separately." }}</p>
+        <div class="feature-detail-head"><span class="feature-detail-icon orange" aria-hidden="true">▤</span><div><span class="feature-detail-kicker">04 · {{ "Seguimiento" if es else "Tracking" }}</span><h3>{{ "Historial de entradas y salidas" if es else "Entry and exit history" }}</h3></div></div>
+        <p>{{ "Cada entrada y cada salida queda como un movimiento independiente con su fecha y hora. Los estudiantes, docentes y trabajadores únicamente consultan su propio historial; los administradores pueden revisar los registros globales." if es else "Each entry and exit is a separate dated event. Students, teachers and staff only see their own history, while administrators can review campus-wide records." }}</p>
         <ul>
-          <li>{{ "Un escaneo de entrada y otro de salida generan dos movimientos." if es else "One entry scan and one exit scan generate two events." }}</li>
-          <li>{{ "Contadores separados de Entradas, Salidas y movimientos totales." if es else "Separate counters for entries, exits and total events." }}</li>
-          <li>{{ "Filtro por fecha y detalle de duración de las visitas." if es else "Filter by date and view visit durations." }}</li>
+          <li>{{ "Movimientos de entrada y salida registrados por separado." if es else "Separate check-in and check-out events." }}</li>
+          <li>{{ "Totales y consultas de movimientos según el rol." if es else "Event totals and history filtered by account permissions." }}</li>
+          <li>{{ "Historial de acceso, no calificaciones ni asistencia a clases." if es else "Campus access history—not grades or classroom attendance." }}</li>
         </ul>
-        <a class="feature-next" href="#detalle-qr">{{ "Entender el escaneo QR" if es else "Understand QR scanning" }} →</a>
+        <a class="feature-next" href="#detalle-qr">{{ "Cómo funciona el escáner" if es else "How the scanner works" }} →</a>
       </article>
       <article class="feature-detail" id="detalle-seguridad" tabindex="-1">
-        <div class="feature-detail-head"><span class="feature-detail-icon pink" aria-hidden="true">♢</span><div><span class="feature-detail-kicker">05 · {{ "Permisos" if es else "Permissions" }}</span><h3>{{ "Acceso y seguridad por rol" if es else "Role-based access and security" }}</h3></div></div>
-        <p>{{ "UniTrack diferencia las funciones de estudiantes, docentes, personal y administradores. El acceso a herramientas de gestión y al escáner depende del rol autorizado; la autenticación mantiene las áreas privadas separadas de esta página pública." if es else "UniTrack assigns different capabilities to students, teachers, staff and administrators. Management tools and operator scanners depend on authorized roles, and authentication keeps private dashboards separate from this public page." }}</p>
+        <div class="feature-detail-head"><span class="feature-detail-icon pink" aria-hidden="true">♢</span><div><span class="feature-detail-kicker">05 · {{ "Visitantes" if es else "Visitors" }}</span><h3>{{ "Permisos y pases temporales" if es else "Permissions and temporary passes" }}</h3></div></div>
+        <p>{{ "Los visitantes no reciben automáticamente la misma credencial permanente que los integrantes de la universidad. Administración puede emitir pases QR temporales, con inicio y vencimiento definidos, para visitas puntuales o recurrentes autorizadas." if es else "Visitors do not automatically receive the permanent ID of a university member. Administrators can issue time-limited QR passes with defined start and expiry dates for approved one-time or recurring visits." }}</p>
         <ul>
-          <li>{{ "Inicio de sesión con nombre de usuario o correo y contraseña." if es else "Sign in with a username or email and password." }}</li>
-          <li>{{ "Permisos distintos para las cuentas según su rol." if es else "Different permissions for different account roles." }}</li>
-          <li>{{ "Códigos y comprobaciones para ayudar a evitar accesos no autorizados." if es else "Codes and checks to help prevent unauthorized access." }}</li>
+          <li>{{ "Pases por horas o fechas específicas, según la autorización administrativa." if es else "Passes for a defined number of hours or selected dates, as authorized." }}</li>
+          <li>{{ "Un visitante con cuenta puede solicitar autorización; también se pueden emitir pases sin cuenta." if es else "Registered visitors may request authorization; administrators can also issue passes without accounts." }}</li>
+          <li>{{ "Al vencer el permiso, el QR temporal deja de permitir el acceso." if es else "When permission expires, the temporary QR no longer grants access." }}</li>
         </ul>
-        <a class="feature-next" href="#como-funciona">{{ "Ver cómo empezar" if es else "See how to get started" }} →</a>
+        <a class="feature-next" href="#como-funciona">{{ "Conoce el proceso" if es else "See the process" }} →</a>
+      </article>
+      <article class="feature-detail" id="detalle-soporte" tabindex="-1">
+        <div class="feature-detail-head"><span class="feature-detail-icon blue" aria-hidden="true">✉</span><div><span class="feature-detail-kicker">06 · {{ "Soporte" if es else "Support" }}</span><h3>{{ "Reportar, responder y cerrar conversaciones" if es else "Report, reply and close conversations" }}</h3></div></div>
+        <p>{{ "Una persona con cuenta puede enviar un reporte al administrador y conversar en un chat privado. Los mensajes nuevos se actualizan automáticamente cuando la conversación está abierta." if es else "An account holder can report an issue to an administrator and exchange private chat messages. New messages appear automatically while the conversation is open." }}</p>
+        <ul>
+          <li>{{ "La bandeja Mensajes muestra respuestas y conversaciones privadas." if es else "Messages contains replies and private support conversations." }}</li>
+          <li>{{ "El sobre indica mensajes sin leer; la campana corresponde a los avisos." if es else "The envelope indicates unread messages; the bell is for announcements." }}</li>
+          <li>{{ "Solo administración cierra o elimina una conversación; el chat cerrado es de solo lectura." if es else "Only administrators close or delete a conversation; closed chats are read-only." }}</li>
+        </ul>
+        <a class="feature-next" href="#contacto">{{ "Enviar una consulta" if es else "Send a question" }} →</a>
       </article>
       <div class="feature-detail feature-cta">
         <span class="eyebrow">{{ "¿Quieres utilizar UniTrack?" if es else "Ready to use UniTrack?" }}</span>
-        <h3>{{ "Empieza con tu cuenta" if es else "Get started with your account" }}</h3>
-        <p>{{ "Después de explorar las funciones, inicia sesión con tu usuario y contraseña o registra una nueva cuenta." if es else "After exploring the features, sign in with your username and password or create a new account." }}</p>
+        <h3>{{ "Comienza con tu cuenta" if es else "Start with your account" }}</h3>
+        <p>{{ "Entra con tu usuario o crea una cuenta. Algunas funciones, como la validación de rol, sustitución del QR y pases de visita, requieren autorización administrativa." if es else "Sign in or create an account. Role validation, QR replacements and visitor permissions may require administrator approval." }}</p>
         <div class="feature-cta-actions">
           <a class="button button-main" href="{{ url_for('auth.login_page') }}">{{ "Iniciar sesión" if es else "Sign in" }} →</a>
           <a class="button feature-cta-secondary" href="{{ url_for('auth.register_page') }}">{{ "Crear cuenta" if es else "Create account" }}</a>
@@ -471,13 +492,13 @@ img{max-width:100%}
     <div class="section-heading centered">
       <span class="eyebrow">{{ "Simple y conectado" if es else "Simple and connected" }}</span>
       <h2>{{ "¿Cómo funciona UniTrack?" if es else "How does UniTrack work?" }}</h2>
-      <p>{{ "La misma plataforma se adapta a cada miembro de la comunidad universitaria." if es else "The same platform adapts to each member of the campus community." }}</p>
+      <p>{{ "Registros de acceso, credenciales y comunicación para toda la comunidad universitaria." if es else "Access records, credentials and communication for the entire university community." }}</p>
     </div>
     <div class="steps">
-      <article class="step"><span class="step-number">01</span><h3>{{ "Crea tu cuenta" if es else "Create your account" }}</h3><span class="step-line"></span><p>{{ "Regístrate con la información requerida y completa la validación de tu rol." if es else "Register with the required information and validate your role." }}</p></article>
+      <article class="step"><span class="step-number">01</span><h3>{{ "Regístrate y valida tu rol" if es else "Register and validate your role" }}</h3><span class="step-line"></span><p>{{ "Crea tu cuenta con tus datos y completa la validación correspondiente a tu rol." if es else "Create your account and complete the required role validation." }}</p></article>
       <article class="step"><span class="step-number">02</span><h3>{{ "Inicia sesión" if es else "Sign in" }}</h3><span class="step-line"></span><p>{{ "Usa tu correo o nombre de usuario y contraseña para abrir tu panel." if es else "Use your email or username and password to open your dashboard." }}</p></article>
-      <article class="step"><span class="step-number">03</span><h3>{{ "Utiliza tus herramientas" if es else "Use your tools" }}</h3><span class="step-line"></span><p>{{ "Consulta clases, muestra tu QR y revisa la asistencia o el historial de acceso según tu rol." if es else "Review classes, show your QR, and check attendance or access history for your role." }}</p></article>
-      <article class="step"><span class="step-number">04</span><h3>{{ "Mantente informado" if es else "Stay informed" }}</h3><span class="step-line"></span><p>{{ "Lee los avisos en tu bandeja y sigue tus registros de forma organizada." if es else "Read announcements in your inbox and keep your records organized." }}</p></article>
+      <article class="step"><span class="step-number">03</span><h3>{{ "Presenta tu QR" if es else "Present your QR" }}</h3><span class="step-line"></span><p>{{ "Muestra tu QR permanente o utiliza un pase de visitante autorizado para registrar el acceso." if es else "Present your permanent QR or an authorized visitor pass for campus access." }}</p></article>
+      <article class="step"><span class="step-number">04</span><h3>{{ "Consulta tus movimientos y mensajes" if es else "Review your access and messages" }}</h3><span class="step-line"></span><p>{{ "Revisa tus entradas y salidas, lee Notificaciones y conversa con soporte si necesitas ayuda." if es else "Review your entry and exit records, read Notifications and contact support if you need help." }}</p></article>
     </div>
     <div style="text-align:center;margin-top:30px"><a href="{{ url_for('auth.login_page') }}" class="button button-main">{{ "Ir a iniciar sesión" if es else "Go to sign in" }} →</a></div>
   </div>
@@ -488,15 +509,15 @@ img{max-width:100%}
     <div class="benefit-visual">
       <img src="{{ url_for('static', filename='img/UPBCmark.png') }}" alt="">
       <h3>{{ "Más organización para una comunidad conectada" if es else "More organized, more connected campus life" }}</h3>
-      <p>{{ "Menos pasos dispersos. Una experiencia sencilla para estudiantes, docentes, trabajadores y administración." if es else "Fewer disconnected tasks. One streamlined experience for students, faculty, staff, and administration." }}</p>
-      <div class="benefit-chips"><span>✓ QR</span><span>✓ {{ "Asistencia" if es else "Attendance" }}</span><span>✓ {{ "Avisos" if es else "Notices" }}</span><span>✓ {{ "Historial" if es else "History" }}</span></div>
+      <p>{{ "Una experiencia clara para controlar accesos, consultar credenciales y mantener una comunicación segura." if es else "A clear experience for campus access, institutional ID cards and secure communication." }}</p>
+      <div class="benefit-chips"><span>✓ QR</span><span>✓ {{ "Credenciales" if es else "ID cards" }}</span><span>✓ {{ "Avisos" if es else "Notices" }}</span><span>✓ {{ "Historial" if es else "History" }}</span></div>
     </div>
     <div>
-      <div class="section-heading"><span class="eyebrow">{{ "Beneficios" if es else "Benefits" }}</span><h2>{{ "Diseñado para hacer lo importante más sencillo." if es else "Built to make what matters simpler." }}</h2><p>{{ "UniTrack reúne funciones universitarias cotidianas en un mismo entorno." if es else "UniTrack brings everyday campus workflows into one environment." }}</p></div>
+      <div class="section-heading"><span class="eyebrow">{{ "Beneficios" if es else "Benefits" }}</span><h2>{{ "Diseñado para hacer lo importante más sencillo." if es else "Built to make what matters simpler." }}</h2><p>{{ "UniTrack reúne el acceso QR, la identificación institucional, los visitantes y los mensajes en un solo entorno." if es else "UniTrack brings QR access, university IDs, visitors and messages into one place." }}</p></div>
       <div class="benefit-list">
         <div class="benefit-line"><span class="benefit-check">✓</span><div><strong>{{ "Acceso con seguimiento" if es else "Accountable campus access" }}</strong><p>{{ "Cada entrada y salida con QR se refleja individualmente en el historial." if es else "Every QR check-in and check-out appears as an individual event." }}</p></div></div>
         <div class="benefit-line"><span class="benefit-check">✓</span><div><strong>{{ "Información según tu rol" if es else "Information for your role" }}</strong><p>{{ "Cada persona usa las opciones y avisos que corresponden a su cuenta." if es else "Each person sees tools and notices appropriate to their account." }}</p></div></div>
-        <div class="benefit-line"><span class="benefit-check">✓</span><div><strong>{{ "Comunicación en un mismo lugar" if es else "Communication in one place" }}</strong><p>{{ "Los avisos dirigidos a la comunidad aparecen también en un centro de mensajes." if es else "Community announcements also appear in a dedicated message center." }}</p></div></div>
+        <div class="benefit-line"><span class="benefit-check">✓</span><div><strong>{{ "Comunicación en un mismo lugar" if es else "Communication in one place" }}</strong><p>{{ "Notificaciones y mensajes de soporte cuentan con bandejas separadas y contadores de no leídos." if es else "Announcements and support messages have separate inboxes and unread counters." }}</p></div></div>
         <div class="benefit-line"><span class="benefit-check">✓</span><div><strong>{{ "Interfaz adaptable" if es else "Responsive interface" }}</strong><p>{{ "Uso desde computadoras y teléfonos, con soporte para español e inglés." if es else "Use it on desktops and phones, in Spanish or English." }}</p></div></div>
       </div>
     </div>
@@ -512,8 +533,8 @@ img{max-width:100%}
     </div>
     <div class="projects">
       <article class="project">
-        <div class="project-head"><img class="unilogo" src="{{ url_for('static',filename='img/UPBCmark.png') }}" alt="UniTrack"><div><h3>UniTrack</h3><small>{{ "Plataforma de gestión universitaria" if es else "University management platform" }}</small></div></div>
-        <p>{{ "Proyecto independiente desarrollado para un entorno académico inspirado en UPBC. Incluye control de acceso mediante QR, asistencia, avisos institucionales y herramientas para distintos roles." if es else "An independently developed academic project inspired by UPBC. It brings together QR access control, attendance, community notices and role-based tools." }}</p>
+        <div class="project-head"><img class="unilogo" src="{{ url_for('static',filename='img/UPBCmark.png') }}" alt="UniTrack"><div><h3>UniTrack</h3><small>{{ "Plataforma de acceso y credenciales universitarias" if es else "University access and credentials platform" }}</small></div></div>
+        <p>{{ "Proyecto independiente inspirado en UPBC, enfocado en control de entradas y salidas por QR, credenciales personales, visitantes con permisos temporales y comunicación privada." if es else "An independent project inspired by UPBC, focused on QR check-in and check-out, personal ID cards, visitors with temporary passes and private messaging." }}</p>
         <a href="#como-funciona">{{ "Conocer cómo funciona UniTrack" if es else "Explore how UniTrack works" }} →</a>
       </article>
       <article class="project protrack">
@@ -532,7 +553,7 @@ img{max-width:100%}
       <div class="contact-intro">
         <span class="eyebrow">{{ "Contacto y soporte" if es else "Contact and support" }}</span>
         <h2>{{ "¿Tienes alguna pregunta o encontraste un error?" if es else "Have a question or spotted a problem?" }}</h2>
-        <p>{{ "Escríbenos desde esta página. Puedes enviar sugerencias, solicitar ayuda o reportar un problema con UniTrack, incluso sin iniciar sesión." if es else "Write to us right here. Send suggestions, ask for help, or report a UniTrack issue without signing in." }}</p>
+        <p>{{ "Escríbenos desde esta página si no tienes cuenta. Si ya iniciaste sesión, utiliza Reportar para iniciar una conversación privada con administración." if es else "Contact us here if you do not have an account. If you are signed in, use Report to start a private conversation with an administrator." }}</p>
         <p class="contact-trust">{{ "🔒 Tus datos y mensajes solo aparecen en la bandeja privada del administrador de UniTrack. No incluyas contraseñas ni códigos QR." if es else "🔒 Your contact details and message are visible only to UniTrack administrators. Never include passwords or QR codes." }}</p>
         <a class="button button-white" href="#como-funciona">{{ "Ver cómo funciona UniTrack" if es else "How UniTrack works" }} →</a>
       </div>
@@ -578,7 +599,7 @@ img{max-width:100%}
             <textarea id="contact_message" name="message" rows="6" maxlength="3000" minlength="10" required placeholder="{{ 'Cuéntanos cómo podemos ayudarte o explica qué error encontraste...' if es else 'Tell us how we can help or describe the error...' }}">{{ fields.get('message','') }}</textarea>
           </div>
           <div class="contact-submit">
-            <p>{{ "Tu mensaje se guarda de forma privada para que un administrador pueda revisarlo. No compartas datos sensibles." if es else "Your message is saved privately for an administrator to review. Do not share sensitive information." }}</p>
+            <p>{{ "Este formulario público no abre un chat dentro de una cuenta. Para conversar en UniTrack, inicia sesión y usa Reportar. No compartas datos sensibles." if es else "This public form does not create an account chat. To exchange in-app messages, sign in and use Report. Do not share sensitive information." }}</p>
             <button type="submit" class="button">{{ "Enviar mensaje" if es else "Send message" }} →</button>
           </div>
         </form>
