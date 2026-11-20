@@ -84,6 +84,56 @@ def report_issue():
     )
 
 
+@credential_bp.route("/messages", methods=["GET"])
+@login_required
+def my_messages():
+    """Private administrator replies, scoped to the current account only."""
+    if not current_user.is_active_user:
+        abort(403)
+    base = {
+        "administrativo": "admin_base.html",
+        "estudiante": "student_base.html",
+        "docente": "professor_base.html",
+        "personal": "personal_base.html",
+        "visitante": "credential_visitor_base.html",
+    }.get(current_user.role)
+    if not base:
+        abort(403)
+    from app.models.support_reply_model import SupportReply
+    from app.models.contact_message_model import ContactMessage
+    replies = db.session.execute(
+        db.select(SupportReply, ContactMessage)
+        .join(ContactMessage, SupportReply.report_id == ContactMessage.id)
+        .where(SupportReply.recipient_user_id == current_user.id)
+        .order_by(SupportReply.created_at.desc(), SupportReply.id.desc())
+        .limit(100)
+    ).all()
+    return render_template(
+        "credential_messages.html", inbox_base=base, replies=replies,
+        active_page="messages"
+    )
+
+
+@credential_bp.route("/messages/<int:reply_id>/read", methods=["POST"])
+@login_required
+def read_message(reply_id):
+    """An account can acknowledge only messages addressed to itself."""
+    if not current_user.is_active_user:
+        abort(403)
+    from datetime import datetime
+    from app.models.support_reply_model import SupportReply
+    reply = db.session.execute(db.select(SupportReply).where(
+        SupportReply.id == reply_id,
+        SupportReply.recipient_user_id == current_user.id,
+    )).scalar_one_or_none()
+    if reply is None:
+        abort(404)
+    if reply.read_at is None:
+        reply.read_at = datetime.utcnow()
+        db.session.commit()
+    return redirect(url_for("credential.my_messages"))
+
+
 @credential_bp.route("/card")
 @credential_bp.route("/card/<int:user_id>")
 @login_required
