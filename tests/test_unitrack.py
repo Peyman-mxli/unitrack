@@ -1509,7 +1509,7 @@ class UniTrackTests(unittest.TestCase):
         }).status_code, 409)
         with self.app.app_context():
             self.assertEqual(self.db.session.execute(
-                self.db.select(db.func.count(SupportChatMessage.id)).where(
+                self.db.select(self.db.func.count(SupportChatMessage.id)).where(
                     SupportChatMessage.report_id == rid
                 )
             ).scalar_one(), 1)
