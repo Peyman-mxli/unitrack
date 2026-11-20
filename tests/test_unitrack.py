@@ -1436,6 +1436,88 @@ class UniTrackTests(unittest.TestCase):
                     self.assertIn(b'class="profile-name"', response.data)
                     self.assertIn(expected_name.encode(), response.data)
 
+    def test_chat_polling_is_private_and_admin_can_delete_one_thread(self):
+        """Live updates appear to both parties; deletion purges only its report."""
+        from app.models.contact_message_model import ContactMessage
+        from app.models.support_conversation_model import SupportChatMessage, SupportChatState
+        from app.models.support_reply_model import SupportReply, SupportReportSender
+        student = self._signed_in_client("StudentA")
+        form = student.get("/credentials/report")
+        csrf = re.search(rb'name="csrf_token" value="([^"]+)"', form.data).group(1).decode()
+        for subject in ("Live update private 1", "Live update private 2"):
+            self.assertEqual(student.post("/credentials/report", data={
+                "csrf_token": csrf, "category": "soporte",
+                "subject": subject, "description": "Please help with this account issue.",
+            }).status_code, 302)
+        with self.app.app_context():
+            first = self.db.session.execute(self.db.select(ContactMessage).where(
+                ContactMessage.body.contains("Live update private 1")
+            )).scalar_one()
+            second = self.db.session.execute(self.db.select(ContactMessage).where(
+                ContactMessage.body.contains("Live update private 2")
+            )).scalar_one()
+            first_id, second_id = first.id, second.id
+        url = f"/credentials/messages/{first_id}/updates"
+        other = self._signed_in_client("TeacherA")
+        self.assertEqual(other.get(url).status_code, 403)
+        admin = self._signed_in_client("Admin")
+        before = admin.get(url)
+        self.assertEqual(before.status_code, 200)
+        self.assertIn("private, no-store", before.headers["Cache-Control"])
+        self.assertEqual(len(before.get_json()["messages"]), 1)
+        self.assertFalse(before.get_json()["closed"])
+        admin_page = admin.get(f"/admin/contact-messages/{first_id}/chat")
+        self.assertIn(b"data-chat-updates-url", admin_page.data)
+        self.assertIn(b"Eliminar chat permanentemente", admin_page.data)
+        admin_csrf = re.search(rb'name="csrf_token" value="([^"]+)"',
+                               admin_page.data).group(1).decode()
+        member_chat = student.get(f"/credentials/messages/{first_id}/chat")
+        self.assertNotIn(b"Eliminar chat permanentemente", member_chat.data)
+        member_csrf = re.search(rb'name="csrf_token" value="([^"]+)"',
+                                member_chat.data).group(1).decode()
+        self.assertEqual(student.post(f"/credentials/messages/{first_id}/chat", data={
+            "csrf_token": member_csrf, "message": "Can you see this without refreshing?",
+        }).status_code, 302)
+        self.assertEqual(len(admin.get(url).get_json()["messages"]), 2)
+        self.assertEqual(admin.get(url).get_json()["messages"][-1]["body"],
+                         "Can you see this without refreshing?")
+        self.assertEqual(admin.post(f"/admin/contact-messages/{first_id}/reply", data={
+            "csrf_token": admin_csrf, "reply": "Yes, I can see it now.",
+        }).status_code, 302)
+        member_updates = student.get(url)
+        self.assertEqual(len(member_updates.get_json()["messages"]), 3)
+        self.assertEqual(member_updates.get_json()["messages"][-1]["body"],
+                         "Yes, I can see it now.")
+        self.assertEqual(admin.post(f"/admin/contact-messages/{first_id}/delete", data={
+            "csrf_token": admin_csrf, "confirm_delete": "wrong",
+        }).status_code, 302)
+        with self.app.app_context():
+            self.assertIsNotNone(self.db.session.get(ContactMessage, first_id))
+        outsider = other.post(f"/admin/contact-messages/{first_id}/delete", data={
+            "csrf_token": admin_csrf, "confirm_delete": "ELIMINAR",
+        })
+        self.assertIn(outsider.status_code, (302, 403))
+        with self.app.app_context():
+            self.assertIsNotNone(self.db.session.get(ContactMessage, first_id))
+        deleted = admin.post(f"/admin/contact-messages/{first_id}/delete", data={
+            "csrf_token": admin_csrf, "confirm_delete": "ELIMINAR",
+        })
+        self.assertEqual(deleted.status_code, 302)
+        with self.app.app_context():
+            self.assertIsNone(self.db.session.get(ContactMessage, first_id))
+            self.assertIsNone(self.db.session.get(SupportReportSender, first_id))
+            self.assertIsNone(self.db.session.get(SupportChatState, first_id))
+            for model in (SupportReply, SupportChatMessage):
+                self.assertEqual(self.db.session.execute(self.db.select(
+                    self.db.func.count(model.id)
+                ).where(model.report_id == first_id)).scalar_one(), 0)
+            self.assertIsNotNone(self.db.session.get(ContactMessage, second_id))
+        self.assertEqual(student.get(url).status_code, 404)
+        self.assertTrue(student.get(url).get_json()["deleted"])
+        self.assertEqual(student.get(f"/credentials/messages/{first_id}/chat").status_code, 404)
+        self.assertNotIn(f"/credentials/messages/{first_id}/chat".encode(),
+                         student.get("/credentials/messages").data)
+
     def test_two_way_support_chat_can_only_be_closed_by_admin(self):
         """Reporter replies back; closing prevents further messages on either side."""
         from app.models.contact_message_model import ContactMessage
