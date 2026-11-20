@@ -664,6 +664,10 @@ def build_student_access_qr_payload(student, token=None):
     The QR now contains a scannable URL instead of plain text,
     so the phone camera can open the app directly.
     """
+    # Keep permanent QR image identical across devices, networks and refreshes.
+    # Temporary legacy QR links still retain their existing URL format.
+    if token and str(token).startswith("P."):
+        return str(token)
     return build_student_access_mobile_scan_url(student, token=token)
 
 
