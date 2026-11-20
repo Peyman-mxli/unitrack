@@ -307,7 +307,7 @@
                         <select name="role" class="field-control">
                             {% for role_value in allowed_roles %}
                                 <option value="{{ role_value }}" {% if role_value == current_role %}selected{% endif %}>
-                                    {{ t({'estudiante': 'Student', 'administrativo': 'Admin', 'docente': 'Professor', 'personal': 'Staff'}.get(role_value, role_value|title)) }}
+                                    {{ t({'estudiante': 'Student', 'administrativo': 'Admin', 'docente': 'Professor', 'personal': 'Staff', 'visitante': 'Visitor'}.get(role_value, role_value|title)) }}
                                 </option>
                             {% endfor %}
                         </select>
