@@ -14,12 +14,24 @@
 .notice-editor .btn{display:inline-flex;align-items:center;justify-content:center;padding:11px 15px;border:0;border-radius:11px;font-weight:800;cursor:pointer;background:#7c3aed;color:#fff}
 .notice-editor .btn-secondary{background:white;color:#5b21b6;border:1px solid #c4b5fd}
 .notice-editor .badge{padding:5px 8px;border-radius:12px;background:#f3e8ff;font-size:12px}
+
+/* Compact, readable notices workspace shared with the admin visual language. */
+.notice-editor{padding:15px;border-radius:14px;box-shadow:none}
+.notice-editor .section-panel{padding:0!important;margin:0!important;background:transparent!important;box-shadow:none!important;border:0!important}
+.notice-editor .panel-title{font-size:19px!important;margin:0 0 5px!important}
+.notice-editor .panel-subtitle{font-size:12px!important;line-height:1.5!important;margin-bottom:13px!important}
+.notice-editor form label{font-size:12px}
+.notice-editor .input-field,.notice-editor .select-field{min-height:37px;padding:8px 10px;font-size:13px;border-radius:9px}
+.notice-editor textarea{min-height:95px;font-size:13px!important;padding:9px!important}
+.notice-editor .btn{padding:9px 13px;font-size:12px;border-radius:9px}
+.notice-editor .dashboard-table th,.notice-editor .dashboard-table td{padding:8px 9px;font-size:12px;vertical-align:top}
+.notice-editor .table-wrap{max-width:100%;overflow:auto}
 </style>
 <div class="notice-editor">
   <section class="section-panel panel-card" id="admin-notices">
     <h3 class="panel-title">{{ "Avisos para la comunidad" if es else "Community notices" }}</h3>
     <p class="panel-subtitle">{{ "Envía un comunicado dentro de UniTrack a todos o solo a estudiantes, docentes o trabajadores. Los destinatarios los reciben en Notificaciones; al iniciar sesión con mensajes nuevos, se abrirán primero." if es else "Post an in-app announcement to everyone or a selected group. Recipients find them in Notifications and are taken there on login when unread." }}</p>
-    <form method="POST" action="{{ url_for('admin_views.admin_create_notice') }}" style="display:grid;gap:12px;max-width:850px;">
+    <form method="POST" action="{{ url_for('admin_views.admin_create_notice') }}" style="display:grid;gap:8px;max-width:100%;">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <label for="notice_title"><strong>{{ "Asunto" if es else "Subject" }}</strong></label>
       <input class="input-field" id="notice_title" name="title" minlength="3" maxlength="120" required placeholder="{{ 'Ejemplo: Aviso de acceso al campus' if es else 'e.g., Campus access notice' }}">
@@ -33,7 +45,7 @@
         <option value="visitante">{{ "Solo visitantes" if es else "Visitors only" }}</option>
       </select>
       <label for="notice_body"><strong>{{ "Mensaje" if es else "Message" }}</strong></label>
-      <textarea id="notice_body" name="body" minlength="5" maxlength="2000" rows="5" required
+      <textarea id="notice_body" name="body" minlength="5" maxlength="2000" rows="4" required
                 style="width:100%;box-sizing:border-box;border:1px solid #dbe4f0;border-radius:12px;padding:13px;font:inherit;"
                 placeholder="{{ 'Escribe el aviso que recibirán los usuarios...' if es else 'Write the announcement...' }}"></textarea>
       <button type="submit" class="btn btn-primary" style="justify-self:start;">{{ "Publicar aviso" if es else "Publish notice" }}</button>
