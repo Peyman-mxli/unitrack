@@ -756,7 +756,7 @@ def create_app():
         from .models.university_notice_read_model import UniversityNoticeRead
         from .models.auth_attempt_model import AuthAttempt
         from .models.contact_message_model import ContactMessage
-        from .models.support_reply_model import SupportReply
+        from .models.support_reply_model import SupportReply, SupportReportSender
         from .models.admin_mfa_model import AdminMFA, AdminMFARecoveryCode
         from .models.password_history_model import PasswordHistory
         from .models.login_security_model import LoginSecurityState
