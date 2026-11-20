@@ -126,22 +126,7 @@ def review_qr(request_id):
         flash("Selecciona Aprobar o Rechazar.", "error")
     else:
         try:
-            request_record = review_replacement(
-                request_id, current_user, decision == "approve"
-            )
-            # The credential request itself stores the approver and timestamp.
-            # Also add an administrator audit event for extra traceability.
-            from app.models.admin_audit_model import AdminAuditLog
-            target = db.session.get(User, request_record.user_id)
-            db.session.add(AdminAuditLog(
-                actor_id=current_user.id,
-                actor_username=current_user.username,
-                action="qr_replacement_" + request_record.status,
-                target_user_id=request_record.user_id,
-                target_username=target.username if target else None,
-                details=f"QR replacement request #{request_record.id}: {request_record.status}",
-            ))
-            db.session.commit()
+            review_replacement(request_id, current_user, decision == "approve")
             flash("Solicitud de QR revisada.", "success")
         except ValueError as exc:
             db.session.rollback()
