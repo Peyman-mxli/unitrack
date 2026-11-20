@@ -72,7 +72,7 @@ def resolve_permanent_credential(value):
             raise ValueError("This QR was replaced or revoked.")
     else:
         normalized = raw.upper().replace(" ", "")
-        if not (len(normalized) == 22 and normalized[:3] in ROLES.values()
+        if not (len(normalized) == 23 and normalized[:3] in ROLES.values()
                 and normalized[3] == "-" and
                 all(c in ALPHABET for c in normalized[4:].replace("-", ""))
                 and normalized.count("-") == 4):
