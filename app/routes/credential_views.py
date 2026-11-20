@@ -111,12 +111,37 @@ def manage():
 def review_qr(request_id):
     if not _admin():
         abort(403)
-    try:
-        review_replacement(request_id, current_user, request.form.get("decision") == "approve")
-        flash("Solicitud de QR revisada.", "success")
-    except ValueError as exc:
-        flash(str(exc), "error")
-    return redirect(url_for("credential.manage"))
+    decision = str(request.form.get("decision", "")).strip().lower()
+    if decision not in {"approve", "reject"}:
+        flash("Selecciona Aprobar o Rechazar.", "error")
+    else:
+        try:
+            request_record = review_replacement(
+                request_id, current_user, decision == "approve"
+            )
+            # The credential request itself stores the approver and timestamp.
+            # Also add an administrator audit event for extra traceability.
+            from app.models.admin_audit_model import AdminAuditLog
+            target = db.session.get(User, request_record.user_id)
+            db.session.add(AdminAuditLog(
+                actor_id=current_user.id,
+                actor_username=current_user.username,
+                action="qr_replacement_" + request_record.status,
+                target_user_id=request_record.user_id,
+                target_username=target.username if target else None,
+                details=f"QR replacement request #{request_record.id}: {request_record.status}",
+            ))
+            db.session.commit()
+            flash("Solicitud de QR revisada.", "success")
+        except ValueError as exc:
+            db.session.rollback()
+            flash(str(exc), "error")
+        except Exception:
+            db.session.rollback()
+            from flask import current_app
+            current_app.logger.exception("Failed recording QR replacement review audit")
+            flash("No se pudo guardar la auditoría de aprobación.", "error")
+    return redirect(url_for("admin_views.admin_contact_messages") + "#qr-replacement-requests")
 
 
 @credential_bp.route("/visitors/create", methods=["POST"])
