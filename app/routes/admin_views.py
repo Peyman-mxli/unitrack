@@ -1028,6 +1028,20 @@ def admin_dashboard():
     return render_template("admin_dashboard.html", **context)
 
 
+@admin_views_bp.route("/send-notices", methods=["GET"])
+@login_required
+def admin_send_notices():
+    """Compose and manage announcements only on this dedicated admin page."""
+    if not _is_admin_user():
+        return _reject_non_admin()
+    notices = db.session.execute(
+        db.select(UniversityNotice).order_by(
+            UniversityNotice.created_at.desc(), UniversityNotice.id.desc()
+        ).limit(50)
+    ).scalars().all()
+    return render_template("admin_send_notices.html", recent_notices=notices)
+
+
 @admin_views_bp.route("/contact-messages", methods=["GET"])
 @login_required
 def admin_contact_messages():
@@ -1099,7 +1113,7 @@ def admin_create_notice():
     title = str(request.form.get("title") or "").strip()
     body = str(request.form.get("body") or "").strip()
     audience = str(request.form.get("audience") or "").strip().lower()
-    if audience not in {"all", "estudiante", "docente", "personal", "administrativo"}:
+    if audience not in {"all", "estudiante", "docente", "personal", "administrativo", "visitante"}:
         flash("Destinatarios no válidos.", "error")
     elif not 3 <= len(title) <= 120 or not 5 <= len(body) <= 2000:
         flash("Escribe un título de 3–120 caracteres y un mensaje de 5–2000.", "error")
@@ -1118,7 +1132,7 @@ def admin_create_notice():
             db.session.rollback()
             current_app.logger.exception("Could not publish notice")
             flash("No se pudo publicar el aviso.", "error")
-    return redirect(url_for("admin_views.admin_dashboard") + "#admin-notices")
+    return redirect(url_for("admin_views.admin_send_notices"))
 
 
 @admin_views_bp.route("/notices/<int:notice_id>/archive", methods=["POST"])
@@ -1139,7 +1153,7 @@ def admin_archive_notice(notice_id):
         except Exception:
             db.session.rollback()
             flash("No se pudo archivar el aviso.", "error")
-    return redirect(url_for("admin_views.admin_dashboard") + "#admin-notices")
+    return redirect(url_for("admin_views.admin_send_notices"))
 
 
 @admin_views_bp.route("/validation-codes", methods=["GET"])
