@@ -1550,7 +1550,9 @@ class UniTrackTests(unittest.TestCase):
         self.assertIn("Personas registradas por tipo".encode("utf-8"), result.data)
         self.assertIn("Monitor de usuarios".encode("utf-8"), result.data)
         self.assertIn("Dentro del campus".encode("utf-8"), result.data)
-        self.assertIn("Avisos para la comunidad".encode("utf-8"), result.data)
+        self.assertNotIn("Avisos para la comunidad".encode("utf-8"), result.data)
+        self.assertIn(b'href="/avisos"', result.data)
+        self.assertIn("Avisos para la comunidad".encode("utf-8"), client.get("/admin/send-notices").data)
         self.assertIn(b"StudentA", result.data)
         self.assertIn(b"TeacherA", result.data)
         self.assertIn(b"StaffA", result.data)
@@ -1581,7 +1583,8 @@ class UniTrackTests(unittest.TestCase):
         student = self._signed_in_client("StudentA")
         teacher = self._signed_in_client("TeacherA")
         worker = self._signed_in_client("StaffA")
-        self.assertIn("Solo alumnos".encode("utf-8"), student.get("/student/dashboard").data)
+        self.assertNotIn("Solo alumnos".encode("utf-8"), student.get("/student/dashboard").data)
+        self.assertIn("Solo alumnos".encode("utf-8"), student.get("/avisos").data)
         self.assertNotIn("Solo alumnos".encode("utf-8"), teacher.get("/professor/dashboard").data)
         self.assertNotIn("Solo alumnos".encode("utf-8"), worker.get("/personal/dashboard").data)
 
@@ -1613,7 +1616,8 @@ class UniTrackTests(unittest.TestCase):
             "csrf_token": token,
         })
         self.assertEqual(teacher_notice.status_code, 302)
-        self.assertIn("Solo docentes".encode("utf-8"), teacher.get("/professor/dashboard").data)
+        self.assertNotIn("Solo docentes".encode("utf-8"), teacher.get("/professor/dashboard").data)
+        self.assertIn("Solo docentes".encode("utf-8"), teacher.get("/avisos").data)
         self.assertNotIn("Solo docentes".encode("utf-8"), student.get("/student/dashboard").data)
         self.assertNotIn("Solo docentes".encode("utf-8"), worker.get("/personal/dashboard").data)
         with self.app.app_context():
@@ -1662,7 +1666,7 @@ class UniTrackTests(unittest.TestCase):
                 dashboard = client.get(route)
                 self.assertIn(b'href="/avisos"', dashboard.data)
                 self.assertIn(b'data-notice-sidebar-count', dashboard.data)
-                self.assertIn(("Inbox Scope " + own).encode(), dashboard.data)
+                self.assertNotIn(("Inbox Scope " + own).encode(), dashboard.data)
                 inbox = client.get("/avisos")
                 self.assertEqual(inbox.status_code, 200)
                 self.assertIn(("Inbox Scope " + own).encode(), inbox.data)
@@ -1709,8 +1713,104 @@ class UniTrackTests(unittest.TestCase):
         )
         self.assertEqual(archived.status_code, 302)
         self.assertNotIn(b"Inbox Scope Students", student.get("/avisos").data)
-        self.assertEqual(admin.get("/avisos").status_code, 403)
+        self.assertEqual(admin.get("/avisos").status_code, 200)
+        self.assertIn(b"Inbox Scope All", admin.get("/avisos").data)
+        self.assertNotIn(b"Inbox Scope Students", admin.get("/avisos").data)
         self.assertNotEqual(self.app.test_client().get("/avisos").status_code, 200)
+
+    def test_notifications_only_in_inbox_not_every_admin_page(self):
+        """A published announcement must not appear in shared page layouts."""
+        from app.models.university_notice_model import UniversityNotice
+        from app.models.user_model import User
+        with self.app.app_context():
+            admin = self.db.session.execute(
+                self.db.select(User).where(User.username == "Admin")
+            ).scalar_one()
+            notice = UniversityNotice(
+                title="No Repeated Banner 2026", body="Welcome to the campus",
+                audience="all", author_id=admin.id, author_name="Admin",
+                is_active=True,
+            )
+            self.db.session.add(notice)
+            self.db.session.commit()
+            notice_id = notice.id
+        try:
+            for username, paths in (
+                ("Admin", ("/admin/dashboard", "/admin/users",
+                           "/admin/validation-codes", "/admin/access-control")),
+                ("StudentA", ("/student/dashboard", "/student/access-control")),
+                ("TeacherA", ("/professor/dashboard", "/professor/access-control")),
+                ("StaffA", ("/personal/dashboard", "/personal/access-control")),
+            ):
+                client = self._signed_in_client(username)
+                inbox = client.get("/avisos")
+                self.assertEqual(inbox.status_code, 200)
+                self.assertIn(b"No Repeated Banner 2026", inbox.data)
+                for path in paths:
+                    with self.subTest(username=username, path=path):
+                        page = client.get(path)
+                        self.assertEqual(page.status_code, 200)
+                        self.assertNotIn(b"No Repeated Banner 2026", page.data)
+            admin = self._signed_in_client("Admin")
+            self.assertIn(b"No Repeated Banner 2026", admin.get("/admin/send-notices").data)
+        finally:
+            with self.app.app_context():
+                notice = self.db.session.get(UniversityNotice, notice_id)
+                if notice:
+                    notice.is_active = False
+                    self.db.session.commit()
+
+    def test_unread_notification_redirects_once_then_dashboard_after_read(self):
+        """Sign-in sends users to unread messages; read receipts survive new sessions."""
+        from app.models.university_notice_model import UniversityNotice
+        from app.models.user_model import User
+        from werkzeug.security import generate_password_hash
+        from app.services.university_notice_service import unread_notice_count
+        with self.app.app_context():
+            person = User(
+                username="NoticeFirstMember", email="notice-first@example.test",
+                first_name="Notice", last_name="First", phone="0000000000",
+                role="estudiante", language="es", is_active_user=True,
+                password_hash=generate_password_hash("TestingPassword123!"),
+            )
+            self.db.session.add(person)
+            self.db.session.flush()
+            self.db.session.add(UniversityNotice(
+                title="Important First Login Notice",
+                body="Please read this message before opening the dashboard.",
+                audience="estudiante", author_id=person.id,
+                author_name="Admin", is_active=True,
+            ))
+            self.db.session.commit()
+            uid = person.id
+        def sign_in(ip):
+            client = self.app.test_client()
+            client.environ_base["REMOTE_ADDR"] = ip
+            login_page = client.get("/auth/login-page")
+            csrf = re.search(rb'name="csrf_token" value="([^"]+)"', login_page.data).group(1).decode()
+            response = client.post("/auth/login-page", data={
+                "login": "NoticeFirstMember", "password": "TestingPassword123!",
+                "csrf_token": csrf, "language": "es",
+            })
+            self.assertEqual(response.status_code, 302)
+            return client, response.headers["Location"]
+
+        first, destination = sign_in("203.0.113.51")
+        self.assertTrue(destination.endswith("/avisos"), destination)
+        inbox = first.get("/avisos")
+        self.assertIn(b"Important First Login Notice", inbox.data)
+        self.assertIn(b"data-notice-unread-total", inbox.data)
+        csrf = re.search(rb'name="csrf_token" value="([^"]+)"', inbox.data).group(1).decode()
+        self.assertEqual(first.post("/avisos/leer-todos", data={
+            "csrf_token": csrf
+        }).status_code, 302)
+        with self.app.app_context():
+            person = self.db.session.get(User, uid)
+            self.assertEqual(unread_notice_count(person), 0)
+        second, destination = sign_in("203.0.113.52")
+        self.assertTrue(destination.endswith("/student/dashboard"), destination)
+        self.assertIn(b"Important First Login Notice", second.get("/avisos").data)
+        self.assertNotIn(b"Important First Login Notice", second.get("/student/dashboard").data)
 
     def test_notice_form_protected_by_csrf(self):
         client = self._signed_in_client()
