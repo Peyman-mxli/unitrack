@@ -702,6 +702,24 @@ def create_app():
             app.logger.exception("University notice count failed")
             return 0
 
+    def _get_unread_messages_count():
+        if not current_user.is_authenticated or not getattr(current_user, "is_active_user", False):
+            return 0
+        try:
+            from .models.contact_message_model import ContactMessage
+            from .models.support_reply_model import SupportReply
+            if current_user.role == "administrativo":
+                return db.session.execute(db.select(db.func.count(ContactMessage.id)).where(
+                    ContactMessage.status == "new"
+                )).scalar_one()
+            return db.session.execute(db.select(db.func.count(SupportReply.id)).where(
+                SupportReply.recipient_user_id == current_user.id,
+                SupportReply.read_at.is_(None)
+            )).scalar_one()
+        except Exception:
+            app.logger.exception("Failed reading support-message unread count")
+            return 0
+
     @app.context_processor
     def inject_global_translations():
         return {
@@ -711,6 +729,7 @@ def create_app():
             "current_language": get_current_language(),
             "global_notices": _get_visible_university_notices(),
             "notice_unread_count": _get_unread_university_notice_count(),
+            "message_unread_count": _get_unread_messages_count(),
         }
 
     # ✅ REGISTER BLUEPRINTS
@@ -737,6 +756,7 @@ def create_app():
         from .models.university_notice_read_model import UniversityNoticeRead
         from .models.auth_attempt_model import AuthAttempt
         from .models.contact_message_model import ContactMessage
+        from .models.support_reply_model import SupportReply
         from .models.admin_mfa_model import AdminMFA, AdminMFARecoveryCode
         from .models.password_history_model import PasswordHistory
         from .models.login_security_model import LoginSecurityState
