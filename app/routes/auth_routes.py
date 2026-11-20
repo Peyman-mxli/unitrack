@@ -692,6 +692,23 @@ def get_safe_authenticated_redirect(user):
     return resolve_first_available_route(candidates, fallback=None)
 
 
+def get_notification_first_redirect(user, default_path):
+    """On sign-in, open unread university notifications before the dashboard.
+
+    Existing password-change and administrator MFA requirements are enforced
+    by the application's before_request guards on the inbox itself.
+    This decision is made only at login/security completion; normal browsing
+    is never repeatedly redirected away from the requested page.
+    """
+    from app.services.university_notice_service import unread_notice_count
+    try:
+        if unread_notice_count(user) > 0:
+            return "/avisos"
+    except Exception:
+        current_app.logger.exception("Could not check unread notifications on login")
+    return default_path
+
+
 def get_login_redirect_for_role(user):
     """
     Return a SAFE redirect path after browser login.
@@ -1026,7 +1043,7 @@ def login_page():
             )
         )
 
-    return redirect(redirect_path)
+    return redirect(get_notification_first_redirect(user, redirect_path))
 
 
 @auth_bp.route("/forgot-password", methods=["GET", "POST"])
@@ -1229,7 +1246,9 @@ def forced_password_change_page():
         current_app.logger.exception("Required password change failed")
         return render_template("auth_force_password_change.html",
                                error="No se pudo cambiar la contraseña."), 503
-    return redirect(get_safe_authenticated_redirect(current_user) or "/auth/login-page")
+    return redirect(get_notification_first_redirect(
+        current_user, get_safe_authenticated_redirect(current_user) or "/auth/login-page"
+    ))
 
 
 @auth_bp.route("/admin-2fa/setup", methods=["GET", "POST"])
@@ -1294,8 +1313,9 @@ def admin_mfa_verify():
         if accepted:
             from app.utils.session_security import password_session_tag
             session["admin_mfa_verified"] = password_session_tag(current_user)
-            return redirect(get_safe_authenticated_redirect(current_user) or
-                            "/admin/dashboard")
+            return redirect(get_notification_first_redirect(
+                current_user, get_safe_authenticated_redirect(current_user) or "/admin/dashboard"
+            ))
         return render_template("auth_admin_mfa.html", mode="verify",
                                error="Código inválido, caducado o ya utilizado."), 400
     return render_template("auth_admin_mfa.html", mode="verify")
