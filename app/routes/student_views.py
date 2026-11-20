@@ -1313,13 +1313,14 @@ def access_control_page():
     access_qr_image = generate_qr_image_data_uri(access_qr_payload)
 
     return render_template(
-        "student_access_control.html",
+        "admin_access_control.html",
         student_name=student_name,
         scan_result=scan_result,
         self_scan_enabled=self_scan_enabled,
         active_page="access_control",
         demo_records=filtered_records,
         access_events=access_events,
+        access_records=filtered_records,
         access_event_counts=access_event_counts,
         history_page_url=url_for("student_views.access_control_page"),
         date_filter_error=("Fecha no válida. Usa MM/DD/AAAA." if selected_date and parsed_date is None else ""),
