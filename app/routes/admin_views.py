@@ -486,6 +486,8 @@ def _save_admin_profile_photo(uploaded_file):
 def build_access_qr_payload_for_user(user, token=None):
     """Administrator's QR uses a short-lived one-time signed token."""
     from app.services.scan_token_service import issue_scan_token
+    if token and str(token).startswith("P."):
+        return str(token)
     base_url = _build_admin_base_url()
     query_string = urlencode({"scan_token": token or issue_scan_token(user)})
     route_path = "/admin/access-control/mobile-scan"
