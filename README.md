@@ -10,6 +10,28 @@
 
 ---
 
+## Permanently reset all local users and start over
+
+**Destructive operation:** this deletes all accounts (admin, student, teacher,
+staff), QR entry/exit history, other local SQLite records, and uploaded profile
+photos in the **currently opened local UniTrack checkout**. It creates a fresh
+`Admin` account. Stop the Flask server first.
+
+In the VS Code PowerShell terminal, after syncing the latest GitHub code:
+
+```powershell
+.\\.venv\\Scripts\\python.exe scripts\\reset_all_users.py
+```
+
+Type `DELETE ALL UNITRACK USERS` exactly when prompted, then enter a new
+administrator password twice. Start the app afterward using
+`.\\.venv\\Scripts\\python.exe run.py`.
+
+**Scope:** local SQLite only. Hosted/production PostgreSQL and another laptop
+are **not** changed. Existing backups may still contain old data, and deleting
+SQLite files cannot guarantee forensic secure erasure on SSDs or cloud storage.
+Do not use this for a hosted data reset.
+
 ## QR access only (November 2026)
 
 UniTrack focuses on campus QR **entry and exit**, for administrators,
