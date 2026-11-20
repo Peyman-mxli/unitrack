@@ -707,7 +707,7 @@ def create_app():
             return 0
         try:
             from .models.contact_message_model import ContactMessage
-            from .models.support_reply_model import SupportReply
+            from .models.support_reply_model import SupportReply, SupportReportSender
             if current_user.role == "administrativo":
                 return db.session.execute(db.select(db.func.count(ContactMessage.id)).where(
                     ContactMessage.status == "new"
