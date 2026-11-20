@@ -148,6 +148,7 @@ def normalize_role_for_ui(role_value):
         "administrativo": "Admin",
         "docente": "Professor",
         "personal": "Staff",
+        "visitante": "Visitor",
     }
     return role_map.get(str(role_value).strip().lower(), str(role_value).title())
 
@@ -156,7 +157,7 @@ def get_allowed_role_values():
     """
     Allowed role values for admin role management.
     """
-    return {"estudiante", "administrativo", "docente", "personal"}
+    return {"estudiante", "administrativo", "docente", "personal", "visitante"}
 
 
 def is_user_online(user):
