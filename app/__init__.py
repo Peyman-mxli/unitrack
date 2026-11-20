@@ -29,6 +29,7 @@ from .routes.admin_views import admin_views_bp
 from .routes.student_views import student_views_bp
 from .routes.personal_views import personal_views_bp
 from .routes.professor_views import professor_views_bp
+from .routes.credential_views import credential_bp
 
 # ✅ ADMIN SEED
 from .services.admin_seed_service import seed_default_admin
@@ -718,6 +719,7 @@ def create_app():
     app.register_blueprint(student_views_bp)
     app.register_blueprint(personal_views_bp)
     app.register_blueprint(professor_views_bp)
+    app.register_blueprint(credential_bp)
 
     with app.app_context():
         # minimal models load
