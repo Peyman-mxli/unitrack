@@ -934,6 +934,56 @@ def process_access_scan_qr_text(qr_text, *, allow_student_self_scan=False):
             "processed_at": _server_now_iso(),
         }, 403
 
+    # Permanent campus credentials never expire or get consumed. The same
+    # signed QR / manual code alternates between entry and exit each visit.
+    from app.services.permanent_credential_service import (
+        is_permanent_credential, resolve_permanent_credential,
+    )
+    if is_permanent_credential(qr_text):
+        try:
+            permanent_user, _credential = resolve_permanent_credential(qr_text)
+            if self_service and permanent_user.id != current_user.id:
+                raise ValueError("Este código pertenece a otra cuenta.")
+            open_entry = get_open_access_log_for_student(permanent_user.id)
+            from app.services.access_log_service import get_latest_access_log_for_user
+            latest = get_latest_access_log_for_user(permanent_user.id)
+            now = _server_now()
+            if open_entry is not None:
+                if (now - open_entry.check_in_time).total_seconds() < 2:
+                    return {"success": False,
+                            "message": "Entrada ya registrada; espera antes de marcar la salida.",
+                            "processed_at": _server_now_iso()}, 409
+                entry = create_check_out(
+                    student_id=permanent_user.id,
+                    notes="Permanent QR checkout" if not self_service else "Local self-report permanent QR checkout",
+                )
+                action = "check_out"
+            else:
+                if latest is not None and latest.check_out_time is not None and (
+                    now - latest.check_out_time
+                ).total_seconds() < 2:
+                    return {"success": False,
+                            "message": "Salida ya registrada; espera antes de una nueva entrada.",
+                            "processed_at": _server_now_iso()}, 409
+                entry = create_check_in(
+                    student_id=permanent_user.id,
+                    access_method="self_service" if self_service else "qr",
+                    notes="Permanent QR check-in" if not self_service else "Local self-report permanent QR entry",
+                )
+                action = "check_in"
+            return _build_scan_success_response(
+                permanent_user, action, entry, self_service=self_service
+            ), 200
+        except ValueError as exc:
+            db.session.rollback()
+            return {"success": False, "message": str(exc),
+                    "processed_at": _server_now_iso()}, 403
+        except Exception:
+            db.session.rollback()
+            current_app.logger.exception("Permanent campus QR scan failed")
+            return {"success": False, "message": "Unable to process permanent QR.",
+                    "processed_at": _server_now_iso()}, 500
+
     from app.services.scan_token_service import resolve_scan_token, consume_scan_token, is_temporary_access_code
     user = None
     token_record = None
@@ -1227,8 +1277,8 @@ def access_control_page():
 
     # Each person's access page displays a unique, usable credential.
     # QR and temporary manual code represent the same 5-minute pass.
-    from app.services.scan_token_service import issue_access_credential
-    access_token, access_qr_id_code = issue_access_credential(current_user)
+    from app.services.permanent_credential_service import permanent_credential_for_user
+    access_token, access_qr_id_code = permanent_credential_for_user(current_user)
     access_qr_payload = build_student_access_qr_payload(current_user, token=access_token)
     access_qr_image = generate_qr_image_data_uri(access_qr_payload)
 
