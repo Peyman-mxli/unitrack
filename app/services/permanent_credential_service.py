@@ -138,5 +138,18 @@ def review_replacement(request_id, admin, approve):
     item.status = "approved" if approve else "rejected"
     item.reviewed_at = datetime.utcnow()
     item.reviewed_by = admin.id
+    # Commit credential rotation and the audit event atomically.
+    from app.models.admin_audit_model import AdminAuditLog
+    db.session.add(AdminAuditLog(
+        actor_id=admin.id,
+        actor_username=admin.username,
+        action="qr_replacement_" + item.status,
+        target_user_id=item.user_id,
+        target_username=user.username if approve else (
+            db.session.get(User, item.user_id).username
+            if db.session.get(User, item.user_id) else None
+        ),
+        details=f"QR replacement request #{item.id}: {item.status}",
+    ))
     db.session.commit()
     return item
