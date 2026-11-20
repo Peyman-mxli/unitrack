@@ -1016,6 +1016,7 @@
 
             <main class="admin-content">
                 <div class="content-shell">
+                    {% block page_header %}
                     <div class="page-header">
                         <div class="page-title-wrap">
                             <p class="page-eyebrow">{% block page_eyebrow %}{{ t('workspace') }}{% endblock %}</p>
@@ -1031,6 +1032,7 @@
                             {% block page_actions %}{% endblock %}
                         </div>
                     </div>
+                    {% endblock %}
 
                     {% with messages = get_flashed_messages(with_categories=true) %}
                         {% if messages %}
