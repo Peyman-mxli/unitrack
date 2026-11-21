@@ -44,7 +44,7 @@ from app.services.email_service import send_password_changed_alert
 from app.utils.session_security import bind_authenticated_session
 from app.models.user_model import User
 from app.models.permanent_credential_model import PermanentCredential, CredentialReplacementRequest
-from app.models.visitor_access_model import VisitorRequest, VisitorPass
+from app.models.visitor_access_model import VisitorRequest, VisitorPass, VisitorAccessLog
 from app.models.password_history_model import PasswordHistory
 from app.models.login_security_model import LoginSecurityState
 from app.models.access_log_model import AccessLog
@@ -631,6 +631,76 @@ def build_global_access_records(selected_date="", search_text="", selected_role=
                 "duration": calculate_hours_text(log.check_in_time, log.check_out_time),
                 "_timestamp": log.check_out_time,
             })
+
+    # Visitor passes use a separate table, but their movements belong in the
+    # SAME campus history and totals as permanent university credentials.
+    # Read-only projection: do not duplicate or migrate existing visit rows.
+    if not selected_role or selected_role == "visitante":
+        visitor_query = db.select(VisitorAccessLog, VisitorPass).join(
+            VisitorPass, VisitorAccessLog.pass_id == VisitorPass.id
+        )
+        if search_text:
+            like = f"%{search_text}%"
+            visitor_query = visitor_query.where(db.or_(
+                VisitorPass.full_name.ilike(like),
+                VisitorPass.email.ilike(like),
+            ))
+        if filter_date is not None:
+            day = filter_date.isoformat()
+            visitor_query = visitor_query.where(db.or_(
+                db.func.date(VisitorAccessLog.checked_in_at) == day,
+                db.func.date(VisitorAccessLog.checked_out_at) == day,
+            ))
+
+        visitor_totals = {
+            pass_id: (int(entries), int(exits))
+            for pass_id, entries, exits in db.session.execute(
+                db.select(
+                    VisitorAccessLog.pass_id,
+                    db.func.count(VisitorAccessLog.id),
+                    db.func.count(VisitorAccessLog.checked_out_at),
+                ).group_by(VisitorAccessLog.pass_id)
+            ).all()
+        }
+        for visit, permit in db.session.execute(
+            visitor_query.order_by(VisitorAccessLog.checked_in_at.desc(),
+                                   VisitorAccessLog.id.desc())
+        ).all():
+            pass_entries, pass_exits = visitor_totals.get(permit.id, (0, 0))
+            base = {
+                "name": permit.full_name,
+                "username": permit.email or "Invitado",
+                "user_id_code": f"Pase #{permit.id}",
+                "role": "visitante",
+                "user_check_ins": pass_entries,
+                "user_check_outs": pass_exits,
+                "access_log_id": visit.id,
+                "access_method": "visitor",
+            }
+            if visit.checked_in_at and (
+                filter_date is None or visit.checked_in_at.date() == filter_date
+            ):
+                events.append({
+                    **base,
+                    "action": "check_in",
+                    "date": format_date_for_display(visit.checked_in_at.date()),
+                    "time": format_time_for_display(visit.checked_in_at),
+                    "status": "checked_in",
+                    "duration": "--",
+                    "_timestamp": visit.checked_in_at,
+                })
+            if visit.checked_out_at and (
+                filter_date is None or visit.checked_out_at.date() == filter_date
+            ):
+                events.append({
+                    **base,
+                    "action": "check_out",
+                    "date": format_date_for_display(visit.checked_out_at.date()),
+                    "time": format_time_for_display(visit.checked_out_at),
+                    "status": "checked_out",
+                    "duration": calculate_hours_text(visit.checked_in_at, visit.checked_out_at),
+                    "_timestamp": visit.checked_out_at,
+                })
 
     events.sort(
         key=lambda event: (
@@ -2044,34 +2114,6 @@ def admin_attendance_history():
     )
     access_event_counts = count_access_events(access_history)
 
-    from app.models.visitor_access_model import VisitorPass, VisitorAccessLog
-    visitor_history = []
-    if not selected_role or selected_role == "visitante":
-        visitor_query = (
-            db.select(VisitorAccessLog, VisitorPass)
-            .join(VisitorPass, VisitorAccessLog.pass_id == VisitorPass.id)
-            .order_by(VisitorAccessLog.checked_in_at.desc())
-        )
-        if search_text:
-            visitor_query = visitor_query.where(VisitorPass.full_name.ilike(f"%{search_text}%"))
-        for visit, permit in db.session.execute(visitor_query.limit(500)).all():
-            for action, moment in (("check_in", visit.checked_in_at),
-                                   ("check_out", visit.checked_out_at)):
-                if moment is None or (selected_date and moment.date().isoformat() != selected_date):
-                    continue
-                visitor_history.append({
-                    "name": permit.full_name, "pass_id": permit.id,
-                    "action": action, "date": moment.strftime("%Y-%m-%d"),
-                    "time": moment.strftime("%I:%M:%S %p"), "sort_time": moment,
-                    "starts_at": permit.starts_at, "expires_at": permit.expires_at,
-                })
-        visitor_history.sort(key=lambda e: e["sort_time"], reverse=True)
-    visitor_event_counts = {
-        "check_ins": sum(1 for row in visitor_history if row["action"] == "check_in"),
-        "check_outs": sum(1 for row in visitor_history if row["action"] == "check_out"),
-        "total": len(visitor_history),
-    }
-
     return render_template(
         "admin_attendance_history.html",
         search_text=search_text,
@@ -2079,8 +2121,6 @@ def admin_attendance_history():
         selected_date=selected_date,
         access_history=access_history,
         access_event_counts=access_event_counts,
-        visitor_history=visitor_history,
-        visitor_event_counts=visitor_event_counts,
     )
 
 
