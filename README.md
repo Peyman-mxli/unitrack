@@ -6,7 +6,9 @@
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![Status](https://img.shields.io/badge/Status-Active-success)
 
-**UniTrack** is a university attendance and access control system designed to manage student, staff, and professor presence using QR-based check-in and check-out.
+**UniTrack** is an academic campus digital-identification and QR access-control platform. Its purpose is to help strengthen preventive university security by verifying authorized credentials, recording campus entry/exit events, and issuing printable digital IDs promptly while physical institutional ID cards may still be pending. It does not detect weapons or physically operate access gates.
+
+**Updated academic security proposal and code-to-feature map:** [Proyecto Integrador II — Seguridad 2026](docs/PROYECTO_INTEGRADOR_II_SEGURIDAD_2026.md). The linked report includes evidence requests PF-01–PF-22; unverified cases remain pending rather than being marked passed.
 
 ---
 
@@ -157,13 +159,14 @@ This downloads the current **source code**. It does not download private account
 
 ## 🚀 Features
 
-* 🔐 Role-based authentication (Admin, Student, Professor, Staff)
-* 📱 QR Code access control (check-in / check-out)
-* ⏱ Automatic time tracking and attendance logs
-* 🧾 Validation code system for secure registration
-* 👤 User management (admin panel)
-* 🌐 Clean and responsive UI (mobile-friendly)
-* 🔄 Real-time access status tracking
+* 🔐 Role-based accounts with scrypt-hashed passwords, 8-character minimum, password-history protection, 5-attempt temporary lockout, and optional administrator TOTP MFA.
+* 🧾 Registration requires an administrator-issued, role-specific, expiring, single-use validation code; the administrator must verify affiliation before sharing it.
+* 🪪 Promptly available personal printable digital ID with stable signed QR credential, intended to reduce dependence on delayed physical card issuance.
+* 📱 Authorized operator QR/camera and manual-code check-in / check-out with event history; passive QR link opening does not register a campus visit.
+* 🎫 Administrator-authorized temporary visitor passes with expiration and revocation.
+* 📣 Administrator-only institutional notices to all or role-specific audiences, plus a recipient inbox.
+* 💬 Private error reports and per-report support conversations between users and administrators.
+* ⚠️ Campus safety depends on guards, identity checks and physical controls; software alone cannot prevent unauthorized physical entry.
 
 ---
 
@@ -199,15 +202,18 @@ This downloads the current **source code**. It does not download private account
 
 ---
 
-## 🏗️ Tech Stack
+## 🏗️ Tech Stack (verified in source code)
 
-* **Backend:** Python, Flask
-* **Database:** SQLite (dev) / PostgreSQL (production ready)
-* **ORM:** SQLAlchemy
-* **Auth:** Flask-Login
-* **Migrations:** Flask-Migrate (Alembic)
-* **QR Generation:** qrcode
-* **Frontend:** HTML, CSS, Jinja2
+* **HTML + CSS:** templates such as `app/templates/auth_register.html`, `admin_base.html`, `credential_card.html` (structure and appearance).
+* **JavaScript:** `app/static/js/qr-camera.js` (automatic camera QR decoding and form submission), `access-history-live.js` (history UI).
+* **Python + Flask:** `app/routes/auth_routes.py`, `admin_views.py`, `credential_views.py` (HTTP routes, permissions, operations).
+* **SQLite (local) / SQLAlchemy:** `app/models/user_model.py`, `app/services/validation_code_service.py` (relational records and transactions); PostgreSQL support requires persistent production configuration.
+* **Flask-Login:** authenticated sessions and role-gated views in route files.
+* **Werkzeug scrypt:** `app/utils/security.py` (password hashing and comparison).
+* **itsdangerous + HMAC:** `app/services/permanent_credential_service.py` (signed revocable permanent QR credentials).
+* **qrcode + Pillow:** rendering printable QR credentials.
+* **cryptography + TOTP:** `app/services/admin_mfa_service.py` (administrator second-factor protection).
+* **Git + GitHub:** source versioning, not automatic synchronization of local SQLite data.
 
 ---
 
@@ -280,10 +286,10 @@ http://<your-ip>:5000
 
 ## 📌 Roadmap
 
-* [ ] Advanced attendance history
+* [ ] Additional security and physical-gate acceptance testing
 * [ ] Mobile app integration
 * [ ] More admin features
-* [ ] More teacher features
+* [ ] More role-specific access and messaging tests
 * [ ] Better design and structure
 
 ---
