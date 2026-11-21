@@ -2075,7 +2075,7 @@ class UniTrackTests(unittest.TestCase):
             "role": "visitante", "search": name
         })
         self.assertEqual(history_page.status_code, 200)
-        self.assertEqual(history_page.data.count(name.encode()), 2)
+        self.assertEqual(history_page.data.count((name + "</td>").encode()), 2)
         self.assertIn(b"Pase #", history_page.data)
 
     def test_admin_guest_pass_expiry_and_visitor_history(self):
