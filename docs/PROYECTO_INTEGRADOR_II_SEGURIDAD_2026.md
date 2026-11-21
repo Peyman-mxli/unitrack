@@ -75,7 +75,7 @@ Nota: las plantillas dinámicas son un detalle del renderizado web; este inventa
 - Reportes: un usuario autenticado puede enviar error, soporte, consulta o sugerencia desde `/credentials/report`. Administración responde mediante conversación privada del reporte y puede cerrarla. Código: `app/services/support_chat_service.py`. Es mensajería de soporte en la aplicación, **no garantiza respuesta instantánea**.
 
 ## 9. Plan de aceptación — evidencias solicitadas una por una
-Los **22 casos** se documentan con resultado esperado, observado, fecha y captura. Estado revisado el **21 de noviembre de 2026**: PF-01, PF-02, PF-03, PF-04 y PF-06 tienen **PASS visual** sustentado por capturas previas; **PF-05 tiene PASS de exportación PDF**, verificado con cuatro capturas que muestran la credencial, la opción «Save as PDF», el cuadro de guardado y el PDF abierto en WPS Office. La vista de impresión y el archivo muestran **2 páginas**: incidencia separada de maquetación pendiente de corregir. Los otros 16 casos siguen **Pendientes de evidencia de ejecución**. Este estado no implica ausencia del código. Las imágenes se integran en el Word académico, con QR oculto para evitar publicar credenciales funcionales; no se suben imágenes identificables al repositorio público.
+Los **22 casos** se documentan con resultado esperado, observado, fecha y captura. Estado revisado el **21 de noviembre de 2026**: PF-01, PF-02, PF-03, PF-04 y PF-06 tienen **PASS visual** sustentado por capturas previas; **PF-05 tiene PASS de exportación PDF**, verificado con cuatro capturas que muestran la credencial, la opción «Save as PDF», el cuadro de guardado y el PDF abierto en WPS Office. La vista de impresión y el archivo muestran **2 páginas**: incidencia separada de maquetación pendiente de corregir. PF-07 también tiene **PASS visual de rechazo del QR revocado** (21/11/2026, 02:30, mensaje «Escaneo rechazado — This QR was replaced or revoked» tras solicitud y aprobación por administrador). **La ausencia de inserción de eventos debe comprobarse con el control de persistencia PF-14**. Los otros 15 casos siguen **Pendientes de evidencia de ejecución**. Este estado no implica ausencia del código. Las imágenes se integran en el Word académico, con QR oculto para evitar publicar credenciales funcionales; no se suben imágenes identificables al repositorio público.
 
 | Caso | Escenario / evidencia a obtener |
 |---|---|
@@ -85,7 +85,7 @@ Los **22 casos** se documentan con resultado esperado, observado, fecha y captur
 | PF-04 | Historial con movimientos |
 | PF-05 | PASS — PDF guardado y abierto (4 capturas del 21/11/2026); incidencia: segunda página en impresión |
 | PF-06 | Solicitud QR aprobada |
-| PF-07 | QR anterior rechazado tras sustitución |
+| PF-07 | PASS visual — QR anterior rechazado tras sustitución aprobada; verificar ausencia de evento en PF-14 |
 | PF-08 | Pase de visitante realmente emitido |
 | PF-09 | Pase caducado rechazado |
 | PF-10 | Código alternativo registra movimiento correcto |
@@ -107,7 +107,7 @@ El repositorio contiene `tests/test_unitrack.py` con pruebas automatizadas relev
 **Privacidad en capturas:** usar cuentas de demostración y no publicar contraseñas, QR activos, códigos de validación, enlaces de desbloqueo ni tokens. Para cada caso, registrar fecha/hora, rol, pasos, resultado esperado y real.
 
 ## 10. Próximo paso documentado
-**PF-05 COMPLETADO (21/11/2026):** cuatro capturas revisadas y agregadas a la documentación Word. **Siguiente: PF-07**, comprobar con una cuenta de demostración que un QR antiguo quede inválido después de aprobar un reemplazo; solicitar capturas antes y después, ocultando los códigos funcionales. Continuar con los restantes casos **de uno en uno**, sin marcar PASS antes de reproducirlos.
+**PF-05 COMPLETADO (21/11/2026):** cuatro capturas revisadas y agregadas a la documentación Word. **PF-07 COMPLETADO visualmente (21/11/2026):** solicitud, aprobación, nuevo QR y mensaje de rechazo del anterior. **Siguiente: PF-08**, crear un pase de visitante de demostración y obtener una captura del pase emitido y su vigencia, ocultando el QR funcional. Continuar con los restantes casos **de uno en uno**, sin marcar PASS antes de reproducirlos.
 
 ---
 **Nota de despliegue:** GitHub distribuye código; no sincroniza automáticamente bases SQLite locales, fotografías o secretos entre laptops. Para uso institucional real hacen falta verificación organizacional, operadores, barreras físicas, infraestructura persistente, privacidad y auditorías de seguridad.
