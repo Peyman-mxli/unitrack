@@ -2146,6 +2146,94 @@ class UniTrackTests(unittest.TestCase):
         })
         self.assertIn(blocked.status_code, (302, 400, 403))
 
+    def test_visitor_photo_upload_private_credential_and_existing_pass_update(self):
+        """Visitor portrait appears on pass and list; only authorized users may view it."""
+        from io import BytesIO
+        from pathlib import Path
+        from PIL import Image
+        from app.models.visitor_access_model import VisitorPass, VisitorPassPhoto
+        from app.services.profile_photo_service import delete_profile_photo
+
+        def portrait(color):
+            output = BytesIO()
+            Image.new("RGB", (140, 160), color).save(output, format="PNG")
+            output.seek(0)
+            return output
+
+        admin = self._signed_in_client("Admin")
+        form_page = admin.get("/credentials/manage")
+        self.assertEqual(form_page.status_code, 200)
+        self.assertIn(b'name="visitor_photo"', form_page.data)
+        token = re.search(rb'name="csrf_token" value="([^"]+)"', form_page.data).group(1).decode()
+
+        created = admin.post("/credentials/visitors/create", data={
+            "csrf_token": token, "full_name": "Visitor Portrait PF",
+            "purpose": "Verify a visitor portrait", "duration": "10m",
+            "visitor_photo": (portrait("green"), "visitor.png"),
+        }, content_type="multipart/form-data")
+        self.assertEqual(created.status_code, 302)
+        self.assertIn("/credentials/visitor-pass/", created.headers["Location"])
+        pass_id = int(created.headers["Location"].rstrip("/").split("/")[-1])
+
+        with self.app.app_context():
+            item = self.db.session.get(VisitorPass, pass_id)
+            photo = self.db.session.get(VisitorPassPhoto, pass_id)
+            self.assertIsNotNone(item)
+            self.assertIsNotNone(photo)
+            self.assertTrue(photo.photo_path.startswith("private_uploads/profile_photos/visitor_"))
+            first_path = photo.photo_path
+            self.assertTrue((Path(self.app.root_path).parent / first_path).is_file())
+
+        pass_page = admin.get(f"/credentials/visitor-pass/{pass_id}")
+        self.assertEqual(pass_page.status_code, 200)
+        self.assertIn(f"/credentials/visitor-photo/{pass_id}".encode(), pass_page.data)
+        self.assertIn(b"Visitor Portrait PF", pass_page.data)
+
+        list_page = admin.get("/credentials/manage")
+        self.assertIn(f"/credentials/visitor-photo/{pass_id}".encode(), list_page.data)
+        self.assertIn(f"/credentials/visitor-qr/{pass_id}".encode(), list_page.data)
+
+        image_response = admin.get(f"/credentials/visitor-photo/{pass_id}")
+        self.assertEqual(image_response.status_code, 200)
+        self.assertEqual(image_response.mimetype, "image/jpeg")
+        self.assertIn("private, no-store", image_response.headers.get("Cache-Control", ""))
+        self.assertTrue(image_response.data.startswith(b"\\xff\\xd8"))
+        qr_response = admin.get(f"/credentials/visitor-qr/{pass_id}")
+        self.assertEqual(qr_response.status_code, 200)
+        self.assertEqual(qr_response.mimetype, "image/png")
+        self.assertTrue(qr_response.data.startswith(b"\\x89PNG"))
+
+        non_admin = self._signed_in_client("StudentA")
+        self.assertEqual(non_admin.get(f"/credentials/visitor-photo/{pass_id}").status_code, 403)
+        self.assertEqual(non_admin.get(f"/credentials/visitor-qr/{pass_id}").status_code, 403)
+        self.assertEqual(non_admin.get(f"/credentials/visitor-pass/{pass_id}").status_code, 403)
+        self.assertEqual(non_admin.post(f"/credentials/visitors/{pass_id}/photo", data={
+            "visitor_photo": (portrait("red"), "bad.png")
+        }, content_type="multipart/form-data").status_code, 400)
+
+        updated = admin.post(f"/credentials/visitors/{pass_id}/photo", data={
+            "csrf_token": token,
+            "visitor_photo": (portrait("blue"), "new-photo.png"),
+        }, content_type="multipart/form-data")
+        self.assertEqual(updated.status_code, 302)
+        self.assertIn("#issued-passes", updated.headers["Location"])
+        with self.app.app_context():
+            second_path = self.db.session.get(VisitorPassPhoto, pass_id).photo_path
+            self.assertNotEqual(first_path, second_path)
+            self.assertFalse((Path(self.app.root_path).parent / first_path).exists())
+            self.assertTrue((Path(self.app.root_path).parent / second_path).is_file())
+
+        # Reject fake image uploads without replacing a good stored photo.
+        rejected = admin.post(f"/credentials/visitors/{pass_id}/photo", data={
+            "csrf_token": token,
+            "visitor_photo": (BytesIO(b"Not an image"), "fake.jpg"),
+        }, content_type="multipart/form-data")
+        self.assertEqual(rejected.status_code, 302)
+        with self.app.app_context():
+            self.assertEqual(self.db.session.get(VisitorPassPhoto, pass_id).photo_path, second_path)
+            # Cleanup this test-only image (the test DB itself is isolated).
+            delete_profile_photo(second_path)
+
     def test_admin_guest_pass_expiry_and_visitor_history(self):
         """Admin can create a non-account visitor pass; expired QR blocks reentry."""
         from app.models.user_model import User
