@@ -8,7 +8,7 @@ from flask import current_app
 from itsdangerous import URLSafeSerializer, BadSignature
 from app.database import db
 from app.models.user_model import User
-from app.models.visitor_access_model import VisitorPass, VisitorRequest, VisitorAccessLog
+from app.models.visitor_access_model import VisitorPass, VisitorRequest, VisitorAccessLog, VisitorPassPhoto
 from app.utils.local_time import campus_now
 
 MAX_PASS_DAYS = 366
@@ -28,7 +28,7 @@ def parse_period(start, end):
     return starts, expires
 
 
-def issue_visitor_pass(admin, full_name, purpose, start, end, email="", linked_user=None):
+def issue_visitor_pass(admin, full_name, purpose, start, end, email="", linked_user=None, photo_path=None):
     if admin.role != "administrativo" or not admin.is_active_user:
         raise ValueError("Only an active administrator can issue visitor passes.")
     starts, expires = parse_period(start, end)
@@ -46,6 +46,9 @@ def issue_visitor_pass(admin, full_name, purpose, start, end, email="", linked_u
         nonce=secrets.token_urlsafe(24), starts_at=starts, expires_at=expires,
     )
     db.session.add(item)
+    if photo_path:
+        db.session.flush()
+        db.session.add(VisitorPassPhoto(pass_id=item.id, photo_path=photo_path))
     db.session.commit()
     return item
 
