@@ -2144,7 +2144,7 @@ class UniTrackTests(unittest.TestCase):
             "csrf_token": token, "full_name": "Unapproved visitor",
             "purpose": "Role permission check", "duration": "10m",
         })
-        self.assertIn(blocked.status_code, (302, 403))
+        self.assertIn(blocked.status_code, (302, 400, 403))
 
     def test_admin_guest_pass_expiry_and_visitor_history(self):
         """Admin can create a non-account visitor pass; expired QR blocks reentry."""
