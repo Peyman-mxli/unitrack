@@ -1999,6 +1999,85 @@ class UniTrackTests(unittest.TestCase):
             )).scalars().all()
             self.assertEqual(len(logs), 2)
 
+    def test_visitor_movements_appear_in_unified_admin_campus_history(self):
+        """Guest check-in/out is visible in the SAME table and counters as members."""
+        from app.models.user_model import User
+        from app.models.visitor_access_model import VisitorAccessLog
+        from app.services.visitor_access_service import issue_visitor_pass, visitor_token
+        from app.routes.admin_views import build_global_access_records, count_access_events
+        from app.utils.local_time import campus_now
+
+        name = "GuestHistoryDisplayPF08"
+        with self.app.app_context():
+            before = count_access_events(build_global_access_records())["total"]
+            admin_user = self.db.session.execute(
+                self.db.select(User).where(User.username == "Admin")
+            ).scalar_one()
+            now = campus_now()
+            permit = issue_visitor_pass(
+                admin_user, name, "Regression test",
+                (now - timedelta(minutes=1)).isoformat(timespec="seconds"),
+                (now + timedelta(hours=24)).isoformat(timespec="seconds"),
+                email="visitor-history@example.test",
+            )
+            qr = visitor_token(permit)
+            pass_id = permit.id
+
+        client = self._signed_in_client("Admin")
+        page = client.get("/admin/access-control")
+        csrf = re.search(rb'name="csrf_token" value="([^"]+)"', page.data)
+        self.assertIsNotNone(csrf)
+        form = {"csrf_token": csrf.group(1).decode(), "qr_text": qr}
+
+        entry_response = client.post("/admin/access-control", data=form)
+        self.assertEqual(entry_response.status_code, 200)
+        self.assertIn("Escaneo correcto".encode("utf-8"), entry_response.data)
+        member_history = entry_response.data.split(b'<div class="history-card">', 1)[1]
+        self.assertEqual(member_history.count(name.encode()), 1)
+        self.assertIn("Pase de visitante".encode("utf-8"), member_history)
+
+        with self.app.app_context():
+            self.assertEqual(count_access_events(build_global_access_records())["total"], before + 1)
+            visit = self.db.session.execute(
+                self.db.select(VisitorAccessLog).where(VisitorAccessLog.pass_id == pass_id)
+            ).scalar_one()
+            # Real scans require a short delay. Adjust test fixture instead of sleeping.
+            visit.checked_in_at = campus_now() - timedelta(seconds=10)
+            self.db.session.commit()
+
+        exit_response = client.post("/admin/access-control", data=form)
+        self.assertEqual(exit_response.status_code, 200)
+        self.assertIn("Escaneo correcto".encode("utf-8"), exit_response.data)
+        updated_table = exit_response.data.split(b'<div class="history-card">', 1)[1]
+        self.assertEqual(updated_table.count(name.encode()), 2)
+
+        with self.app.app_context():
+            combined = build_global_access_records()
+            self.assertEqual(count_access_events(combined)["total"], before + 2)
+            guest_events = [event for event in combined if event["name"] == name]
+            self.assertEqual({event["action"] for event in guest_events}, {"check_in", "check_out"})
+            self.assertTrue(all(event["role"] == "visitante" for event in guest_events))
+            self.assertTrue(all(event["access_method"] == "visitor" for event in guest_events))
+            self.assertTrue(all(event["user_check_ins"] == 1 and event["user_check_outs"] == 1
+                                for event in guest_events))
+            self.assertEqual(len([event for event in build_global_access_records(
+                selected_role="visitante", search_text=name) if event["name"] == name]), 2)
+            self.assertEqual(len([event for event in build_global_access_records(
+                selected_role="estudiante") if event["name"] == name]), 0)
+            day = campus_now().date().isoformat()
+            filtered = build_global_access_records(
+                selected_role="visitante", search_text=name,
+                selected_date=day, date_format="%Y-%m-%d",
+            )
+            self.assertEqual(len(filtered), 2)
+
+        history_page = client.get("/admin/attendance-history", query_string={
+            "role": "visitante", "search": name
+        })
+        self.assertEqual(history_page.status_code, 200)
+        self.assertEqual(history_page.data.count(name.encode()), 2)
+        self.assertIn(b"Pase #", history_page.data)
+
     def test_admin_guest_pass_expiry_and_visitor_history(self):
         """Admin can create a non-account visitor pass; expired QR blocks reentry."""
         from app.models.user_model import User
