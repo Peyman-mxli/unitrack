@@ -1,13 +1,15 @@
 """Permanent university cards, approved QR rotation and temporary visitor passes."""
 from datetime import timedelta
+from io import BytesIO
 from pathlib import Path
+import qrcode
 
 from flask import Blueprint, abort, flash, redirect, render_template, request, send_file, url_for, jsonify
 from flask_login import current_user, login_required
 from app.database import db
 from app.models.user_model import User
 from app.models.permanent_credential_model import CredentialReplacementRequest
-from app.models.visitor_access_model import VisitorRequest, VisitorPass, VisitorAccessLog
+from app.models.visitor_access_model import VisitorRequest, VisitorPass, VisitorAccessLog, VisitorPassPhoto
 from app.services.permanent_credential_service import (
     ROLES, permanent_credential_for_user, request_replacement, review_replacement
 )
@@ -16,6 +18,7 @@ from app.services.visitor_access_service import (
     request_visitor_access, review_visitor_request,
 )
 from app.utils.local_time import campus_now
+from app.services.profile_photo_service import save_profile_photo, delete_profile_photo
 
 credential_bp = Blueprint("credential", __name__, url_prefix="/credentials")
 
@@ -317,9 +320,16 @@ def manage():
         VisitorPass.id.desc()).limit(150)
     ).scalars().all()
     people = {u.id: u for u in db.session.execute(db.select(User)).scalars()}
+    pass_ids = [item.id for item in passes]
+    pass_photos = {
+        record.pass_id: record for record in db.session.execute(
+            db.select(VisitorPassPhoto).where(VisitorPassPhoto.pass_id.in_(pass_ids))
+        ).scalars()
+    } if pass_ids else {}
     return render_template("credential_management.html", qr_requests=qr_requests,
                            qr_history=qr_history,
                            visitor_requests=visitor_requests, passes=passes,
+                           pass_photos=pass_photos,
                            people=people, current_time=campus_now())
 
 
@@ -351,7 +361,11 @@ def review_qr(request_id):
 def create_guest():
     if not _admin():
         abort(403)
+    new_photo_path = None
     try:
+        uploaded_photo = request.files.get("visitor_photo")
+        if uploaded_photo and uploaded_photo.filename:
+            new_photo_path = save_profile_photo(uploaded_photo, kind="visitor")
         duration = str(request.form.get("duration", "1")).strip()
         if duration in {"10m", "20m", "30m", "40m", "50m"}:
             start = campus_now()
@@ -367,13 +381,116 @@ def create_guest():
         item = issue_visitor_pass(
             current_user, request.form.get("full_name", ""),
             request.form.get("purpose", ""), start, end,
-            email=request.form.get("email", ""),
+            email=request.form.get("email", ""), photo_path=new_photo_path,
         )
         flash(f"Visitor pass #{item.id} created.", "success")
         return redirect(url_for("credential.visitor_pass", pass_id=item.id))
     except ValueError as exc:
+        db.session.rollback()
+        if new_photo_path:
+            delete_profile_photo(new_photo_path)
         flash(str(exc), "error")
         return redirect(url_for("credential.manage"))
+    except Exception:
+        db.session.rollback()
+        if new_photo_path:
+            delete_profile_photo(new_photo_path)
+        from flask import current_app
+        current_app.logger.exception("Could not create visitor pass with photo")
+        flash("No fue posible emitir el pase. Intenta de nuevo.", "error")
+        return redirect(url_for("credential.manage"))
+
+
+@credential_bp.route("/visitors/<int:pass_id>/photo", methods=["POST"])
+@login_required
+def update_visitor_photo(pass_id):
+    """Allow admin to add or replace a portrait on previously issued visitor passes."""
+    if not _admin():
+        abort(403)
+    item = db.session.get(VisitorPass, pass_id)
+    if item is None:
+        abort(404)
+    uploaded_photo = request.files.get("visitor_photo")
+    if not uploaded_photo or not uploaded_photo.filename:
+        flash("Selecciona una foto de visitante.", "error")
+        return redirect(url_for("credential.manage") + "#issued-passes")
+    new_photo_path = None
+    try:
+        new_photo_path = save_profile_photo(uploaded_photo, kind="visitor")
+        photo_record = db.session.get(VisitorPassPhoto, item.id)
+        previous_path = photo_record.photo_path if photo_record else None
+        if photo_record is None:
+            db.session.add(VisitorPassPhoto(pass_id=item.id, photo_path=new_photo_path))
+        else:
+            photo_record.photo_path = new_photo_path
+        db.session.commit()
+        # Only unlink the replaced private portrait after the DB points to the new file.
+        if previous_path and previous_path != new_photo_path:
+            delete_profile_photo(previous_path)
+        flash("Foto del visitante actualizada.", "success")
+    except ValueError as exc:
+        db.session.rollback()
+        if new_photo_path:
+            delete_profile_photo(new_photo_path)
+        flash(str(exc), "error")
+    except Exception:
+        db.session.rollback()
+        if new_photo_path:
+            delete_profile_photo(new_photo_path)
+        from flask import current_app
+        current_app.logger.exception("Could not update visitor photo")
+        flash("No se pudo actualizar la foto.", "error")
+    return redirect(url_for("credential.manage") + "#issued-passes")
+
+
+def _can_view_visitor_pass(item):
+    return _admin() or (
+        current_user.is_authenticated and current_user.is_active_user
+        and item.linked_user_id is not None and item.linked_user_id == current_user.id
+    )
+
+
+@credential_bp.route("/visitor-photo/<int:pass_id>")
+@login_required
+def visitor_photo(pass_id):
+    """Serve private visitor portraits only to an admin or the linked visitor."""
+    item = db.session.get(VisitorPass, pass_id)
+    if item is None:
+        abort(404)
+    if not _can_view_visitor_pass(item):
+        abort(403)
+    photo_record = db.session.get(VisitorPassPhoto, pass_id)
+    if photo_record is None:
+        abort(404)
+    raw_path = str(photo_record.photo_path or "").replace("\\", "/")
+    if not raw_path.startswith("private_uploads/profile_photos/visitor_"):
+        abort(404)
+    root = Path(__file__).resolve().parents[2]
+    file_path = (root / raw_path).resolve()
+    private_directory = (root / "private_uploads" / "profile_photos").resolve()
+    if not file_path.is_relative_to(private_directory) or not file_path.is_file():
+        abort(404)
+    response = send_file(file_path, mimetype="image/jpeg")
+    response.headers["Cache-Control"] = "private, no-store"
+    return response
+
+
+@credential_bp.route("/visitor-qr/<int:pass_id>")
+@login_required
+def visitor_qr_image(pass_id):
+    """Private QR thumbnail for authorized credential previews in the admin list."""
+    item = db.session.get(VisitorPass, pass_id)
+    if item is None:
+        abort(404)
+    if not _can_view_visitor_pass(item):
+        abort(403)
+    output = BytesIO()
+    qr = qrcode.make(visitor_token(item))
+    qr.save(output, format="PNG")
+    output.seek(0)
+    response = send_file(output, mimetype="image/png")
+    response.headers["Cache-Control"] = "private, no-store"
+    return response
 
 
 @credential_bp.route("/visitors/<int:pass_id>/revoke", methods=["POST"])
@@ -444,7 +561,7 @@ def visitor_pass(pass_id):
     item = db.session.get(VisitorPass, pass_id)
     if item is None:
         abort(404)
-    if not _admin() and (item.linked_user_id is None or item.linked_user_id != current_user.id):
+    if not _can_view_visitor_pass(item):
         abort(403)
     from app.routes.student_views import generate_qr_image_data_uri
     token = visitor_token(item)
@@ -452,6 +569,8 @@ def visitor_pass(pass_id):
     history = db.session.execute(db.select(VisitorAccessLog).where(
         VisitorAccessLog.pass_id == item.id
     ).order_by(VisitorAccessLog.id.desc())).scalars().all()
+    has_photo = db.session.get(VisitorPassPhoto, item.id) is not None
     return render_template("credential_visitor_pass.html", item=item, qr_image=qr_image,
+                           has_photo=has_photo,
                            code=visitor_code(item), history=history, now=campus_now(),
                            can_manage=_admin())
