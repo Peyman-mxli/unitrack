@@ -2078,6 +2078,74 @@ class UniTrackTests(unittest.TestCase):
         self.assertEqual(history_page.data.count((name + "</td>").encode()), 2)
         self.assertIn(b"Pase #", history_page.data)
 
+    def test_admin_visitor_pass_duration_options_from_ten_minutes_to_72_hours(self):
+        """Visitor QR can be issued for 10–50 minutes, 1–24 h, 48 h or 72 h."""
+        from app.models.visitor_access_model import VisitorPass
+        from app.utils.local_time import campus_now
+
+        admin_client = self._signed_in_client("Admin")
+        page = admin_client.get("/credentials/manage")
+        self.assertEqual(page.status_code, 200)
+        for option in (b'value="10m"', b'value="50m"', b'value="1"',
+                       b'value="24"', b'value="48"', b'value="72"'):
+            self.assertIn(option, page.data)
+        csrf = re.search(rb'name="csrf_token" value="([^"]+)"', page.data)
+        self.assertIsNotNone(csrf)
+        token = csrf.group(1).decode()
+
+        choices = {
+            "10m": timedelta(minutes=10),
+            "20m": timedelta(minutes=20),
+            "30m": timedelta(minutes=30),
+            "40m": timedelta(minutes=40),
+            "50m": timedelta(minutes=50),
+            "1": timedelta(hours=1),
+            "12": timedelta(hours=12),
+            "24": timedelta(hours=24),
+            "48": timedelta(hours=48),
+            "72": timedelta(hours=72),
+        }
+        for duration, expected in choices.items():
+            with self.subTest(duration=duration):
+                before = campus_now()
+                response = admin_client.post("/credentials/visitors/create", data={
+                    "csrf_token": token, "full_name": "Test Visitor " + duration,
+                    "purpose": "Short permission test", "duration": duration,
+                })
+                self.assertEqual(response.status_code, 302)
+                self.assertIn("/credentials/visitor-pass/", response.headers["Location"])
+                permit_id = int(response.headers["Location"].rstrip("/").split("/")[-1])
+                with self.app.app_context():
+                    item = self.db.session.get(VisitorPass, permit_id)
+                    self.assertIsNotNone(item)
+                    self.assertTrue(before - timedelta(seconds=2) <= item.starts_at <= campus_now())
+                    self.assertEqual(item.expires_at - item.starts_at, expected)
+                    self.assertIsNone(item.revoked_at)
+
+        with self.app.app_context():
+            previous_total = self.db.session.scalar(
+                self.db.select(self.db.func.count(VisitorPass.id))
+            )
+        for duration in ("5m", "0", "25", "49", "100", "1.5", "unexpected"):
+            with self.subTest(rejects=duration):
+                response = admin_client.post("/credentials/visitors/create", data={
+                    "csrf_token": token, "full_name": "Rejected Visitor",
+                    "purpose": "Invalid test", "duration": duration,
+                })
+                self.assertEqual(response.status_code, 302)
+                self.assertIn("/credentials/manage", response.headers["Location"])
+        with self.app.app_context():
+            self.assertEqual(self.db.session.scalar(
+                self.db.select(self.db.func.count(VisitorPass.id))
+            ), previous_total)
+
+        other = self._signed_in_client("StudentA")
+        blocked = other.post("/credentials/visitors/create", data={
+            "csrf_token": token, "full_name": "Unapproved visitor",
+            "purpose": "Role permission check", "duration": "10m",
+        })
+        self.assertIn(blocked.status_code, (302, 403))
+
     def test_admin_guest_pass_expiry_and_visitor_history(self):
         """Admin can create a non-account visitor pass; expired QR blocks reentry."""
         from app.models.user_model import User
