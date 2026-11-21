@@ -35,6 +35,18 @@ class VisitorPass(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
 
+class VisitorPassPhoto(db.Model):
+    """Optional visitor portrait stored privately, separate from legacy pass rows.
+
+    A dedicated table lets existing SQLite installations gain visitor photos via
+    db.create_all(), without altering the visitor_passes table or old records.
+    """
+    __tablename__ = "visitor_pass_photos"
+    pass_id = db.Column(db.Integer, db.ForeignKey("visitor_passes.id"), primary_key=True)
+    photo_path = db.Column(db.String(255), nullable=False)
+    added_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+
 class VisitorAccessLog(db.Model):
     __tablename__ = "visitor_access_logs"
     id = db.Column(db.Integer, primary_key=True)
