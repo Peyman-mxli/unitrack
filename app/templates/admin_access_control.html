@@ -780,7 +780,7 @@
     <div class="history-header">
         <div>
             <h3 class="history-title">{{ 'Historial de acceso al campus' if current_language == 'es' else 'Campus Access History' }}</h3>
-            <p class="history-subtitle">{{ 'Entradas y salidas de estudiantes, docentes, personal y administradores.' if current_language == 'es' else 'Check-ins and check-outs for students, teachers, staff and administrators.' }}</p>
+            <p class="history-subtitle">{{ 'Entradas y salidas de estudiantes, docentes, personal, administradores y visitantes.' if current_language == 'es' else 'Check-ins and check-outs for students, teachers, staff, administrators and visitors.' }}</p>
             <a href="{{ url_for('admin_views.admin_attendance_history') }}">{{ 'Ver historial completo' if current_language == 'es' else 'View full history' }}</a>
         </div>
 
@@ -829,7 +829,7 @@
                 <tr>
                     <td>{{ loop.index }}</td>
                     <td>{{ record.name }}</td>
-                    <td>{{ t({'estudiante':'Student','docente':'Professor','personal':'Staff','administrativo':'Admin'}.get(record.role, record.role)) }}</td>
+                    <td>{{ ('Visitante' if current_language == 'es' else 'Visitor') if record.role == 'visitante' else t({'estudiante':'Student','docente':'Professor','personal':'Staff','administrativo':'Admin'}.get(record.role, record.role)) }}</td>
                     <td>{{ record.user_id_code }}</td>
                     <td>{{ record.date }}</td>
                     <td>{{ record.time }}</td>
@@ -840,7 +840,7 @@
                             <strong style="color:#b91c1c;">{{ 'Salida' if current_language == 'es' else 'Check-out' }}</strong>
                         {% endif %}
                     </td>
-                    <td>{{ ('Autoregistro local' if current_language == 'es' else 'Local self-report') if record.access_method == 'self_service' else ('Código' if current_language == 'es' else 'Manual code') if record.access_method == 'manual' else 'QR' }}</td>
+                    <td>{{ ('Pase de visitante' if current_language == 'es' else 'Visitor pass') if record.access_method == 'visitor' else ('Autoregistro local' if current_language == 'es' else 'Local self-report') if record.access_method == 'self_service' else ('Código' if current_language == 'es' else 'Manual code') if record.access_method == 'manual' else 'QR' }}</td>
                     <td>{{ record.duration }}</td>
                     <td>
                         {% if record.status == "checked_in" %}
