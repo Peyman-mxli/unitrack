@@ -107,7 +107,7 @@ QR access records.
 ## ✅ QR access and entry/exit records (November 2026)
 
 - An **authorized admin, teacher or staff** uses **Control de Acceso** to scan a signed QR with a camera or enter its short-lived manual code. Each accepted submission records a timestamped check-in or check-out. The second deliberate scan closes the visit, and a new credential starts the next visit. A rapid duplicate camera submission is rejected to prevent accidental checkout.
-- The personal campus-access timeline lists **every entry and every exit** as separate events, with timestamps and totals. The admin's **Control de Acceso** and **Historial de Asistencia y Acceso** show entries/exits across all four roles.
+- The personal campus-access timeline lists **every entry and every exit** as separate events, with timestamps and totals. The admin's **Control de Acceso** and **Historial de Acceso** show entries/exits across all four roles.
 - To support **local classroom demonstrations**, a signed-in student can scan only **their own QR/temporary code** on the student access page. This writes a clearly labelled **Autoregistro local** event. It does **not verify physical presence at a gate**.
 - This student self-report feature is **disabled in hosted/production mode**. It can be disabled locally by setting `UNITRACK_ALLOW_LOCAL_SELF_SCAN=false` before starting the server. Authorized operator scans remain available.
 - Merely opening a public QR link with a phone camera (GET) **never writes a record**, because passive link previews and camera apps could otherwise create false entries. To record official campus access, use the authenticated operator scanner and submit the scan.
@@ -127,7 +127,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File $sync -OpenVSCode
 
 This works on either laptop: from an existing UniTrack checkout it fetches the real latest GitHub commit, backs up existing data and updates safely. Otherwise it finds a known folder or clones current code into `C:\unitrack-latest`. Old or locally modified branches receive a **new sibling checkout** without deleting the original, with a verified transfer of their local database and photos when available. The script prints the active VS Code project path and current Git commit.
 
-**Never** use `git reset --hard`, `git pull --force`, or upload `unitrack.db` to GitHub to reconcile versions. **GitHub synchronizes source code only**. Local accounts, attendance, QR access history, pictures, email credentials, `.unitrack-secret`, and SQLite databases deliberately **do not sync across laptops**. For the *same student data* on both laptops, use a separately configured persistent central database and private file storage. The hosted site is [unitrack-c0zt.onrender.com](https://unitrack-c0zt.onrender.com), but its database persistence must be verified before storing real student records.
+**Never** use `git reset --hard`, `git pull --force`, or upload `unitrack.db` to GitHub to reconcile versions. **GitHub synchronizes source code only**. Local accounts, access logs, QR access history, pictures, email credentials, `.unitrack-secret`, and SQLite databases deliberately **do not sync across laptops**. For the *same student data* on both laptops, use a separately configured persistent central database and private file storage. The hosted site is [unitrack-c0zt.onrender.com](https://unitrack-c0zt.onrender.com), but its database persistence must be verified before storing real student records.
 
 ## 🌐 Live Demo
 
@@ -152,7 +152,7 @@ py -3.11 -m venv .venv
 .\\.venv\\Scripts\\python.exe run.py
 ```
 
-This downloads the current **source code**. It does not download private account records, profile photographs, secret keys, or attendance stored in the local `unitrack.db` on another computer. Those are intentionally excluded from the public GitHub repository. If you need the **same data** on more than one computer, use one persistent central database with controlled access and backups; never commit a database containing real students to GitHub.
+This downloads the current **source code**. It does not download private account records, profile photographs, secret keys, or historical access records stored in the local `unitrack.db` on another computer. Those are intentionally excluded from the public GitHub repository. If you need the **same data** on more than one computer, use one persistent central database with controlled access and backups; never commit a database containing real students to GitHub.
 
 
 ---
@@ -188,7 +188,7 @@ This downloads the current **source code**. It does not download private account
 
 ![Scanner](app/static/img/scanner.png)
 
-### 📜 Attendance History
+### 📜 Campus Access History
 
 ![History](app/static/img/attendance-history.png)
 
@@ -495,13 +495,17 @@ If `MAIL_USERNAME` and `MAIL_PASSWORD` are configured, UniTrack **also attempts 
 
 **Hosting warning:** Without `DATABASE_URL` pointing to persistent storage (such as PostgreSQL), local SQLite reports on hosts with ephemeral disks, including Render free web services, can be lost when the service restarts or redeploys. Set up a persistent database or properly configured SMTP notification before depending on this form for production support. Do not claim a report has been emailed unless the mail service confirms delivery. The current receipt confirms the database write only.
 
-### Academics and QR access
+### Current university digital ID and QR access (November 2026)
 
-- Professors and admins can manage classes at `/attendance/classes`: enroll students, schedule meetings, record Present/Late/Absent, and finalize attendance.
-- Student academic attendance history displays scheduled **class** meetings, not campus gate access logs. Unmarked sessions are not counted absent until the teacher finalizes them.
-- Role-approved scanners (admin, staff and professor) can read signed QR codes via the browser camera where `BarcodeDetector` and `getUserMedia` are supported; HTTPS or localhost is required for camera permission. Manual paste remains available for signed QR values.
-- Generated QR codes expire after five minutes and can be consumed once. Attendance and access times use the campus timezone (`America/Tijuana` by default); change it through `UNITRACK_TIMEZONE` if the campus moves. Public mobile QR landing URLs only show instructions; they do not perform check-in or check-out. The old predictable access-code mode is disabled by default; `UNITRACK_ALLOW_LEGACY_QR=True` enables a temporary **admin-only** migration fallback and should not be enabled in production.
-- Browser forms now use session CSRF tokens. Login and registration are rate-limited per IP. Staff/admin updates are auditable.
+- **Primary mission:** improve preventive campus security and provide printable digital identification promptly for authorized students, professors and staff while physical cards may still be pending.
+- **Registration is restricted:** an administrator creates an expiring, role-specific, single-use validation code; new accounts cannot be registered without a valid matching code. Verify the applicant's institutional affiliation **before issuing** that code.
+- **Stable permanent IDs:** `/credentials/card` shows a signed personal QR that remains the same on refresh and can be printed or saved as PDF. Administratively approved replacement revokes the old QR. See `app/services/permanent_credential_service.py`.
+- **Authorized scans:** administrators, teachers and staff can record physical check-in/check-out with camera or supported manual code; `app/static/js/qr-camera.js` uses browser camera capture and the bundled jsQR decoder. Camera permission generally requires HTTPS or localhost. Records are shown in campus access history.
+- **Historical five-minute tokens are a separate compatibility flow:** `app/services/scan_token_service.py` contains temporary QR behavior. Do **not** describe the current permanent university ID as a QR that expires every five minutes.
+- **Visitors:** administrators create or authorize temporary passes with defined expiry and revocation; test valid, expired and revoked scenarios before production use.
+- **Communications:** administrators publish role-targeted notices; users can send authenticated issue reports and maintain private conversations with administrators.
+- **No academic class attendance in current active scope:** class schedules, grading, academic presence and Present/Late/Absent are not current operating features; historical data and compatibility routes may remain in the codebase to prevent destructive migrations.
+- **Physical security limitation:** a signed QR supports an operator's identity check but does not detect dangerous items, operate gates or replace security personnel. Browser forms use CSRF protection; privileged actions must remain server-authorized.
 
 ### Automated tests
 
