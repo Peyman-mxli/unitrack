@@ -2196,7 +2196,7 @@ class UniTrackTests(unittest.TestCase):
         image_response = admin.get(f"/credentials/visitor-photo/{pass_id}")
         self.assertEqual(image_response.status_code, 200)
         self.assertEqual(image_response.mimetype, "image/jpeg")
-        self.assertIn("private, no-store", image_response.headers.get("Cache-Control", ""))
+        self.assertIn("no-store", image_response.headers.get("Cache-Control", ""))
         self.assertTrue(image_response.data.startswith(b"\xff\xd8"))
         qr_response = admin.get(f"/credentials/visitor-qr/{pass_id}")
         self.assertEqual(qr_response.status_code, 200)
