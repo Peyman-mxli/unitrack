@@ -352,15 +352,18 @@ def create_guest():
     if not _admin():
         abort(403)
     try:
-        duration = request.form.get("duration", "24")
-        if duration in {"24", "48", "72"}:
+        duration = str(request.form.get("duration", "1")).strip()
+        if duration in {"10m", "20m", "30m", "40m", "50m"}:
+            start = campus_now()
+            end = start + timedelta(minutes=int(duration[:-1]))
+        elif duration.isdecimal() and int(duration) in {*range(1, 25), 48, 72}:
             start = campus_now()
             end = start + timedelta(hours=int(duration))
         elif duration == "custom":
             start = request.form.get("starts_at", "")
             end = request.form.get("expires_at", "")
         else:
-            raise ValueError("Select 24, 48, 72 hours or a custom date range.")
+            raise ValueError("Select 10–50 minutes, 1–24 hours, 48 or 72 hours, or custom dates.")
         item = issue_visitor_pass(
             current_user, request.form.get("full_name", ""),
             request.form.get("purpose", ""), start, end,
