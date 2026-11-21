@@ -111,3 +111,7 @@ El repositorio contiene `tests/test_unitrack.py` con pruebas automatizadas relev
 
 ---
 **Nota de despliegue:** GitHub distribuye código; no sincroniza automáticamente bases SQLite locales, fotografías o secretos entre laptops. Para uso institucional real hacen falta verificación organizacional, operadores, barreras físicas, infraestructura persistente, privacidad y auditorías de seguridad.
+
+
+### Actualización de permisos temporales (21/11/2026)
+El administrador dispone de una selección de duración de pase de visitante de **10, 20, 30, 40 o 50 minutos**, **1 a 24 horas** (incrementos de una hora), **48 o 72 horas**, además de fechas personalizadas. La opción predeterminada es **1 hora**. La vigencia de opciones por duración comienza al crear el pase y es validada en el servidor; valores fuera de la lista se rechazan. Esta modificación facilita ejecutar **PF-09 (caducidad)** con un permiso de 10 minutos, sin esperar 24 horas. **PF-09 queda pendiente de prueba visual con un pase vencido**: el escáner debe impedir una nueva entrada después del vencimiento, aunque admite registrar la salida de alguien que ya estaba dentro.
