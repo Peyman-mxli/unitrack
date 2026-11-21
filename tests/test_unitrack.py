@@ -2197,11 +2197,11 @@ class UniTrackTests(unittest.TestCase):
         self.assertEqual(image_response.status_code, 200)
         self.assertEqual(image_response.mimetype, "image/jpeg")
         self.assertIn("private, no-store", image_response.headers.get("Cache-Control", ""))
-        self.assertTrue(image_response.data.startswith(b"\\xff\\xd8"))
+        self.assertTrue(image_response.data.startswith(b"\xff\xd8"))
         qr_response = admin.get(f"/credentials/visitor-qr/{pass_id}")
         self.assertEqual(qr_response.status_code, 200)
         self.assertEqual(qr_response.mimetype, "image/png")
-        self.assertTrue(qr_response.data.startswith(b"\\x89PNG"))
+        self.assertTrue(qr_response.data.startswith(b"\x89PNG"))
 
         non_admin = self._signed_in_client("StudentA")
         self.assertEqual(non_admin.get(f"/credentials/visitor-photo/{pass_id}").status_code, 403)
